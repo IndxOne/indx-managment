@@ -38,7 +38,7 @@ export function RunWorkspaceScreen({
     useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
-  const allActions = state.actionsByWorkspace[workspace.id] ?? [];
+  const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
 
   // Vérifie les relances devenues dues à chaque affichage / changement de
   // la liste (pas d'ordonnanceur en tâche de fond en Lot 3 — cf. Lot 5).

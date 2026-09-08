@@ -48,6 +48,7 @@ export function NotesSheet({
           value={text}
           onChange={(event) => setText(event.target.value)}
           rows={3}
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- sheet ouvert par une action explicite, focus attendu (pattern dialog APG)
           autoFocus
         />
       </div>

@@ -36,7 +36,6 @@ export function BottomSheet({
 
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div className="sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} ref={sheetRef} tabIndex={-1}>
         <div className="sheet-handle" aria-hidden="true" />

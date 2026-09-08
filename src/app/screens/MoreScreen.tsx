@@ -12,9 +12,9 @@ export function MoreScreen() {
         <h1>Plus</h1>
       </div>
       <div className="app-main">
-        <ul className="list">
+        <ul className="list action-card-list">
           {STUB_LINKS.map((label) => (
-            <li key={label} className="card" aria-disabled="true" style={{ cursor: "default", opacity: 0.6 }}>
+            <li key={label} className="action-card" style={{ opacity: 0.6 }}>
               <span className="card-title">{label}</span>
               <div className="card-meta">À venir</div>
             </li>
