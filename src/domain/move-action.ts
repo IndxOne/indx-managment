@@ -4,8 +4,9 @@ import type { Action, ActionStatus, Schedule } from "./types";
 export type MoveAxis = "schedule" | "phase" | "status";
 
 export type ScheduleMoveDestination =
-  | { granularity: "none" }
+  | { kind: "none" }
   | {
+      kind: "week";
       /** Semaine ISO cible (déplacement dans une vue hebdomadaire). */
       targetWeek: string;
       /**
@@ -48,13 +49,11 @@ export function moveAction(action: Action, destination: MoveDestination, now?: s
 }
 
 function resolveScheduleMove(current: Schedule | undefined, to: ScheduleMoveDestination): Schedule {
-  if (to.granularity === "none") {
+  if (to.kind === "none") {
     return { granularity: "none" };
   }
 
-  const currentGranularity = current?.granularity ?? "none";
-
-  if (currentGranularity === "day" && current) {
+  if (current?.granularity === "day") {
     // Jour vers autre semaine : conserver le jour de semaine.
     const weekday = getIsoWeekday(current.value); // 1..7
     const targetMonday = isoWeekStart(to.targetWeek);
@@ -62,7 +61,7 @@ function resolveScheduleMove(current: Schedule | undefined, to: ScheduleMoveDest
     return { granularity: "day", value: targetDate };
   }
 
-  if (currentGranularity === "month") {
+  if (current?.granularity === "month") {
     // Mois vers semaine : changer la granularité après confirmation.
     if (!to.confirmed) {
       throw new Error("Confirmation requise pour passer d'une planification mensuelle à une semaine");

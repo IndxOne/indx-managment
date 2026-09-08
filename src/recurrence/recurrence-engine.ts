@@ -45,31 +45,32 @@ export function generateRecurringOccurrences(rule: RecurrenceRule, window: Gener
   parseCalendarDate(window.end);
 
   const occurrences: Action[] = [];
-  let cursor = rule.startDate;
-
-  // Aligner le curseur sur la cadence de la règle avant d'entrer dans la fenêtre.
-  while (cursor < window.start) {
-    cursor = advance(cursor, rule);
-  }
-
   const effectiveEnd = rule.endDate && rule.endDate < window.end ? rule.endDate : window.end;
 
-  while (cursor <= effectiveEnd) {
-    occurrences.push(buildOccurrence(rule, cursor));
-    cursor = advance(cursor, rule);
+  // Chaque occurrence est calculée depuis l'ancre d'origine (startDate),
+  // jamais depuis l'occurrence précédente : un calage mensuel sur un jour
+  // inexistant (31 janvier -> 28 février) ne doit pas "coller" au 28 pour
+  // les mois suivants (le 31 mars doit rester le 31 mars).
+  for (let index = 0; ; index += 1) {
+    const dateValue = occurrenceDateAtIndex(rule, index);
+    if (dateValue > effectiveEnd) break;
+    if (dateValue >= window.start) {
+      occurrences.push(buildOccurrence(rule, dateValue));
+    }
   }
 
   return occurrences;
 }
 
-function advance(dateValue: string, rule: RecurrenceRule): string {
+function occurrenceDateAtIndex(rule: RecurrenceRule, index: number): string {
+  const offset = index * rule.interval;
   switch (rule.frequency) {
     case "daily":
-      return addDays(dateValue, rule.interval);
+      return addDays(rule.startDate, offset);
     case "weekly":
-      return addDays(dateValue, rule.interval * 7);
+      return addDays(rule.startDate, offset * 7);
     case "monthly":
-      return addMonths(dateValue, rule.interval);
+      return addMonths(rule.startDate, offset);
   }
 }
 
