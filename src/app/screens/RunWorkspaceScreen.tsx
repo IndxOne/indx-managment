@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { deriveScheduleKeys } from "../../calendar/calendar-engine";
+import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
@@ -7,11 +8,12 @@ import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
-import { ActionCard } from "../components/ActionCard";
+import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
+import { QuickAddBar } from "../components/QuickAddBar";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState, NoResultsState } from "../components/StateBlocks";
 import { applyFilters, EMPTY_FILTERS, hasActiveFilters, type ActionFilters } from "../utils/filter-actions";
@@ -43,6 +45,7 @@ export function RunWorkspaceScreen({
   const [filters, setFilters] = useState<ActionFilters>(EMPTY_FILTERS);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
 
@@ -115,6 +118,14 @@ export function RunWorkspaceScreen({
           </button>
         </div>
 
+        <QuickAddBar
+          onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}
+          onOpenFullForm={(draftTitle) => {
+            setAddSheetDraftTitle(draftTitle);
+            setAddSheetOpen(true);
+          }}
+        />
+
         {nothingToShow ? (
           hasActiveFilters(filters) ? (
             <NoResultsState onClearFilters={() => setFilters(EMPTY_FILTERS)} />
@@ -126,74 +137,48 @@ export function RunWorkspaceScreen({
           )
         ) : (
           <>
-            {buckets.waiting.length > 0 && (
-              <section aria-labelledby="section-waiting">
-                <h2 id="section-waiting" className="section-title">
-                  En attente
-                </h2>
-                {buckets.waiting.map((action) => (
-                  <ActionCard
-                    key={action.id}
-                    action={action}
-                    timezone={timezone}
-                    statusLabel={statusLabels[action.status]}
-                    onMove={() => setMovingAction(action)}
-                    onEdit={() => setEditingAction(action)}
-                    onDelete={() => remove(action)}
-                    onDisableReminder={() => disableReminder(workspace.id, action.id)}
-                  />
-                ))}
-              </section>
-            )}
+            <ActionListSection
+              id="section-waiting"
+              title="En attente"
+              actions={buckets.waiting}
+              timezone={timezone}
+              statusLabels={statusLabels}
+              onMove={setMovingAction}
+              onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+              onEdit={setEditingAction}
+              onDelete={remove}
+              onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+            />
 
-            <section aria-labelledby="section-inview">
-              <h2 id="section-inview" className="section-title">
-                {view === "today" ? "Aujourd'hui" : "Cette semaine"}
-              </h2>
-              {buckets.inView.length === 0 ? (
-                <p className="action-sub">Aucune action planifiée.</p>
-              ) : (
-                buckets.inView.map((action) => (
-                  <ActionCard
-                    key={action.id}
-                    action={action}
-                    timezone={timezone}
-                    statusLabel={statusLabels[action.status]}
-                    onMove={() => setMovingAction(action)}
-                    onEdit={() => setEditingAction(action)}
-                    onDelete={() => remove(action)}
-                    onDisableReminder={() => disableReminder(workspace.id, action.id)}
-                  />
-                ))
-              )}
-            </section>
+            <ActionListSection
+              id="section-inview"
+              title={view === "today" ? "Aujourd'hui" : "Cette semaine"}
+              actions={buckets.inView}
+              timezone={timezone}
+              statusLabels={statusLabels}
+              emptyMessage="Aucune action planifiée."
+              onMove={setMovingAction}
+              onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+              onEdit={setEditingAction}
+              onDelete={remove}
+              onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+            />
 
-            {buckets.unscheduled.length > 0 && (
-              <section aria-labelledby="section-unscheduled">
-                <h2 id="section-unscheduled" className="section-title">
-                  Sans échéance
-                </h2>
-                {buckets.unscheduled.map((action) => (
-                  <ActionCard
-                    key={action.id}
-                    action={action}
-                    timezone={timezone}
-                    statusLabel={statusLabels[action.status]}
-                    onMove={() => setMovingAction(action)}
-                    onEdit={() => setEditingAction(action)}
-                    onDelete={() => remove(action)}
-                    onDisableReminder={() => disableReminder(workspace.id, action.id)}
-                  />
-                ))}
-              </section>
-            )}
+            <ActionListSection
+              id="section-unscheduled"
+              title="Sans échéance"
+              actions={buckets.unscheduled}
+              timezone={timezone}
+              statusLabels={statusLabels}
+              onMove={setMovingAction}
+              onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+              onEdit={setEditingAction}
+              onDelete={remove}
+              onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+            />
           </>
         )}
       </div>
-
-      <button type="button" className="btn btn-primary btn-fab" onClick={() => setAddSheetOpen(true)} aria-label="Ajouter une action">
-        <span aria-hidden="true">+</span>
-      </button>
 
       {filterSheetOpen && (
         <FilterSheet
@@ -206,6 +191,7 @@ export function RunWorkspaceScreen({
 
       {addSheetOpen && (
         <AddActionSheet
+          initialTitle={addSheetDraftTitle}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={(input) => {
             createAction({ workspaceId: workspace.id, ...input });

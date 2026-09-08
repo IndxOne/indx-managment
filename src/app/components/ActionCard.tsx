@@ -1,21 +1,25 @@
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
-import type { Action } from "../../domain/types";
+import { cycleStatus } from "../../domain/move-action";
+import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { PRIORITY_LABELS } from "../labels";
 
 export function ActionCard({
   action,
   timezone,
-  statusLabel,
+  statusLabels,
   onMove,
+  onCycleStatus,
   onEdit,
   onDelete,
   onDisableReminder,
 }: {
   action: Action;
   timezone: string;
-  statusLabel: string;
+  statusLabels: Record<ActionStatus, string>;
   onMove: () => void;
+  /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". */
+  onCycleStatus?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onDisableReminder?: () => void;
@@ -25,10 +29,24 @@ export function ActionCard({
   const isWaiting = action.status === "waiting";
   const reminderActive = isWaiting && action.waitingReminder?.enabled;
   const reminderDue = reminderActive && isWaitingReminderDue(action);
+  const statusLabel = statusLabels[action.status];
+  const nextStatusLabel = statusLabels[cycleStatus(action.status)];
+  const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
 
   return (
     <div className="action-row" data-waiting={isWaiting}>
       <div className="action-row-content">
+        {onCycleStatus && (
+          <button
+            type="button"
+            className="status-check tap-target"
+            data-status={action.status}
+            role="checkbox"
+            aria-checked={ariaChecked}
+            aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
+            onClick={onCycleStatus}
+          />
+        )}
         <span
           className="priority-dot"
           data-priority={action.priority}

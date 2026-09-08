@@ -7,17 +7,21 @@ const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
 
 export function AddActionSheet({
   phaseOptions,
+  defaultPhaseId,
+  initialTitle,
   onCancel,
   onCreate,
 }: {
   phaseOptions?: string[];
+  defaultPhaseId?: string;
+  initialTitle?: string;
   onCancel: () => void;
   onCreate: (input: { title: string; itemType: WorkItemType; priority: Priority; phaseId?: string }) => void;
 }) {
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [itemType, setItemType] = useState<WorkItemType>("task");
   const [priority, setPriority] = useState<Priority>("normal");
-  const [phaseId, setPhaseId] = useState<string | undefined>(phaseOptions?.[0]);
+  const [phaseId, setPhaseId] = useState<string | undefined>(defaultPhaseId ?? phaseOptions?.[0]);
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit() {
@@ -83,7 +87,7 @@ export function AddActionSheet({
       )}
 
       <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>
-        Ajouter
+        Créer l'action
       </button>
       <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onCancel}>
         Annuler

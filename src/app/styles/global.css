@@ -143,6 +143,22 @@ a {
   z-index: 20;
 }
 
+.quick-add {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.quick-add-input {
+  flex: 1;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -428,6 +444,41 @@ a {
 .action-sub {
   color: var(--color-text-muted);
   font-size: 0.875rem;
+}
+
+.status-check {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-right: var(--space-2);
+}
+
+.status-check::before {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  border-radius: 999px;
+  border: 2px solid var(--color-border);
+  box-sizing: border-box;
+}
+
+.status-check[data-status="doing"]::before {
+  border-color: var(--color-accent);
+  background: linear-gradient(90deg, var(--color-accent) 50%, transparent 50%);
+}
+
+.status-check[data-status="done"]::before {
+  border-color: var(--color-success);
+  background: var(--color-success);
+}
+
+.status-check[data-status="waiting"]::before {
+  border-color: var(--color-warning);
+  border-style: dashed;
 }
 
 .priority-dot {

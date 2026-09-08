@@ -21,6 +21,20 @@ export type MoveDestination =
   | { axis: "phase"; phaseId: string | undefined }
   | { axis: "status"; status: ActionStatus };
 
+const STATUS_CYCLE: Record<ActionStatus, ActionStatus> = {
+  todo: "doing",
+  doing: "done",
+  done: "todo",
+  // "waiting" ne fait pas partie du cycle rapide (elle exige la relance
+  // du MoveActionSheet) : un clic en sort simplement vers "todo".
+  waiting: "todo",
+};
+
+/** Prochain statut dans le cycle rapide 1-clic (todo → doing → done → todo). */
+export function cycleStatus(status: ActionStatus): ActionStatus {
+  return STATUS_CYCLE[status];
+}
+
 /**
  * Déplace une action selon un seul axe à la fois. Chaque branche ne modifie
  * que les champs de son axe : un déplacement de phase ne touche jamais au
