@@ -11,6 +11,7 @@ import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
+import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -84,15 +85,11 @@ export function ProjectWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>PROJET</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            className="btn tap-target"
-            onClick={() => setMode(mode === "phase" ? "week" : "phase")}
-          >
+          <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
             {mode === "phase" ? "Vue semaine" : "Vue phases"}
           </button>
-          <button type="button" className="btn tap-target" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
-            <span aria-hidden="true">⚙</span>
+          <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
+            <IconSettings width={17} height={17} />
           </button>
         </div>
       </div>
@@ -107,7 +104,7 @@ export function ProjectWorkspaceScreen({
               />
             ) : (
               <>
-                <div className="segmented" role="tablist" aria-label="Sélecteur de phases">
+                <div className="segmented-scroll" role="tablist" aria-label="Sélecteur de phases">
                   {phases.map((phase) => (
                     <button
                       key={phase}
@@ -115,7 +112,7 @@ export function ProjectWorkspaceScreen({
                       role="tab"
                       aria-selected={currentPhase === phase}
                       aria-current={currentPhase === phase}
-                      className="segmented-item"
+                      className="segmented-chip"
                       onClick={() => setCurrentPhase(phase)}
                     >
                       {phaseLabel(phase)}

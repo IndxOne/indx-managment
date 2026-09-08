@@ -12,6 +12,7 @@ import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
+import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -94,17 +95,22 @@ export function RunWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>{workspace.kind === "run" ? "RUN" : "PROJET"}</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className="btn tap-target" onClick={() => setFilterSheetOpen(true)}>
+          <button type="button" className="btn" onClick={() => setFilterSheetOpen(true)}>
             Filtres{hasActiveFilters(filters) ? " •" : ""}
           </button>
-          <button type="button" className="btn tap-target" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
-            <span aria-hidden="true">⚙</span>
+          <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
+            <IconSettings width={17} height={17} />
           </button>
         </div>
       </div>
 
       <div className="app-main">
         <div className="segmented" role="tablist" aria-label="Vue temporelle">
+          <div
+            className="segmented-thumb"
+            aria-hidden="true"
+            style={{ width: "calc(50% - 2px)", left: 2, transform: `translateX(${view === "today" ? "0%" : "100%"})` }}
+          />
           <button
             type="button"
             role="tab"

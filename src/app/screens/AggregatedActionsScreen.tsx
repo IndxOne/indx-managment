@@ -53,21 +53,21 @@ export function AggregatedActionsScreen({
         {entries.length === 0 ? (
           <EmptyState title="Rien à afficher" description={emptyDescription} />
         ) : (
-          entries.map(({ workspaceName, action }) => {
-            const derived = deriveScheduleKeys(action.schedule, timezone);
-            const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey;
-            return (
-              <div className="action-row" key={action.id} data-waiting={action.status === "waiting"}>
-                <div>
+          <div className="action-card-list">
+            {entries.map(({ workspaceName, action }) => {
+              const derived = deriveScheduleKeys(action.schedule, timezone);
+              const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey;
+              return (
+                <div className="action-card" key={action.id}>
                   <span className="action-title">{action.title}</span>
                   <div className="action-sub">
                     {workspaceName} · {STATUS_LABELS_DEFAULT[action.status]}
                     {scheduleLabel ? ` · ${scheduleLabel}` : ""}
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

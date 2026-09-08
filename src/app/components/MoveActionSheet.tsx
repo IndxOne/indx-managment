@@ -36,21 +36,24 @@ export function MoveActionSheet({
         <p id="move-axis-heading" style={{ fontWeight: 600 }}>
           Déplacer « {action.title} »
         </p>
-        <div className="choice-group" role="group" aria-labelledby="move-axis-heading">
+        <div className="choice-group" role="group" aria-labelledby="move-axis-heading" style={{ marginBottom: 8 }}>
           {(Object.keys(AXIS_LABELS) as MoveAxis[]).map((candidate) => (
             <button
               key={candidate}
               type="button"
-              className="btn btn-block tap-target"
+              className="action-menu-item"
+              style={{ justifyContent: "center" }}
               onClick={() => setAxis(candidate)}
             >
               {AXIS_LABELS[candidate]}
             </button>
           ))}
         </div>
-        <button type="button" className="btn btn-block tap-target" style={{ marginTop: 16 }} onClick={onCancel}>
-          Annuler
-        </button>
+        <div className="choice-group">
+          <button type="button" className="action-menu-item" style={{ justifyContent: "center", fontWeight: 600 }} onClick={onCancel}>
+            Annuler
+          </button>
+        </div>
       </BottomSheet>
     );
   }
@@ -71,21 +74,29 @@ export function MoveActionSheet({
     return (
       <BottomSheet title="Déplacer — choisir la phase" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Nouvelle phase</p>
-        <div className="choice-group">
+        <div className="choice-group" style={{ marginBottom: 8 }}>
           {phaseOptions.map((phase) => (
             <button
               key={phase}
               type="button"
-              className="btn btn-block tap-target"
+              className="action-menu-item"
+              style={{ justifyContent: "center" }}
               onClick={() => onConfirm({ axis: "phase", phaseId: phase })}
             >
               {phaseLabel(phase)}
             </button>
           ))}
         </div>
-        <button type="button" className="btn btn-block tap-target" style={{ marginTop: 16 }} onClick={() => setAxis(null)}>
-          Retour
-        </button>
+        <div className="choice-group">
+          <button
+            type="button"
+            className="action-menu-item"
+            style={{ justifyContent: "center", fontWeight: 600 }}
+            onClick={() => setAxis(null)}
+          >
+            Retour
+          </button>
+        </div>
       </BottomSheet>
     );
   }
@@ -128,10 +139,12 @@ function StatusDestinationStep({
     return (
       <BottomSheet title="Déplacer — relance" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Passer « {action.title} » en attente</p>
-        <label className="choice-option">
-          <input type="checkbox" checked={reminderEnabled} onChange={(event) => setReminderEnabled(event.target.checked)} />
-          Activer une relance automatique
-        </label>
+        <div className="choice-group">
+          <label className="choice-option">
+            <input type="checkbox" checked={reminderEnabled} onChange={(event) => setReminderEnabled(event.target.checked)} />
+            Activer une relance automatique
+          </label>
+        </div>
         {reminderEnabled && (
           <div className="field">
             <label htmlFor="reminder-days">Relance après (jours)</label>
@@ -170,21 +183,24 @@ function StatusDestinationStep({
   return (
     <BottomSheet title="Déplacer — choisir le statut" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Nouveau statut</p>
-      <div className="choice-group">
+      <div className="choice-group" style={{ marginBottom: 8 }}>
         {(Object.keys(statusLabels) as ActionStatus[]).map((status) => (
           <button
             key={status}
             type="button"
-            className="btn btn-block tap-target"
+            className="action-menu-item"
+            style={{ justifyContent: "center" }}
             onClick={() => (status === "waiting" ? setPendingWaiting(true) : onConfirm({ axis: "status", status }))}
           >
             {statusLabels[status]}
           </button>
         ))}
       </div>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 16 }} onClick={onBack}>
-        Retour
-      </button>
+      <div className="choice-group">
+        <button type="button" className="action-menu-item" style={{ justifyContent: "center", fontWeight: 600 }} onClick={onBack}>
+          Retour
+        </button>
+      </div>
     </BottomSheet>
   );
 }
@@ -220,10 +236,12 @@ function ScheduleDestinationStep({
       </div>
 
       {requiresConfirmation && (
-        <label className="choice-option">
-          <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-          Je confirme le passage d'une planification mensuelle à une semaine précise.
-        </label>
+        <div className="choice-group">
+          <label className="choice-option">
+            <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
+            Je confirme le passage d'une planification mensuelle à une semaine précise.
+          </label>
+        </div>
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>

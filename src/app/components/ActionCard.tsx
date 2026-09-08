@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
-import { PRIORITY_LABELS } from "../labels";
+import { phaseLabel } from "../labels";
+import { phaseChipClass } from "../utils/phase-color";
+import { ActionMenuSheet } from "./ActionMenuSheet";
+import { IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
 export function ActionCard({
   action,
@@ -28,106 +32,95 @@ export function ActionCard({
   onOpenNotes?: () => void;
   onOpenLink?: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
   const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
   const isWaiting = action.status === "waiting";
+  const isDone = action.status === "done";
   const reminderActive = isWaiting && action.waitingReminder?.enabled;
   const reminderDue = reminderActive && isWaitingReminderDue(action);
   const statusLabel = statusLabels[action.status];
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
+  const hasChips = Boolean(action.phaseId) || action.priority === "high";
 
   return (
-    <div className="action-row" data-waiting={isWaiting}>
-      <div className="action-row-content">
+    <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
+      {hasChips && (
+        <div className="action-card-chips">
+          {action.phaseId && (
+            <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
+          )}
+          {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
+        </div>
+      )}
+      <div className="action-card-body">
         {onCycleStatus && (
           <button
             type="button"
-            className="status-check tap-target"
-            data-status={action.status}
+            className="status-check"
             role="checkbox"
             aria-checked={ariaChecked}
             aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
             onClick={onCycleStatus}
-          />
+          >
+            <StatusCheckIcon status={action.status} />
+          </button>
         )}
-        <span
-          className="priority-dot"
-          data-priority={action.priority}
-          aria-hidden="true"
-          style={{ display: "inline-block", marginRight: 8 }}
-        />
-        <span className="action-title">{action.title}</span>
-        <div className="action-sub">
-          {statusLabel}
-          {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
-          {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
-        </div>
-        {reminderDue && (
-          <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
-            Relance due
-            {onDisableReminder && (
-              <button type="button" className="btn tap-target" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
-                Désactiver la relance
-              </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span
+            className="action-title"
+            style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
+          >
+            {action.title}
+          </span>
+          <div className="action-sub">
+            <span>
+              {statusLabel}
+              {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
+              {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
+            </span>
+            {noteCount > 0 && (
+              <span className="meta-chip">
+                <IconMessage width={14} height={14} /> {noteCount}
+              </span>
+            )}
+            {hasLink && (
+              <span className="meta-chip">
+                <IconLink width={14} height={14} />
+              </span>
             )}
           </div>
-        )}
-      </div>
-      <div className="action-row-buttons">
-        {onOpenLink && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            data-linked={hasLink}
-            onClick={onOpenLink}
-            aria-label={hasLink ? `Action liée pour "${action.title}"` : `Lier "${action.title}" à une autre action`}
-          >
-            <span aria-hidden="true">🔗</span>
-          </button>
-        )}
-        {onOpenNotes && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onOpenNotes}
-            aria-label={`Notes de "${action.title}"${noteCount > 0 ? ` (${noteCount})` : ""}`}
-          >
-            <span aria-hidden="true">💬</span>
-            {noteCount > 0 ? ` ${noteCount}` : ""}
-          </button>
-        )}
-        {onEdit && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onEdit}
-            aria-label={`Éditer "${action.title}"`}
-          >
-            <span aria-hidden="true">✏️</span>
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn tap-target"
-          onClick={onMove}
-          aria-label={`Déplacer "${action.title}"`}
-        >
-          Déplacer
+          {reminderDue && (
+            <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
+              Relance due
+              {onDisableReminder && (
+                <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
+                  Désactiver la relance
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
+          <IconMore />
         </button>
-        {onDelete && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onDelete}
-            aria-label={`Supprimer "${action.title}"`}
-          >
-            <span aria-hidden="true">🗑</span>
-          </button>
-        )}
       </div>
+      {menuOpen && (
+        <ActionMenuSheet
+          action={action}
+          noteCount={noteCount}
+          hasLink={hasLink}
+          onClose={() => setMenuOpen(false)}
+          onEdit={onEdit}
+          onMove={onMove}
+          onDelete={onDelete}
+          onOpenNotes={onOpenNotes}
+          onOpenLink={onOpenLink}
+        />
+      )}
     </div>
   );
 }

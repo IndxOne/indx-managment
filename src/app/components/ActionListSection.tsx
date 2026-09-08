@@ -63,21 +63,23 @@ export function ActionListSection({
       {visible.length === 0 ? (
         <p className="action-sub">Toutes les actions sont terminées.</p>
       ) : (
-        visible.map((action) => (
-          <ActionCard
-            key={action.id}
-            action={action}
-            timezone={timezone}
-            statusLabels={statusLabels}
-            onMove={() => onMove(action)}
-            onCycleStatus={() => onCycleStatus(action)}
-            onEdit={() => onEdit(action)}
-            onDelete={() => onDelete(action)}
-            onDisableReminder={() => onDisableReminder(action)}
-            onOpenNotes={() => onOpenNotes(action)}
-            onOpenLink={() => onOpenLink(action)}
-          />
-        ))
+        <div className="action-card-list">
+          {visible.map((action) => (
+            <ActionCard
+              key={action.id}
+              action={action}
+              timezone={timezone}
+              statusLabels={statusLabels}
+              onMove={() => onMove(action)}
+              onCycleStatus={() => onCycleStatus(action)}
+              onEdit={() => onEdit(action)}
+              onDelete={() => onDelete(action)}
+              onDisableReminder={() => onDisableReminder(action)}
+              onOpenNotes={() => onOpenNotes(action)}
+              onOpenLink={() => onOpenLink(action)}
+            />
+          ))}
+        </div>
       )}
     </section>
   );
