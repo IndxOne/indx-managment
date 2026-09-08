@@ -15,5 +15,12 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/app/test/setup.ts"],
     globals: false,
+    // Les tests exercent toujours l'adaptateur mémoire, jamais Supabase,
+    // même si .env.local est présent en local (isSupabaseConfigured() doit
+    // rester faux ici, quel que soit le poste sur lequel les tests tournent).
+    env: {
+      VITE_SUPABASE_URL: "",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "",
+    },
   },
 });

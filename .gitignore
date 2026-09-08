@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.log
 *.md
+.env
+.env.local

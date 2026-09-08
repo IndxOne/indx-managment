@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
-import { StoreProvider, useStore } from "./adapters/temporary-store";
+import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
+import { SupabaseStoreProvider } from "./adapters/supabase-store";
+import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
@@ -162,11 +164,12 @@ function WorkspaceNotFound({ onBack }: { onBack: () => void }) {
 }
 
 export function App() {
+  const StoreProviderImpl = isSupabaseConfigured() ? SupabaseStoreProvider : TemporaryStoreProvider;
   return (
     <AnnouncerProvider>
-      <StoreProvider>
+      <StoreProviderImpl>
         <AppShell />
-      </StoreProvider>
+      </StoreProviderImpl>
     </AnnouncerProvider>
   );
 }
