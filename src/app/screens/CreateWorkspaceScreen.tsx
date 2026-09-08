@@ -65,6 +65,7 @@ export function CreateWorkspaceScreen({
             onChange={(event) => setName(event.target.value)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "workspace-name-error" : undefined}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- écran de création ouvert par une action explicite, focus attendu sur le premier champ
             autoFocus
           />
         </div>
