@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
-import { PRIORITY_LABELS } from "../labels";
-import { IconLink, IconMessage, IconPencil, IconTrash } from "./Icons";
+import { ActionMenuSheet } from "./ActionMenuSheet";
+import { IconLink, IconMessage, IconMore } from "./Icons";
 
 export function ActionCard({
   action,
@@ -29,6 +30,7 @@ export function ActionCard({
   onOpenNotes?: () => void;
   onOpenLink?: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
@@ -62,9 +64,21 @@ export function ActionCard({
         />
         <span className="action-title">{action.title}</span>
         <div className="action-sub">
-          {statusLabel}
-          {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
-          {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
+          <span>
+            {statusLabel}
+            {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
+            {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
+          </span>
+          {noteCount > 0 && (
+            <span className="meta-chip">
+              <IconMessage width={14} height={14} /> {noteCount}
+            </span>
+          )}
+          {hasLink && (
+            <span className="meta-chip">
+              <IconLink width={14} height={14} />
+            </span>
+          )}
         </div>
         {reminderDue && (
           <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
@@ -77,58 +91,27 @@ export function ActionCard({
           </div>
         )}
       </div>
-      <div className="action-row-buttons">
-        {onOpenLink && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            data-linked={hasLink}
-            onClick={onOpenLink}
-            aria-label={hasLink ? `Action liée pour "${action.title}"` : `Lier "${action.title}" à une autre action`}
-          >
-            <IconLink />
-          </button>
-        )}
-        {onOpenNotes && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onOpenNotes}
-            aria-label={`Notes de "${action.title}"${noteCount > 0 ? ` (${noteCount})` : ""}`}
-          >
-            <IconMessage />
-            {noteCount > 0 ? ` ${noteCount}` : ""}
-          </button>
-        )}
-        {onEdit && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onEdit}
-            aria-label={`Éditer "${action.title}"`}
-          >
-            <IconPencil />
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn tap-target"
-          onClick={onMove}
-          aria-label={`Déplacer "${action.title}"`}
-        >
-          Déplacer
-        </button>
-        {onDelete && (
-          <button
-            type="button"
-            className="btn icon-btn tap-target"
-            onClick={onDelete}
-            aria-label={`Supprimer "${action.title}"`}
-          >
-            <IconTrash />
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        className="btn icon-btn tap-target"
+        onClick={() => setMenuOpen(true)}
+        aria-label={`Actions pour "${action.title}"`}
+      >
+        <IconMore />
+      </button>
+      {menuOpen && (
+        <ActionMenuSheet
+          action={action}
+          noteCount={noteCount}
+          hasLink={hasLink}
+          onClose={() => setMenuOpen(false)}
+          onEdit={onEdit}
+          onMove={onMove}
+          onDelete={onDelete}
+          onOpenNotes={onOpenNotes}
+          onOpenLink={onOpenLink}
+        />
+      )}
     </div>
   );
 }

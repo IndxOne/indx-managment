@@ -103,6 +103,27 @@ a {
   padding-bottom: var(--space-5);
 }
 
+.route-transition {
+  animation: route-fade-in 220ms ease-out;
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-transition {
+    animation: none;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -382,6 +403,26 @@ a {
   font-weight: 700;
 }
 
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 28px;
+  border-radius: 999px;
+  transition: background 150ms ease;
+}
+
+.bottom-nav-item[aria-current="page"] .nav-icon {
+  background: var(--color-accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-icon {
+    transition: none;
+  }
+}
+
 .top-bar {
   display: flex;
   align-items: center;
@@ -415,6 +456,7 @@ a {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
 .segmented-item[aria-current="true"] {
@@ -422,6 +464,12 @@ a {
   color: var(--color-accent-contrast);
   border-color: transparent;
   box-shadow: var(--shadow-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented-item {
+    transition: none;
+  }
 }
 
 .state-block {
@@ -517,12 +565,6 @@ a {
   padding-right: var(--space-2);
 }
 
-.icon-btn[data-linked="true"] {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-
 .action-row[data-waiting="true"] {
   border-color: var(--color-warning);
 }
@@ -534,6 +576,25 @@ a {
 .action-sub {
   color: var(--color-text-muted);
   font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.action-menu-item {
+  justify-content: flex-start;
+  gap: var(--space-3);
+}
+
+.action-menu-item-danger {
+  color: var(--color-danger);
 }
 
 .status-check {

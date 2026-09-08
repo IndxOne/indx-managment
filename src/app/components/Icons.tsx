@@ -118,6 +118,15 @@ export function IconPencil(props: IconProps) {
   );
 }
 
+export function IconArrowRight(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <line x1="4" y1="12" x2="18.5" y2="12" />
+      <path d="M13.5 6.5 L19.5 12 L13.5 17.5" />
+    </svg>
+  );
+}
+
 export function IconTrash(props: IconProps) {
   return (
     <svg {...base} {...props}>

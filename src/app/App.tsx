@@ -86,11 +86,14 @@ function AppShell() {
       ? state.workspaces.find((candidate) => candidate.id === route.workspaceId)
       : undefined;
 
+  const routeKey = "workspaceId" in route ? `${route.screen}:${route.workspaceId}` : route.screen;
+
   return (
     <div className="app-shell">
       {!online && <OfflineBanner />}
       <BottomNav active={routeToTab(route)} onChange={handleNavChange} />
       <main style={{ flex: 1 }}>
+        <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
           <AggregatedActionsScreen
             title="Aujourd'hui"
@@ -151,6 +154,7 @@ function AppShell() {
           ))}
 
         {route.screen === "more" && <MoreScreen />}
+        </div>
       </main>
     </div>
   );
