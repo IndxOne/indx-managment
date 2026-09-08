@@ -5,6 +5,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   root: "src/app",
+  // envDir hérite de `root` par défaut : sans ce chemin explicite, Vite
+  // cherche .env.local dans src/app/ au lieu de la racine du repo (où
+  // .env.example et .gitignore l'attendent), et VITE_SUPABASE_* reste vide.
+  envDir: "../..",
   publicDir: false,
   build: {
     outDir: "../../dist",
