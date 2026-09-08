@@ -37,7 +37,7 @@ export function WorkspaceListScreen({
             }
           />
         ) : (
-          <ul className="list ios-group" aria-label="Liste des espaces">
+          <ul className="list workspace-card-list" aria-label="Liste des espaces">
             {state.workspaces.map((workspace) => (
               <WorkspaceCard
                 key={workspace.id}

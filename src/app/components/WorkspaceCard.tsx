@@ -20,7 +20,7 @@ export function WorkspaceCard({
 
   return (
     <li>
-      <button type="button" className="workspace-row" onClick={onSelect}>
+      <button type="button" className="workspace-card" data-kind={workspace.kind} onClick={onSelect}>
         <span className="workspace-icon" data-kind={workspace.kind} aria-hidden="true">
           <Icon width={19} height={19} />
         </span>

@@ -1,7 +1,9 @@
 /* Mobile-first : tout est pensé pour 360 px avant d'être élargi.
-   Direction visuelle iOS native (validée sur maquette) : listes groupées à
-   la Reminders/Réglages, action sheets natifs, segmented control à curseur
-   glissant, feedback tactile par estompage (jamais de scale façon Material). */
+   Direction visuelle iOS native pour les sheets/menus (action sheets natifs,
+   feedback tactile par estompage). Pour les listes d'actions et d'espaces,
+   direction "cards" façon Trello/Any.do/Things 3/Columns.app (validée sur
+   maquette) : cards individuelles avec ombre douce et espacement, chips
+   colorés déterministes par phase, checkbox/bullet coloré par statut. */
 
 :root {
   color-scheme: light dark;
@@ -30,9 +32,31 @@
   --radius-lg: 14px;
   --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.08);
   --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.18);
+  --shadow-card: 0 1px 2px rgba(20, 20, 30, 0.04), 0 6px 16px rgba(20, 20, 30, 0.07);
   --blur-bg: rgba(249, 249, 249, 0.94);
   --bottom-nav-height: 83px;
   --touch-target: 44px;
+  --radius-xl: 16px;
+  --wash-run-from: #fff8ec;
+  --wash-run-border: rgba(255, 149, 0, 0.16);
+  --wash-project-from: #f0edff;
+  --wash-project-border: rgba(99, 91, 255, 0.16);
+  --chip-blue-bg: #eaf0ff;
+  --chip-blue-text: #0057cc;
+  --chip-purple-bg: #f1ebfe;
+  --chip-purple-text: #6d28d9;
+  --chip-orange-bg: #fff3e0;
+  --chip-orange-text: #b25f00;
+  --chip-green-bg: #e7f8ec;
+  --chip-green-text: #1e8a3d;
+  --chip-red-bg: #ffece9;
+  --chip-red-text: #c92a1f;
+  --chip-teal-bg: #e4f7f5;
+  --chip-teal-text: #007a70;
+  --chip-pink-bg: #fdeaf3;
+  --chip-pink-text: #b3266f;
+  --chip-gray-bg: rgba(118, 118, 128, 0.12);
+  --chip-gray-text: #636366;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,7 +77,28 @@
     --color-success-soft: #0f2417;
     --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.5);
     --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
     --blur-bg: rgba(28, 28, 30, 0.85);
+    --wash-run-from: #2a2210;
+    --wash-run-border: rgba(255, 159, 10, 0.28);
+    --wash-project-from: #201f3a;
+    --wash-project-border: rgba(124, 118, 255, 0.32);
+    --chip-blue-bg: #152744;
+    --chip-blue-text: #6fb2ff;
+    --chip-purple-bg: #2c2049;
+    --chip-purple-text: #c4a6ff;
+    --chip-orange-bg: #33230d;
+    --chip-orange-text: #ffb454;
+    --chip-green-bg: #0f2417;
+    --chip-green-text: #5fd889;
+    --chip-red-bg: #34140f;
+    --chip-red-text: #ff7a6e;
+    --chip-teal-bg: #0e2c29;
+    --chip-teal-text: #4fd6c9;
+    --chip-pink-bg: #331526;
+    --chip-pink-text: #ff8ac0;
+    --chip-gray-bg: rgba(120, 120, 128, 0.24);
+    --chip-gray-text: #aeaeb2;
   }
 }
 
@@ -238,11 +283,32 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: var(--touch-target);
-  padding: 0 var(--space-3);
+  height: 52px;
+  padding: 0 var(--space-2) 0 6px;
   margin-bottom: var(--space-4);
   background: var(--color-bg);
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.quick-add-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 13px;
+  background: var(--color-accent);
+  color: #ffffff;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.quick-add-plus:disabled {
+  background: var(--color-text-tertiary);
+  cursor: default;
 }
 
 .quick-add-input {
@@ -308,38 +374,97 @@ a {
   white-space: pre-wrap;
 }
 
-/* Groupe de rangées façon Réglages/Reminders : un seul bloc arrondi, les
-   rangées internes sont flush avec un simple trait fin entre elles. */
-.ios-group {
-  background: var(--color-bg);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+/* Cards individuelles façon Trello/Any.do/Things 3/Columns.app : chaque
+   action ou espace est sa propre carte arrondie avec ombre douce, espacée
+   de ses voisines par un gap (jamais de rangées flush type Réglages). */
+.action-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin-bottom: var(--space-5);
 }
 
-.ios-row {
+.action-card {
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: 13px 13px 11px;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: 11px 14px;
-  min-height: 60px;
-  transition: background 100ms ease;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: box-shadow 100ms ease;
 }
 
-.ios-row:active {
-  background: var(--color-fill);
+.action-card:active {
+  box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ios-row {
+  .action-card {
     transition: none;
   }
 }
 
-.ios-separator {
-  height: 0.5px;
-  background: var(--color-border);
-  margin-left: 50px;
+.action-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.action-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.phase-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.phase-chip-blue {
+  background: var(--chip-blue-bg);
+  color: var(--chip-blue-text);
+}
+
+.phase-chip-purple {
+  background: var(--chip-purple-bg);
+  color: var(--chip-purple-text);
+}
+
+.phase-chip-orange {
+  background: var(--chip-orange-bg);
+  color: var(--chip-orange-text);
+}
+
+.phase-chip-green {
+  background: var(--chip-green-bg);
+  color: var(--chip-green-text);
+}
+
+.phase-chip-red {
+  background: var(--chip-red-bg);
+  color: var(--chip-red-text);
+}
+
+.phase-chip-teal {
+  background: var(--chip-teal-bg);
+  color: var(--chip-teal-text);
+}
+
+.phase-chip-pink {
+  background: var(--chip-pink-bg);
+  color: var(--chip-pink-text);
+}
+
+.phase-chip-gray {
+  background: var(--chip-gray-bg);
+  color: var(--chip-gray-text);
 }
 
 .choice-group {
@@ -400,65 +525,68 @@ a {
   padding: 0;
 }
 
-.ios-group li:not(:last-child) .workspace-row {
-  border-bottom: 0.5px solid var(--color-border);
+.workspace-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.workspace-row {
+.workspace-card {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  padding: 13px 14px;
+  padding: var(--space-4);
   min-height: 68px;
-  border: none;
-  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   text-align: left;
   cursor: pointer;
-  transition: background 100ms ease;
+  transition: box-shadow 100ms ease;
 }
 
-.workspace-row:active {
-  background: var(--color-fill);
+.workspace-card:active {
+  box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-row {
+  .workspace-card {
     transition: none;
   }
+}
+
+.workspace-card[data-kind="run"] {
+  background: linear-gradient(180deg, var(--wash-run-from) 0%, var(--color-bg) 60%);
+  border-color: var(--wash-run-border);
+}
+
+.workspace-card[data-kind="project"] {
+  background: linear-gradient(180deg, var(--wash-project-from) 0%, var(--color-bg) 60%);
+  border-color: var(--wash-project-border);
 }
 
 .workspace-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
   border-radius: var(--radius);
   flex-shrink: 0;
+  color: #ffffff;
 }
 
 .workspace-icon[data-kind="run"] {
-  background: var(--color-success-soft);
-  color: #248a3d;
+  background: var(--color-warning);
 }
 
 .workspace-icon[data-kind="project"] {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-
-@media (prefers-color-scheme: dark) {
-  .workspace-icon[data-kind="run"] {
-    color: #30d158;
-  }
-  .workspace-icon[data-kind="project"] {
-    color: #0a84ff;
-  }
+  background: #6355ff;
 }
 
 .card-title {
-  font-weight: 590;
+  font-weight: 700;
   font-size: 1.0625rem;
 }
 
@@ -539,7 +667,7 @@ a {
   position: absolute;
   top: 2px;
   bottom: 2px;
-  background: var(--color-bg);
+  background: var(--color-accent);
   border-radius: 7px;
   box-shadow: var(--shadow-thumb);
   transition: transform 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -570,8 +698,8 @@ a {
 
 .segmented-item[aria-current="true"],
 .segmented-item[aria-selected="true"] {
-  color: var(--color-text);
-  font-weight: 600;
+  color: var(--color-accent-contrast);
+  font-weight: 700;
 }
 
 /* Piste défilante à onglets multiples (phases) : chips discrètes, pas de
@@ -676,8 +804,8 @@ a {
 }
 
 .action-title {
-  font-size: 1.0625rem;
-  font-weight: 510;
+  font-size: 0.9375rem;
+  font-weight: 700;
 }
 
 .meta-chip {
@@ -731,26 +859,6 @@ a {
 
 .status-check svg {
   display: block;
-}
-
-.priority-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  flex: 0 0 auto;
-  display: inline-block;
-}
-
-.priority-dot[data-priority="high"] {
-  background: var(--color-danger);
-}
-
-.priority-dot[data-priority="normal"] {
-  background: var(--color-accent);
-}
-
-.priority-dot[data-priority="low"] {
-  background: var(--color-text-muted);
 }
 
 .section-title {
