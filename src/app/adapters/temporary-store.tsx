@@ -57,6 +57,10 @@ export function TemporaryStoreProvider({
         dispatch({ type: "action/edit", workspaceId, actionId, edit, now: new Date().toISOString() }),
       addNote: (workspaceId, actionId, text) =>
         dispatch({ type: "action/addNote", workspaceId, actionId, noteId: generateId(), text, now: new Date().toISOString() }),
+      linkAction: (workspaceId, actionId, linkedActionId) =>
+        dispatch({ type: "action/link", workspaceId, actionId, linkedActionId, now: new Date().toISOString() }),
+      unlinkAction: (workspaceId, actionId) =>
+        dispatch({ type: "action/unlink", workspaceId, actionId, now: new Date().toISOString() }),
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((action) => action.id === actionId);

@@ -3,6 +3,7 @@ import { changeWorkspaceApproach, createWorkspace, type CreateWorkspaceInput, ty
 import { moveAction, type MoveDestination } from "../../domain/move-action";
 import { editActionContent, type ActionContentEdit } from "../../domain/edit-action";
 import { addNote } from "../../domain/add-note";
+import { linkAction, unlinkAction } from "../../domain/link-action";
 import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 import type { AppState, NewActionInput } from "./store-context";
 
@@ -25,6 +26,8 @@ export type AppEvent =
   | { type: "action/refreshReminders"; workspaceId: string; now: string }
   | { type: "action/edit"; workspaceId: string; actionId: string; edit: ActionContentEdit; now: string }
   | { type: "action/addNote"; workspaceId: string; actionId: string; noteId: string; text: string; now: string }
+  | { type: "action/link"; workspaceId: string; actionId: string; linkedActionId: string; now: string }
+  | { type: "action/unlink"; workspaceId: string; actionId: string; now: string }
   | { type: "action/delete"; workspaceId: string; actionId: string }
   | { type: "action/undoDelete"; workspaceId: string; action: Action; index: number };
 
@@ -153,6 +156,30 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
           ...state.actionsByWorkspace,
           [event.workspaceId]: existing.map((action) =>
             action.id === event.actionId ? addNote(action, event.noteId, event.text, event.now) : action
+          ),
+        },
+      };
+    }
+    case "action/link": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? linkAction(action, event.linkedActionId, event.now) : action
+          ),
+        },
+      };
+    }
+    case "action/unlink": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? unlinkAction(action, event.now) : action
           ),
         },
       };

@@ -50,6 +50,7 @@ export interface ActionRow {
   waiting_since: string | null;
   waiting_reminder: WaitingReminderRule | null;
   notes: ActionNote[] | null;
+  linked_action_id: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -102,6 +103,7 @@ export function actionFromRow(row: ActionRow): Action {
     waitingSince: row.waiting_since ?? undefined,
     waitingReminder: row.waiting_reminder ?? undefined,
     notes: row.notes && row.notes.length > 0 ? row.notes : undefined,
+    linkedActionId: row.linked_action_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at ?? undefined,
@@ -127,6 +129,7 @@ export function actionToRow(action: Action, userHash: string): ActionRow {
     waiting_since: action.waitingSince ?? null,
     waiting_reminder: action.waitingReminder ?? null,
     notes: action.notes ?? null,
+    linked_action_id: action.linkedActionId ?? null,
     created_at: action.createdAt,
     updated_at: action.updatedAt,
     completed_at: action.completedAt ?? null,

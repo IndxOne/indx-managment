@@ -14,6 +14,7 @@ export function ActionCard({
   onDelete,
   onDisableReminder,
   onOpenNotes,
+  onOpenLink,
 }: {
   action: Action;
   timezone: string;
@@ -25,8 +26,10 @@ export function ActionCard({
   onDelete?: () => void;
   onDisableReminder?: () => void;
   onOpenNotes?: () => void;
+  onOpenLink?: () => void;
 }) {
   const noteCount = action.notes?.length ?? 0;
+  const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
   const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
   const isWaiting = action.status === "waiting";
@@ -74,6 +77,17 @@ export function ActionCard({
         )}
       </div>
       <div className="action-row-buttons">
+        {onOpenLink && (
+          <button
+            type="button"
+            className="btn icon-btn tap-target"
+            data-linked={hasLink}
+            onClick={onOpenLink}
+            aria-label={hasLink ? `Action liée pour "${action.title}"` : `Lier "${action.title}" à une autre action`}
+          >
+            <span aria-hidden="true">🔗</span>
+          </button>
+        )}
         {onOpenNotes && (
           <button
             type="button"

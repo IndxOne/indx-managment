@@ -462,6 +462,11 @@ a {
   padding-right: var(--space-2);
 }
 
+.icon-btn[data-linked="true"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 .action-row[data-waiting="true"] {
   border-color: var(--color-warning);
 }

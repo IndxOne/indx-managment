@@ -217,6 +217,28 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      linkAction: (workspaceId, actionId, linkedActionId) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "action/link", workspaceId, actionId, linkedActionId, now }, async () => {
+          const { error } = await client
+            .from("projets_actions")
+            .update({ linked_action_id: linkedActionId, updated_at: now })
+            .eq("id", actionId);
+          if (error) throw error;
+        });
+      },
+
+      unlinkAction: (workspaceId, actionId) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "action/unlink", workspaceId, actionId, now }, async () => {
+          const { error } = await client
+            .from("projets_actions")
+            .update({ linked_action_id: null, updated_at: now })
+            .eq("id", actionId);
+          if (error) throw error;
+        });
+      },
+
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((a) => a.id === actionId);

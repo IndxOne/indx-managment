@@ -41,6 +41,8 @@ export interface StoreContextValue {
   refreshReminders: (workspaceId: string) => void;
   editAction: (workspaceId: string, actionId: string, edit: ActionContentEdit) => void;
   addNote: (workspaceId: string, actionId: string, text: string) => void;
+  linkAction: (workspaceId: string, actionId: string, linkedActionId: string) => void;
+  unlinkAction: (workspaceId: string, actionId: string) => void;
   /** Retourne l'action et sa position avant suppression, pour permettre l'annulation. */
   deleteAction: (workspaceId: string, actionId: string) => { action: Action; index: number } | undefined;
   undoDeleteAction: (workspaceId: string, action: Action, index: number) => void;

@@ -121,3 +121,44 @@ describe("ActionCard — bouton notes", () => {
     expect(screen.queryByRole("button", { name: /Notes de/ })).not.toBeInTheDocument();
   });
 });
+
+describe("ActionCard — bouton lien", () => {
+  it("propose de lier quand aucun lien n'existe", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenLink={vi.fn()}
+      />
+    );
+    const button = screen.getByRole("button", { name: 'Lier "Relancer le prestataire" à une autre action' });
+    expect(button).toHaveAttribute("data-linked", "false");
+  });
+
+  it("indique qu'un lien existe et déclenche onOpenLink au clic", async () => {
+    const user = userEvent.setup();
+    const onOpenLink = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction({ linkedActionId: "a2" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenLink={onOpenLink}
+      />
+    );
+    const button = screen.getByRole("button", { name: 'Action liée pour "Relancer le prestataire"' });
+    expect(button).toHaveAttribute("data-linked", "true");
+    await user.click(button);
+    expect(onOpenLink).toHaveBeenCalledTimes(1);
+  });
+
+  it("n'affiche aucun bouton lien si onOpenLink n'est pas fourni", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: /lier/i })).not.toBeInTheDocument();
+  });
+});
