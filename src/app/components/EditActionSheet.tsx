@@ -1,10 +1,9 @@
 import { useState } from "react";
 import type { Action, Priority, WorkItemType } from "../../domain/types";
 import type { ActionContentEdit } from "../../domain/edit-action";
-import { PRIORITY_LABELS } from "../labels";
+import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 
-const ITEM_TYPE_OPTIONS: WorkItemType[] = ["task", "request", "incident", "maintenance", "deliverable", "milestone"];
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
 
 export function EditActionSheet({
@@ -53,7 +52,7 @@ export function EditActionSheet({
         <select id="edit-action-type" value={itemType} onChange={(event) => setItemType(event.target.value as WorkItemType)}>
           {ITEM_TYPE_OPTIONS.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {ITEM_TYPE_LABELS[option]}
             </option>
           ))}
         </select>

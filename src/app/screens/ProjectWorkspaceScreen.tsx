@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { deriveScheduleKeys } from "../../calendar/calendar-engine";
-import type { Action } from "../../domain/types";
+import type { Action, ActionStatus } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
-import { STATUS_LABELS_DEFAULT } from "../labels";
+import { phaseLabel, STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
@@ -50,7 +50,11 @@ export function ProjectWorkspaceScreen({
     [allActions, currentPhase]
   );
   const milestones = phaseActions.filter((action) => action.itemType === "milestone");
-  const deliverables = phaseActions.filter((action) => action.itemType !== "milestone");
+  const decisions = phaseActions.filter((action) => action.itemType === "decision");
+  const risks = phaseActions.filter((action) => action.itemType === "risk");
+  const deliverables = phaseActions.filter(
+    (action) => !["milestone", "decision", "risk"].includes(action.itemType)
+  );
 
   const weekActions = useMemo(() => {
     if (mode !== "week") return [];
@@ -102,32 +106,46 @@ export function ProjectWorkspaceScreen({
                       className="segmented-item"
                       onClick={() => setCurrentPhase(phase)}
                     >
-                      {phase}
+                      {phaseLabel(phase)}
                     </button>
                   ))}
                 </div>
 
-                <section aria-labelledby="section-milestones">
-                  <h2 id="section-milestones" className="section-title">
-                    Jalons
-                  </h2>
-                  {milestones.length === 0 ? (
-                    <p className="action-sub">Aucun jalon dans cette phase.</p>
-                  ) : (
-                    milestones.map((action) => (
-                      <ActionCard
-                        key={action.id}
-                        action={action}
-                        timezone={timezone}
-                        statusLabel={statusLabels[action.status]}
-                        onMove={() => setMovingAction(action)}
-                        onEdit={() => setEditingAction(action)}
-                        onDelete={() => remove(action)}
-                        onDisableReminder={() => disableReminder(workspace.id, action.id)}
-                      />
-                    ))
-                  )}
-                </section>
+                <PhaseSection
+                  id="section-milestones"
+                  title="Jalons"
+                  actions={milestones}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onEdit={setEditingAction}
+                  onDelete={remove}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                />
+
+                <PhaseSection
+                  id="section-decisions"
+                  title="Décisions"
+                  actions={decisions}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onEdit={setEditingAction}
+                  onDelete={remove}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                />
+
+                <PhaseSection
+                  id="section-risks"
+                  title="Risques"
+                  actions={risks}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onEdit={setEditingAction}
+                  onDelete={remove}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                />
 
                 <section aria-labelledby="section-deliverables">
                   <h2 id="section-deliverables" className="section-title">
@@ -227,5 +245,49 @@ export function ProjectWorkspaceScreen({
         />
       )}
     </div>
+  );
+}
+
+function PhaseSection({
+  id,
+  title,
+  actions,
+  timezone,
+  statusLabels,
+  onMove,
+  onEdit,
+  onDelete,
+  onDisableReminder,
+}: {
+  id: string;
+  title: string;
+  actions: Action[];
+  timezone: string;
+  statusLabels: Record<ActionStatus, string>;
+  onMove: (action: Action) => void;
+  onEdit: (action: Action) => void;
+  onDelete: (action: Action) => void;
+  onDisableReminder: (action: Action) => void;
+}) {
+  if (actions.length === 0) return null;
+
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id} className="section-title">
+        {title}
+      </h2>
+      {actions.map((action) => (
+        <ActionCard
+          key={action.id}
+          action={action}
+          timezone={timezone}
+          statusLabel={statusLabels[action.status]}
+          onMove={() => onMove(action)}
+          onEdit={() => onEdit(action)}
+          onDelete={() => onDelete(action)}
+          onDisableReminder={() => onDisableReminder(action)}
+        />
+      ))}
+    </section>
   );
 }

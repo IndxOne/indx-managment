@@ -1,11 +1,10 @@
-import type { ActionStatus, Priority, WorkItemType } from "../../domain/types";
-import { PRIORITY_LABELS } from "../labels";
+import type { ActionStatus, Priority } from "../../domain/types";
+import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 import type { ActionFilters } from "../utils/filter-actions";
 
 const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "waiting", "done"];
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
-const ITEM_TYPE_OPTIONS: WorkItemType[] = ["task", "request", "incident", "maintenance", "deliverable", "milestone"];
 
 export function FilterSheet({
   filters,
@@ -64,7 +63,7 @@ export function FilterSheet({
               checked={filters.itemTypes.has(itemType)}
               onChange={() => onChange({ ...filters, itemTypes: toggle(filters.itemTypes, itemType) })}
             />
-            {itemType}
+            {ITEM_TYPE_LABELS[itemType]}
           </label>
         ))}
       </div>

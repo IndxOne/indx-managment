@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatIsoWeek } from "../../calendar/iso-week";
 import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
+import { phaseLabel } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 
 const AXIS_LABELS: Record<MoveAxis, string> = {
@@ -78,7 +79,7 @@ export function MoveActionSheet({
               className="btn btn-block tap-target"
               onClick={() => onConfirm({ axis: "phase", phaseId: phase })}
             >
-              {phase}
+              {phaseLabel(phase)}
             </button>
           ))}
         </div>

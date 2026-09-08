@@ -19,7 +19,9 @@ export type WorkItemType =
   | "incident"
   | "maintenance"
   | "deliverable"
-  | "milestone";
+  | "milestone"
+  | "decision"
+  | "risk";
 
 /**
  * Un seul champ de planification par action : la granularité choisie porte
