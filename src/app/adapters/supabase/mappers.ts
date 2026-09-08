@@ -11,6 +11,7 @@ import type {
 import type { CollaborationMode } from "../../../domain/types";
 import type { Workspace } from "../../../domain/workspace";
 import type { WaitingReminderRule } from "../../../reminders/waiting-reminder";
+import type { RecurrenceFrequency, RecurrenceRule } from "../../../recurrence/recurrence-engine";
 
 /**
  * Conversion ligne Postgres (snake_case) <-> domaine (camelCase). Les
@@ -82,6 +83,56 @@ export function workspaceToRow(workspace: Workspace, userHash: string): Workspac
     preset_version: workspace.presetVersion,
     created_at: workspace.createdAt,
     updated_at: workspace.updatedAt,
+  };
+}
+
+export interface RecurrenceRuleRow {
+  id: string;
+  user_hash: string;
+  workspace_id: string;
+  frequency: string;
+  interval: number;
+  start_date: string;
+  end_date: string | null;
+  phase_id: string | null;
+  title: string;
+  priority: string;
+  item_type: string;
+  created_at: string;
+}
+
+export function recurrenceRuleFromRow(row: RecurrenceRuleRow): RecurrenceRule {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    frequency: row.frequency as RecurrenceFrequency,
+    interval: row.interval,
+    startDate: row.start_date,
+    endDate: row.end_date ?? undefined,
+    template: {
+      title: row.title,
+      priority: row.priority as Priority,
+      itemType: row.item_type as WorkItemType,
+      phaseId: row.phase_id ?? undefined,
+      assigneeIds: [],
+      tags: [],
+    },
+  };
+}
+
+export function recurrenceRuleToRow(rule: RecurrenceRule, userHash: string): Omit<RecurrenceRuleRow, "created_at"> {
+  return {
+    id: rule.id,
+    user_hash: userHash,
+    workspace_id: rule.workspaceId,
+    frequency: rule.frequency,
+    interval: rule.interval,
+    start_date: rule.startDate,
+    end_date: rule.endDate ?? null,
+    phase_id: rule.template.phaseId ?? null,
+    title: rule.template.title,
+    priority: rule.template.priority,
+    item_type: rule.template.itemType,
   };
 }
 

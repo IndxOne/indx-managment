@@ -5,7 +5,8 @@ import { editActionContent, type ActionContentEdit } from "../../domain/edit-act
 import { addNote } from "../../domain/add-note";
 import { linkAction, unlinkAction } from "../../domain/link-action";
 import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
-import type { AppState, NewActionInput } from "./store-context";
+import { generateRecurringOccurrences, type GenerationWindow, type RecurrenceRule } from "../../recurrence/recurrence-engine";
+import type { AppState, NewActionInput, NewRecurrenceRuleInput } from "./store-context";
 
 /**
  * Réducteur pur partagé par tous les adaptateurs (mémoire, Supabase, ...).
@@ -29,7 +30,9 @@ export type AppEvent =
   | { type: "action/link"; workspaceId: string; actionId: string; linkedActionId: string; now: string }
   | { type: "action/unlink"; workspaceId: string; actionId: string; now: string }
   | { type: "action/delete"; workspaceId: string; actionId: string }
-  | { type: "action/undoDelete"; workspaceId: string; action: Action; index: number };
+  | { type: "action/undoDelete"; workspaceId: string; action: Action; index: number }
+  | { type: "recurrence/create"; rule: RecurrenceRule; window: GenerationWindow }
+  | { type: "recurrence/delete"; workspaceId: string; ruleId: string; today: string };
 
 export function appReducer(state: AppState, event: AppEvent): AppState {
   switch (event.type) {
@@ -41,6 +44,7 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
       return {
         workspaces: [...state.workspaces, workspace],
         actionsByWorkspace: { ...state.actionsByWorkspace, [workspace.id]: [] },
+        recurrenceRulesByWorkspace: { ...state.recurrenceRulesByWorkspace, [workspace.id]: [] },
       };
     }
     case "workspace/changeApproach": {
@@ -203,11 +207,76 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         actionsByWorkspace: { ...state.actionsByWorkspace, [event.workspaceId]: restored },
       };
     }
+    case "recurrence/create": {
+      const occurrences = generateRecurringOccurrences(event.rule, event.window);
+      const existingRules = state.recurrenceRulesByWorkspace[event.rule.workspaceId] ?? [];
+      const existingActions = state.actionsByWorkspace[event.rule.workspaceId] ?? [];
+      return {
+        ...state,
+        recurrenceRulesByWorkspace: {
+          ...state.recurrenceRulesByWorkspace,
+          [event.rule.workspaceId]: [...existingRules, event.rule],
+        },
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.rule.workspaceId]: [...existingActions, ...occurrences],
+        },
+      };
+    }
+    case "recurrence/delete": {
+      const existingRules = state.recurrenceRulesByWorkspace[event.workspaceId] ?? [];
+      const existingActions = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        recurrenceRulesByWorkspace: {
+          ...state.recurrenceRulesByWorkspace,
+          [event.workspaceId]: existingRules.filter((rule) => rule.id !== event.ruleId),
+        },
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existingActions.filter(
+            (action) => !isFutureUntouchedOccurrence(action, event.ruleId, event.today)
+          ),
+        },
+      };
+    }
     default:
       return state;
   }
 }
 
+/**
+ * Une occurrence "future non touchée" est encore sûre à effacer en
+ * supprimant sa règle : pas commencée (todo), pas déjà passée. Une
+ * occurrence déjà en cours, terminée ou en attente reste — l'utilisateur y a
+ * déjà interagi, la supprimer perdrait ce travail (cadrage : jamais de perte
+ * silencieuse de données sur suppression en cascade).
+ */
+function isFutureUntouchedOccurrence(action: Action, ruleId: string, today: string): boolean {
+  if (action.recurrenceRuleId !== ruleId || action.status !== "todo") return false;
+  if (action.schedule?.granularity !== "day") return false;
+  return action.schedule.value > today;
+}
+
 export function generateId(): string {
   return crypto.randomUUID();
+}
+
+export function buildRecurrenceRule(input: NewRecurrenceRuleInput): RecurrenceRule {
+  return {
+    id: generateId(),
+    workspaceId: input.workspaceId,
+    frequency: input.frequency,
+    interval: input.interval,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    template: {
+      title: input.title,
+      priority: input.priority,
+      itemType: input.itemType,
+      phaseId: input.phaseId,
+      assigneeIds: [],
+      tags: [],
+    },
+  };
 }

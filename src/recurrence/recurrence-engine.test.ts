@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Action } from "../domain/types";
-import { generateRecurringOccurrences, type RecurrenceRule } from "./recurrence-engine";
+import { defaultMaterializationWindow, generateRecurringOccurrences, type RecurrenceRule } from "./recurrence-engine";
 
 function dayValue(action: Action): string {
   if (action.schedule?.granularity !== "day") {
@@ -98,5 +98,22 @@ describe("generateRecurringOccurrences", () => {
     for (const occurrence of narrow) {
       expect(merged.get(occurrence.id)).toEqual(occurrence);
     }
+  });
+});
+
+describe("defaultMaterializationWindow", () => {
+  it("s'étend sur l'horizon par défaut (90 jours) depuis aujourd'hui quand endDate est absent", () => {
+    const window = defaultMaterializationWindow({ startDate: "2026-09-01" }, "2026-09-08");
+    expect(window).toEqual({ start: "2026-09-01", end: "2026-12-07" });
+  });
+
+  it("se borne à endDate si elle arrive avant l'horizon", () => {
+    const window = defaultMaterializationWindow({ startDate: "2026-09-01", endDate: "2026-09-20" }, "2026-09-08");
+    expect(window).toEqual({ start: "2026-09-01", end: "2026-09-20" });
+  });
+
+  it("ignore endDate si elle dépasse l'horizon", () => {
+    const window = defaultMaterializationWindow({ startDate: "2026-09-01", endDate: "2028-01-01" }, "2026-09-08");
+    expect(window).toEqual({ start: "2026-09-01", end: "2026-12-07" });
   });
 });

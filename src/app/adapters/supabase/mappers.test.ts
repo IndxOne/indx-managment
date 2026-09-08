@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Action } from "../../../domain/types";
 import type { Workspace } from "../../../domain/workspace";
-import { actionFromRow, actionToRow, workspaceFromRow, workspaceToRow } from "./mappers";
+import type { RecurrenceRule } from "../../../recurrence/recurrence-engine";
+import { actionFromRow, actionToRow, recurrenceRuleFromRow, recurrenceRuleToRow, workspaceFromRow, workspaceToRow } from "./mappers";
 
 const USER_HASH = "test-hash";
 
@@ -34,6 +35,24 @@ function action(overrides: Partial<Action> = {}): Action {
     waitingReminder: { afterDays: 3, enabled: true, history: [] },
     createdAt: "2026-09-08T09:00:00.000Z",
     updatedAt: "2026-09-08T09:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function recurrenceRule(overrides: Partial<RecurrenceRule> = {}): RecurrenceRule {
+  return {
+    id: "44444444-4444-4444-4444-444444444444",
+    workspaceId: "11111111-1111-1111-1111-111111111111",
+    frequency: "weekly",
+    interval: 1,
+    startDate: "2026-09-08",
+    template: {
+      title: "Contrôle hebdomadaire",
+      priority: "normal",
+      itemType: "task",
+      assigneeIds: [],
+      tags: [],
+    },
     ...overrides,
   };
 }
@@ -98,5 +117,23 @@ describe("actionToRow / actionFromRow", () => {
     const unlinkedRow = actionToRow(action({ linkedActionId: undefined }), USER_HASH);
     expect(unlinkedRow.linked_action_id).toBeNull();
     expect(actionFromRow(unlinkedRow).linkedActionId).toBeUndefined();
+  });
+});
+
+describe("recurrenceRuleToRow / recurrenceRuleFromRow", () => {
+  it("round-trip sans perte", () => {
+    const original = recurrenceRule({ endDate: "2026-12-31", template: { title: "X", priority: "high", itemType: "task", phaseId: "cadrage", assigneeIds: [], tags: [] } });
+    const row = recurrenceRuleToRow(original, USER_HASH);
+    expect(row.user_hash).toBe(USER_HASH);
+    expect(recurrenceRuleFromRow({ ...row, created_at: "2026-09-08T00:00:00.000Z" })).toEqual(original);
+  });
+
+  it("endDate et phaseId absents deviennent null en base puis undefined au retour", () => {
+    const row = recurrenceRuleToRow(recurrenceRule(), USER_HASH);
+    expect(row.end_date).toBeNull();
+    expect(row.phase_id).toBeNull();
+    const rehydrated = recurrenceRuleFromRow({ ...row, created_at: "2026-09-08T00:00:00.000Z" });
+    expect(rehydrated.endDate).toBeUndefined();
+    expect(rehydrated.template.phaseId).toBeUndefined();
   });
 });

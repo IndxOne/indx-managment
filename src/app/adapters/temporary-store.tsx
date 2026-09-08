@@ -1,7 +1,8 @@
 import { useMemo, useReducer, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
-import { appReducer, generateId } from "./app-reducer";
+import { defaultMaterializationWindow } from "../../recurrence/recurrence-engine";
+import { appReducer, buildRecurrenceRule, generateId } from "./app-reducer";
 import {
   StoreContext,
   EMPTY_STATE,
@@ -44,6 +45,14 @@ export function TemporaryStoreProvider({
         dispatch({ type: "workspace/changeApproach", workspaceId, approach }),
       createAction: (input) =>
         dispatch({ type: "action/create", input, id: generateId(), now: new Date().toISOString() }),
+      createRecurringRule: (input) => {
+        const rule = buildRecurrenceRule(input);
+        const today = new Date().toISOString().slice(0, 10);
+        dispatch({ type: "recurrence/create", rule, window: defaultMaterializationWindow(rule, today) });
+        return rule;
+      },
+      deleteRecurringRule: (workspaceId, ruleId) =>
+        dispatch({ type: "recurrence/delete", workspaceId, ruleId, today: new Date().toISOString().slice(0, 10) }),
       moveActionEvent: (workspaceId, actionId, destination) =>
         dispatch({ type: "action/move", workspaceId, actionId, destination }),
       restoreAction: (workspaceId, action) => dispatch({ type: "action/restore", workspaceId, action }),
