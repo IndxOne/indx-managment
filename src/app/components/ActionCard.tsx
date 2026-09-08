@@ -13,6 +13,7 @@ export function ActionCard({
   onEdit,
   onDelete,
   onDisableReminder,
+  onOpenNotes,
 }: {
   action: Action;
   timezone: string;
@@ -23,7 +24,9 @@ export function ActionCard({
   onEdit?: () => void;
   onDelete?: () => void;
   onDisableReminder?: () => void;
+  onOpenNotes?: () => void;
 }) {
+  const noteCount = action.notes?.length ?? 0;
   const derived = deriveScheduleKeys(action.schedule, timezone);
   const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
   const isWaiting = action.status === "waiting";
@@ -71,6 +74,17 @@ export function ActionCard({
         )}
       </div>
       <div className="action-row-buttons">
+        {onOpenNotes && (
+          <button
+            type="button"
+            className="btn icon-btn tap-target"
+            onClick={onOpenNotes}
+            aria-label={`Notes de "${action.title}"${noteCount > 0 ? ` (${noteCount})` : ""}`}
+          >
+            <span aria-hidden="true">💬</span>
+            {noteCount > 0 ? ` ${noteCount}` : ""}
+          </button>
+        )}
         {onEdit && (
           <button
             type="button"

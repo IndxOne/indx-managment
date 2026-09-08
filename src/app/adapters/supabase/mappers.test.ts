@@ -78,4 +78,14 @@ describe("actionToRow / actionFromRow", () => {
     expect(row.waiting_reminder).toBeNull();
     expect(actionFromRow(row)).toEqual(original);
   });
+
+  it("journal de notes : round-trip, tableau vide en base devient absent au retour", () => {
+    const withNotes = action({ notes: [{ id: "n1", text: "Relance envoyée", createdAt: "2026-09-08T10:00:00.000Z" }] });
+    const row = actionToRow(withNotes, USER_HASH);
+    expect(row.notes).toEqual(withNotes.notes);
+    expect(actionFromRow(row)).toEqual(withNotes);
+
+    const withoutNotes = actionFromRow(actionToRow(action({ notes: [] }), USER_HASH));
+    expect(withoutNotes.notes).toBeUndefined();
+  });
 });

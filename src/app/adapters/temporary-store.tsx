@@ -55,6 +55,8 @@ export function TemporaryStoreProvider({
         dispatch({ type: "action/refreshReminders", workspaceId, now: new Date().toISOString() }),
       editAction: (workspaceId, actionId, edit) =>
         dispatch({ type: "action/edit", workspaceId, actionId, edit, now: new Date().toISOString() }),
+      addNote: (workspaceId, actionId, text) =>
+        dispatch({ type: "action/addNote", workspaceId, actionId, noteId: generateId(), text, now: new Date().toISOString() }),
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((action) => action.id === actionId);
