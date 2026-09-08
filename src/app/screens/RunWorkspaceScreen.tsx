@@ -12,6 +12,7 @@ import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
+import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -98,7 +99,7 @@ export function RunWorkspaceScreen({
             Filtres{hasActiveFilters(filters) ? " •" : ""}
           </button>
           <button type="button" className="btn tap-target" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
-            <span aria-hidden="true">⚙</span>
+            <IconSettings />
           </button>
         </div>
       </div>

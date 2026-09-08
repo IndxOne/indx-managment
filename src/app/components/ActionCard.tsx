@@ -3,6 +3,7 @@ import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { PRIORITY_LABELS } from "../labels";
+import { IconLink, IconMessage, IconPencil, IconTrash } from "./Icons";
 
 export function ActionCard({
   action,
@@ -85,7 +86,7 @@ export function ActionCard({
             onClick={onOpenLink}
             aria-label={hasLink ? `Action liée pour "${action.title}"` : `Lier "${action.title}" à une autre action`}
           >
-            <span aria-hidden="true">🔗</span>
+            <IconLink />
           </button>
         )}
         {onOpenNotes && (
@@ -95,7 +96,7 @@ export function ActionCard({
             onClick={onOpenNotes}
             aria-label={`Notes de "${action.title}"${noteCount > 0 ? ` (${noteCount})` : ""}`}
           >
-            <span aria-hidden="true">💬</span>
+            <IconMessage />
             {noteCount > 0 ? ` ${noteCount}` : ""}
           </button>
         )}
@@ -106,7 +107,7 @@ export function ActionCard({
             onClick={onEdit}
             aria-label={`Éditer "${action.title}"`}
           >
-            <span aria-hidden="true">✏️</span>
+            <IconPencil />
           </button>
         )}
         <button
@@ -124,7 +125,7 @@ export function ActionCard({
             onClick={onDelete}
             aria-label={`Supprimer "${action.title}"`}
           >
-            <span aria-hidden="true">🗑</span>
+            <IconTrash />
           </button>
         )}
       </div>

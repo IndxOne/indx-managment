@@ -1,25 +1,27 @@
+import { IconCalendar, IconGrid, IconMore, IconSun } from "./Icons";
+
 export type NavTab = "today" | "week" | "spaces" | "more";
 
-const TABS: { id: NavTab; label: string; icon: string }[] = [
-  { id: "today", label: "Aujourd'hui", icon: "☀" },
-  { id: "week", label: "Semaine", icon: "📅" },
-  { id: "spaces", label: "Espaces", icon: "▦" },
-  { id: "more", label: "Plus", icon: "⋯" },
+const TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
+  { id: "today", label: "Aujourd'hui", Icon: IconSun },
+  { id: "week", label: "Semaine", Icon: IconCalendar },
+  { id: "spaces", label: "Espaces", Icon: IconGrid },
+  { id: "more", label: "Plus", Icon: IconMore },
 ];
 
 export function BottomNav({ active, onChange }: { active: NavTab; onChange: (tab: NavTab) => void }) {
   return (
     <nav className="bottom-nav" aria-label="Navigation principale">
-      {TABS.map((tab) => (
+      {TABS.map(({ id, label, Icon }) => (
         <button
-          key={tab.id}
+          key={id}
           type="button"
           className="bottom-nav-item tap-target"
-          aria-current={active === tab.id ? "page" : undefined}
-          onClick={() => onChange(tab.id)}
+          aria-current={active === id ? "page" : undefined}
+          onClick={() => onChange(id)}
         >
-          <span aria-hidden="true">{tab.icon}</span>
-          <span>{tab.label}</span>
+          <Icon />
+          <span>{label}</span>
         </button>
       ))}
     </nav>

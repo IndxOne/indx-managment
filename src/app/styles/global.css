@@ -2,36 +2,48 @@
 
 :root {
   color-scheme: light dark;
+  --color-page: #f2f3f7;
   --color-bg: #ffffff;
-  --color-surface: #f4f5f7;
-  --color-border: #d8dbe0;
-  --color-text: #1a1d21;
-  --color-text-muted: #5c6470;
-  --color-accent: #1f5eff;
+  --color-surface: #f6f7f9;
+  --color-border: #e4e6eb;
+  --color-text: #14161a;
+  --color-text-muted: #63697a;
+  --color-accent: #2f5fff;
+  --color-accent-soft: #eaf0ff;
   --color-accent-contrast: #ffffff;
   --color-danger: #c4291f;
   --color-warning: #8a5a00;
   --color-success: #146c2e;
-  --focus-ring: 3px solid #1f5eff;
+  --focus-ring: 3px solid #2f5fff;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --radius: 12px;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(20, 22, 26, 0.05), 0 1px 1px rgba(20, 22, 26, 0.04);
+  --shadow-md: 0 6px 16px rgba(20, 22, 26, 0.08);
+  --shadow-lg: 0 16px 32px rgba(20, 22, 26, 0.16);
   --bottom-nav-height: 64px;
   --touch-target: 44px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #14161a;
-    --color-surface: #1d2026;
-    --color-border: #33373f;
+    --color-page: #0c0d10;
+    --color-bg: #17191d;
+    --color-surface: #1e2126;
+    --color-border: #2c2f36;
     --color-text: #f2f3f5;
     --color-text-muted: #a2a9b3;
     --color-accent: #7ea1ff;
+    --color-accent-soft: #1c2540;
     --color-accent-contrast: #0b1020;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -47,7 +59,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--color-page);
   color: var(--color-text);
   font-family:
     -apple-system,
@@ -115,16 +127,28 @@ a {
   gap: var(--space-2);
   min-height: var(--touch-target);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .btn-primary {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
   border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-block {
@@ -138,9 +162,17 @@ a {
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  font-size: 28px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
   z-index: 20;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .quick-add {
@@ -202,6 +234,7 @@ a {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .notes-list-item p {
@@ -266,12 +299,28 @@ a {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
   margin-bottom: var(--space-3);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+
+.card:active {
+  box-shadow: var(--shadow-sm);
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:active {
+    transform: none;
+  }
 }
 
 .card-header {
@@ -283,8 +332,9 @@ a {
 }
 
 .card-title {
-  font-weight: 600;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.005em;
 }
 
 .card-meta {
@@ -338,11 +388,14 @@ a {
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-4);
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
 }
 
 .top-bar h1 {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -368,6 +421,7 @@ a {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
   border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 
 .state-block {
@@ -398,12 +452,12 @@ a {
   bottom: 0;
   z-index: 41;
   background: var(--color-bg);
-  border-top-left-radius: var(--radius);
-  border-top-right-radius: var(--radius);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
   padding: var(--space-4);
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
   animation: sheet-in 180ms ease-out;
 }
 
@@ -442,8 +496,9 @@ a {
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
   background: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-row > .action-row-content {
@@ -464,6 +519,7 @@ a {
 
 .icon-btn[data-linked="true"] {
   border-color: var(--color-accent);
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
@@ -492,8 +548,8 @@ a {
 .status-check::before {
   content: "";
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   margin: 0 auto;
   border-radius: 999px;
   border: 2px solid var(--color-border);
@@ -548,6 +604,7 @@ a {
   border-radius: var(--radius);
   padding: var(--space-3);
   margin: var(--space-3) 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .undo-banner {
@@ -555,16 +612,16 @@ a {
   left: var(--space-4);
   right: var(--space-4);
   bottom: calc(var(--bottom-nav-height) + var(--space-3));
-  background: var(--color-surface);
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   z-index: 25;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .offline-banner {
@@ -621,5 +678,10 @@ a {
   .btn-fab {
     right: var(--space-5);
     bottom: var(--space-5);
+  }
+
+  .undo-banner {
+    left: calc(220px + var(--space-4));
+    bottom: var(--space-4);
   }
 }

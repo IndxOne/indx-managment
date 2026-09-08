@@ -1,6 +1,7 @@
 import type { Workspace } from "../../domain/workspace";
 import { WorkspaceCard } from "../components/WorkspaceCard";
 import { EmptyState } from "../components/StateBlocks";
+import { IconPlus } from "../components/Icons";
 import { useStore } from "../adapters/temporary-store";
 
 export function WorkspaceListScreen({
@@ -46,7 +47,7 @@ export function WorkspaceListScreen({
       </div>
       {state.workspaces.length > 0 && (
         <button type="button" className="btn btn-primary btn-fab" onClick={onCreate} aria-label="Créer un espace">
-          <span aria-hidden="true">+</span>
+          <IconPlus width={26} height={26} strokeWidth={2} />
         </button>
       )}
     </div>

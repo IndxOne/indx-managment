@@ -11,6 +11,7 @@ import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
+import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -92,7 +93,7 @@ export function ProjectWorkspaceScreen({
             {mode === "phase" ? "Vue semaine" : "Vue phases"}
           </button>
           <button type="button" className="btn tap-target" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
-            <span aria-hidden="true">⚙</span>
+            <IconSettings />
           </button>
         </div>
       </div>
