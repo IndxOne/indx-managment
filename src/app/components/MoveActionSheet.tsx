@@ -16,12 +16,15 @@ export function MoveActionSheet({
   statusLabels,
   onCancel,
   onConfirm,
+  onSetReminder,
 }: {
   action: Action;
   phaseOptions: string[];
   statusLabels: Record<ActionStatus, string>;
   onCancel: () => void;
   onConfirm: (destination: MoveDestination) => void;
+  /** Appelé en plus de onConfirm si l'utilisateur active une relance en passant à "waiting". */
+  onSetReminder?: (afterDays: number) => void;
 }) {
   const [axis, setAxis] = useState<MoveAxis | null>(null);
   const currentWeek = formatIsoWeek(new Date().toISOString().slice(0, 10));
@@ -88,6 +91,82 @@ export function MoveActionSheet({
 
   // axis === "status"
   return (
+    <StatusDestinationStep
+      action={action}
+      statusLabels={statusLabels}
+      onBack={() => setAxis(null)}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+      onSetReminder={onSetReminder}
+    />
+  );
+}
+
+function StatusDestinationStep({
+  action,
+  statusLabels,
+  onBack,
+  onCancel,
+  onConfirm,
+  onSetReminder,
+}: {
+  action: Action;
+  statusLabels: Record<ActionStatus, string>;
+  onBack: () => void;
+  onCancel: () => void;
+  onConfirm: (destination: MoveDestination) => void;
+  onSetReminder?: (afterDays: number) => void;
+}) {
+  const [pendingWaiting, setPendingWaiting] = useState(false);
+  const [reminderDays, setReminderDays] = useState(String(action.waitingReminder?.afterDays ?? 3));
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+
+  if (pendingWaiting) {
+    const days = Number(reminderDays);
+    const validDays = Number.isInteger(days) && days >= 1;
+    return (
+      <BottomSheet title="Déplacer — relance" onClose={onCancel}>
+        <p style={{ fontWeight: 600 }}>Passer « {action.title} » en attente</p>
+        <label className="choice-option">
+          <input type="checkbox" checked={reminderEnabled} onChange={(event) => setReminderEnabled(event.target.checked)} />
+          Activer une relance automatique
+        </label>
+        {reminderEnabled && (
+          <div className="field">
+            <label htmlFor="reminder-days">Relance après (jours)</label>
+            <input
+              id="reminder-days"
+              type="number"
+              min={1}
+              step={1}
+              value={reminderDays}
+              onChange={(event) => setReminderDays(event.target.value)}
+              aria-invalid={!validDays}
+            />
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button type="button" className="btn tap-target" style={{ flex: 1 }} onClick={() => setPendingWaiting(false)}>
+            Retour
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary tap-target"
+            style={{ flex: 1 }}
+            disabled={reminderEnabled && !validDays}
+            onClick={() => {
+              onConfirm({ axis: "status", status: "waiting" });
+              if (reminderEnabled && validDays) onSetReminder?.(days);
+            }}
+          >
+            Confirmer
+          </button>
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  return (
     <BottomSheet title="Déplacer — choisir le statut" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Nouveau statut</p>
       <div className="choice-group">
@@ -96,13 +175,13 @@ export function MoveActionSheet({
             key={status}
             type="button"
             className="btn btn-block tap-target"
-            onClick={() => onConfirm({ axis: "status", status })}
+            onClick={() => (status === "waiting" ? setPendingWaiting(true) : onConfirm({ axis: "status", status }))}
           >
             {statusLabels[status]}
           </button>
         ))}
       </div>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 16 }} onClick={() => setAxis(null)}>
+      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 16 }} onClick={onBack}>
         Retour
       </button>
     </BottomSheet>

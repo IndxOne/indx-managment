@@ -7,6 +7,7 @@ import {
   type Workspace,
 } from "../../domain/workspace";
 import { moveAction, type MoveDestination } from "../../domain/move-action";
+import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 
 /**
  * ADAPTATEUR TEMPORAIRE — Lot 1 (Agent 1) ne fournit que le domaine pur,
@@ -38,7 +39,10 @@ type AppEvent =
   | { type: "workspace/changeApproach"; workspaceId: string; approach: Workspace["approach"] }
   | { type: "action/create"; input: NewActionInput; id: string; now: string }
   | { type: "action/move"; workspaceId: string; actionId: string; destination: MoveDestination }
-  | { type: "action/restore"; workspaceId: string; action: Action };
+  | { type: "action/restore"; workspaceId: string; action: Action }
+  | { type: "action/setReminder"; workspaceId: string; actionId: string; afterDays: number }
+  | { type: "action/disableReminder"; workspaceId: string; actionId: string }
+  | { type: "action/refreshReminders"; workspaceId: string; now: string };
 
 function reducer(state: AppState, event: AppEvent): AppState {
   switch (event.type) {
@@ -107,6 +111,45 @@ function reducer(state: AppState, event: AppEvent): AppState {
         },
       };
     }
+    case "action/setReminder": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? setWaitingReminder(action, event.afterDays) : action
+          ),
+        },
+      };
+    }
+    case "action/disableReminder": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? disableWaitingReminder(action) : action
+          ),
+        },
+      };
+    }
+    case "action/refreshReminders": {
+      // Enregistre l'historique de déclenchement pour les relances devenues
+      // dues depuis le dernier rendu (idempotent, cf. triggerWaitingReminderIfDue).
+      // MVP sans ordonnanceur serveur : vérifié à chaque affichage de l'espace
+      // RUN, pas en tâche de fond (Lot 5 pour un vrai déclenchement planifié).
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      const now = new Date(event.now);
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) => triggerWaitingReminderIfDue(action, now)),
+        },
+      };
+    }
     default:
       return state;
   }
@@ -127,6 +170,9 @@ interface StoreContextValue {
   createAction: (input: NewActionInput) => void;
   moveActionEvent: (workspaceId: string, actionId: string, destination: MoveDestination) => void;
   restoreAction: (workspaceId: string, action: Action) => void;
+  setReminder: (workspaceId: string, actionId: string, afterDays: number) => void;
+  disableReminder: (workspaceId: string, actionId: string) => void;
+  refreshReminders: (workspaceId: string) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -159,6 +205,12 @@ export function StoreProvider({
       moveActionEvent: (workspaceId, actionId, destination) =>
         dispatch({ type: "action/move", workspaceId, actionId, destination }),
       restoreAction: (workspaceId, action) => dispatch({ type: "action/restore", workspaceId, action }),
+      setReminder: (workspaceId, actionId, afterDays) =>
+        dispatch({ type: "action/setReminder", workspaceId, actionId, afterDays }),
+      disableReminder: (workspaceId, actionId) =>
+        dispatch({ type: "action/disableReminder", workspaceId, actionId }),
+      refreshReminders: (workspaceId) =>
+        dispatch({ type: "action/refreshReminders", workspaceId, now: new Date().toISOString() }),
     }),
     [state]
   );

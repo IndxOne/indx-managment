@@ -38,13 +38,21 @@ export function moveAction(action: Action, destination: MoveDestination, now?: s
       };
     case "phase":
       return { ...action, phaseId: destination.phaseId, updatedAt };
-    case "status":
+    case "status": {
+      const enteringWaiting = destination.status === "waiting" && action.status !== "waiting";
+      const leavingWaiting = destination.status !== "waiting" && action.status === "waiting";
       return {
         ...action,
         status: destination.status,
         completedAt: destination.status === "done" ? updatedAt : undefined,
+        // waitingSince marque le début de la période d'attente en cours ;
+        // il est recalculé à chaque nouvelle entrée en attente et effacé en
+        // sortie. Le réglage de relance (waitingReminder) n'est jamais
+        // touché ici : axe indépendant (cadrage §6).
+        waitingSince: enteringWaiting ? updatedAt : leavingWaiting ? undefined : action.waitingSince,
         updatedAt,
       };
+    }
   }
 }
 

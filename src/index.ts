@@ -6,3 +6,4 @@ export * from "./calendar/calendar-engine";
 export * from "./presets/preset-registry";
 export * from "./recurrence/recurrence-engine";
 export * from "./migration/migrate-legacy-actions";
+export * from "./reminders/waiting-reminder";

@@ -6,6 +6,7 @@ import { moveAction } from "../../domain/move-action";
 import { changeWorkspaceApproach, createWorkspace } from "../../domain/workspace";
 import { computeHiddenFieldsOnApproachChange, resolveWorkspacePreset } from "../../presets/preset-registry";
 import { migrateLegacyActions, type LegacyAction } from "../../migration/migrate-legacy-actions";
+import { isWaitingReminderDue, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 
 /**
  * Scénarios de recette du cadrage §17, rejoués contre les contrats réels
@@ -76,11 +77,17 @@ describe("Scénario A — RUN IT", () => {
     expect(waiting.phaseId).toBeUndefined();
   });
 
-  it.todo(
-    "GAP cadrage §10 : relance automatique après N jours au statut waiting — " +
-      "non implémentée (seul un libellé 'reminderAfterWaiting' existe dans le registre de préréglages, " +
-      "aucune fonction ni écran ne la calcule ou ne la déclenche). Dernière étape du scénario A non exécutable."
-  );
+  it("activer une relance après trois jours se déclenche à l'échéance, pas avant (idempotent)", () => {
+    const waiting = moveAction(investigation, { axis: "status", status: "waiting" }, "2026-09-09T09:00:00.000Z");
+    const withReminder = setWaitingReminder(waiting, 3);
+
+    expect(isWaitingReminderDue(withReminder, new Date("2026-09-11T09:00:00.000Z"))).toBe(false); // J+2
+    expect(isWaitingReminderDue(withReminder, new Date("2026-09-12T09:00:00.000Z"))).toBe(true); // J+3
+
+    const triggeredOnce = triggerWaitingReminderIfDue(withReminder, new Date("2026-09-12T09:00:00.000Z"));
+    const triggeredTwice = triggerWaitingReminderIfDue(triggeredOnce, new Date("2026-09-13T00:00:00.000Z"));
+    expect(triggeredTwice.waitingReminder?.history).toEqual(["2026-09-12T09:00:00.000Z"]); // pas de doublon
+  });
 });
 
 describe("Scénario B — Projet cybersécurité", () => {

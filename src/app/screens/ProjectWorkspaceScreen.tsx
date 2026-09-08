@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deriveScheduleKeys } from "../../calendar/calendar-engine";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
@@ -23,11 +23,16 @@ export function ProjectWorkspaceScreen({
   timezone: string;
   onOpenSettings: () => void;
 }) {
-  const { state, createAction } = useStore();
+  const { state, createAction, setReminder, disableReminder, refreshReminders } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = state.actionsByWorkspace[workspace.id] ?? [];
   const phases = preset.phaseTemplate ?? [];
+
+  useEffect(() => {
+    refreshReminders(workspace.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace.id, allActions.length]);
 
   const [mode, setMode] = useState<ProjectMode>("phase");
   const [currentPhase, setCurrentPhase] = useState<string | undefined>(phases[0]);
@@ -112,6 +117,7 @@ export function ProjectWorkspaceScreen({
                         timezone={timezone}
                         statusLabel={statusLabels[action.status]}
                         onMove={() => setMovingAction(action)}
+                        onDisableReminder={() => disableReminder(workspace.id, action.id)}
                       />
                     ))
                   )}
@@ -131,6 +137,7 @@ export function ProjectWorkspaceScreen({
                         timezone={timezone}
                         statusLabel={statusLabels[action.status]}
                         onMove={() => setMovingAction(action)}
+                        onDisableReminder={() => disableReminder(workspace.id, action.id)}
                       />
                     ))
                   )}
@@ -153,6 +160,7 @@ export function ProjectWorkspaceScreen({
                   timezone={timezone}
                   statusLabel={statusLabels[action.status]}
                   onMove={() => setMovingAction(action)}
+                  onDisableReminder={() => disableReminder(workspace.id, action.id)}
                 />
               ))
             )}
@@ -185,6 +193,7 @@ export function ProjectWorkspaceScreen({
             move(movingAction, destination);
             setMovingAction(null);
           }}
+          onSetReminder={(afterDays) => setReminder(workspace.id, movingAction.id, afterDays)}
         />
       )}
 

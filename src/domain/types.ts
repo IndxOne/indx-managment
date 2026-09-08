@@ -32,6 +32,18 @@ export type Schedule =
   | { granularity: "month"; value: string } // YYYY-MM
   | { granularity: "none" };
 
+/**
+ * Relance après N jours au statut "waiting" (cadrage §10). `enabled` porte
+ * l'état marche/arrêt séparément de `afterDays` : désactiver la relance ne
+ * doit pas effacer le réglage ni l'historique déjà accumulé.
+ */
+export interface WaitingReminderRule {
+  afterDays: number;
+  enabled: boolean;
+  /** Horodatages ISO des déclenchements déjà enregistrés, append-only. */
+  history: string[];
+}
+
 export interface Action {
   id: string;
   workspaceId: string;
@@ -46,6 +58,9 @@ export interface Action {
   tags: string[];
   sourceNoteId?: string;
   recurrenceRuleId?: string;
+  /** Instant ISO d'entrée dans le statut "waiting" en cours (absent sinon). */
+  waitingSince?: string;
+  waitingReminder?: WaitingReminderRule;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
