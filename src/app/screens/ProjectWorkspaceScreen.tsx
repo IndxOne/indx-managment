@@ -11,6 +11,7 @@ import { ActionCard } from "../components/ActionCard";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
+import { QuickAddBar } from "../components/QuickAddBar";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState } from "../components/StateBlocks";
 
@@ -39,6 +40,7 @@ export function ProjectWorkspaceScreen({
   const [mode, setMode] = useState<ProjectMode>("phase");
   const [currentPhase, setCurrentPhase] = useState<string | undefined>(phases[0]);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
 
@@ -110,6 +112,17 @@ export function ProjectWorkspaceScreen({
                     </button>
                   ))}
                 </div>
+
+                <QuickAddBar
+                  onQuickAdd={(title) =>
+                    createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId: currentPhase })
+                  }
+                  onOpenFullForm={(draftTitle) => {
+                    setAddSheetDraftTitle(draftTitle);
+                    setAddSheetOpen(true);
+                  }}
+                  placeholder={`Ajouter à « ${phaseLabel(currentPhase ?? "")} »…`}
+                />
 
                 <PhaseSection
                   id="section-milestones"
@@ -196,13 +209,11 @@ export function ProjectWorkspaceScreen({
         )}
       </div>
 
-      <button type="button" className="btn btn-primary btn-fab" onClick={() => setAddSheetOpen(true)} aria-label="Ajouter une action">
-        <span aria-hidden="true">+</span>
-      </button>
-
       {addSheetOpen && (
         <AddActionSheet
           phaseOptions={phases}
+          defaultPhaseId={currentPhase}
+          initialTitle={addSheetDraftTitle}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={(input) => {
             createAction({ workspaceId: workspace.id, ...input });

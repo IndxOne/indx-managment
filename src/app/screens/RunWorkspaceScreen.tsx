@@ -12,6 +12,7 @@ import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
+import { QuickAddBar } from "../components/QuickAddBar";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState, NoResultsState } from "../components/StateBlocks";
 import { applyFilters, EMPTY_FILTERS, hasActiveFilters, type ActionFilters } from "../utils/filter-actions";
@@ -43,6 +44,7 @@ export function RunWorkspaceScreen({
   const [filters, setFilters] = useState<ActionFilters>(EMPTY_FILTERS);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
 
@@ -114,6 +116,14 @@ export function RunWorkspaceScreen({
             Cette semaine
           </button>
         </div>
+
+        <QuickAddBar
+          onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}
+          onOpenFullForm={(draftTitle) => {
+            setAddSheetDraftTitle(draftTitle);
+            setAddSheetOpen(true);
+          }}
+        />
 
         {nothingToShow ? (
           hasActiveFilters(filters) ? (
@@ -191,10 +201,6 @@ export function RunWorkspaceScreen({
         )}
       </div>
 
-      <button type="button" className="btn btn-primary btn-fab" onClick={() => setAddSheetOpen(true)} aria-label="Ajouter une action">
-        <span aria-hidden="true">+</span>
-      </button>
-
       {filterSheetOpen && (
         <FilterSheet
           filters={filters}
@@ -206,6 +212,7 @@ export function RunWorkspaceScreen({
 
       {addSheetOpen && (
         <AddActionSheet
+          initialTitle={addSheetDraftTitle}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={(input) => {
             createAction({ workspaceId: workspace.id, ...input });

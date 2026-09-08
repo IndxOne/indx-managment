@@ -20,8 +20,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     expect(await screen.findByRole("heading", { name: "RUN SI quotidien" })).toBeInTheDocument();
     expect(screen.getByText("RUN")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Ajouter une action" }));
-    await user.type(screen.getByLabelText("Titre"), "Investiguer les droits d'accès");
+    await user.type(screen.getByLabelText("Nouvelle action"), "Investiguer les droits d'accès");
     await user.click(screen.getByRole("button", { name: "Ajouter" }));
 
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
@@ -40,8 +39,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     await user.type(screen.getByLabelText("Nom de l'espace"), "Espace test");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
 
-    await user.click(screen.getByRole("button", { name: "Ajouter une action" }));
-    await user.type(screen.getByLabelText("Titre"), "Action persistante");
+    await user.type(screen.getByLabelText("Nouvelle action"), "Action persistante");
     await user.click(screen.getByRole("button", { name: "Ajouter" }));
     await screen.findByText("Action persistante");
 

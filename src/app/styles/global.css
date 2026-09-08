@@ -143,6 +143,22 @@ a {
   z-index: 20;
 }
 
+.quick-add {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.quick-add-input {
+  flex: 1;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
 .field {
   display: flex;
   flex-direction: column;

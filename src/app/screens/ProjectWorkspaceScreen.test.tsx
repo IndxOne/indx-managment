@@ -16,15 +16,15 @@ describe("ProjectWorkspaceScreen — sections par type (jsdom)", () => {
 
     await screen.findByRole("heading", { name: "Migration ERP" });
 
-    await user.click(screen.getByRole("button", { name: "Ajouter une action" }));
+    await user.click(screen.getByRole("button", { name: /Options avancées/ }));
     await user.type(screen.getByLabelText("Titre"), "Arbitrer le prestataire");
     await user.selectOptions(screen.getByLabelText("Type"), "Décision");
-    await user.click(screen.getByRole("button", { name: "Ajouter" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 
-    await user.click(screen.getByRole("button", { name: "Ajouter une action" }));
+    await user.click(screen.getByRole("button", { name: /Options avancées/ }));
     await user.type(screen.getByLabelText("Titre"), "Dépendance fournisseur unique");
     await user.selectOptions(screen.getByLabelText("Type"), "Risque");
-    await user.click(screen.getByRole("button", { name: "Ajouter" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 
     expect(await screen.findByRole("heading", { name: "Décisions" })).toBeInTheDocument();
     expect(screen.getByText("Arbitrer le prestataire")).toBeInTheDocument();
