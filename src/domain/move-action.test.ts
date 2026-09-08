@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatIsoWeek, getIsoWeekday } from "../calendar/iso-week";
-import type { Action } from "./types";
-import { moveAction } from "./move-action";
+import type { Action, ActionStatus } from "./types";
+import { cycleStatus, moveAction } from "./move-action";
 
 function baseAction(overrides: Partial<Action> = {}): Action {
   return {
@@ -84,5 +84,16 @@ describe("moveAction — axe status", () => {
     const action = baseAction({ status: "done", completedAt: "2026-09-05T00:00:00.000Z" });
     const moved = moveAction(action, { axis: "status", status: "doing" });
     expect(moved.completedAt).toBeUndefined();
+  });
+});
+
+describe("cycleStatus — cycle rapide 1-clic", () => {
+  it.each<[ActionStatus, ActionStatus]>([
+    ["todo", "doing"],
+    ["doing", "done"],
+    ["done", "todo"],
+    ["waiting", "todo"],
+  ])("%s → %s", (current, expected) => {
+    expect(cycleStatus(current)).toBe(expected);
   });
 });
