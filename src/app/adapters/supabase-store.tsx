@@ -205,6 +205,18 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      addNote: (workspaceId, actionId, text) => {
+        const noteId = generateId();
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "action/addNote", workspaceId, actionId, noteId, text, now }, async () => {
+          const updated = appReducer(state, { type: "action/addNote", workspaceId, actionId, noteId, text, now })
+            .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
+          if (!updated) return;
+          const { error } = await client.from("projets_actions").update({ notes: updated.notes }).eq("id", actionId);
+          if (error) throw error;
+        });
+      },
+
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((a) => a.id === actionId);

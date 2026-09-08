@@ -82,3 +82,42 @@ describe("ActionCard — cycle de statut 1-clic", () => {
     expect(onMove).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ActionCard — bouton notes", () => {
+  it("n'affiche aucun compteur sans note", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenNotes={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: 'Notes de "Relancer le prestataire"' })).toBeInTheDocument();
+  });
+
+  it("affiche le compteur de notes et déclenche onOpenNotes au clic", async () => {
+    const user = userEvent.setup();
+    const onOpenNotes = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction({ notes: [{ id: "n1", text: "Note 1", createdAt: "2026-09-08T00:00:00.000Z" }] })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenNotes={onOpenNotes}
+      />
+    );
+    const button = screen.getByRole("button", { name: 'Notes de "Relancer le prestataire" (1)' });
+    await user.click(button);
+    expect(onOpenNotes).toHaveBeenCalledTimes(1);
+  });
+
+  it("n'affiche aucun bouton notes si onOpenNotes n'est pas fourni", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: /Notes de/ })).not.toBeInTheDocument();
+  });
+});

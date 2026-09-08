@@ -13,6 +13,7 @@ import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
+import { NotesSheet } from "../components/NotesSheet";
 import { QuickAddBar } from "../components/QuickAddBar";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState, NoResultsState } from "../components/StateBlocks";
@@ -29,7 +30,7 @@ export function RunWorkspaceScreen({
   timezone: string;
   onOpenSettings: () => void;
 }) {
-  const { state, createAction, editAction, setReminder, disableReminder, refreshReminders } = useStore();
+  const { state, createAction, editAction, setReminder, disableReminder, refreshReminders, addNote } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = state.actionsByWorkspace[workspace.id] ?? [];
@@ -48,6 +49,8 @@ export function RunWorkspaceScreen({
   const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [notesActionId, setNotesActionId] = useState<string | null>(null);
+  const notesAction = allActions.find((action) => action.id === notesActionId) ?? null;
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo(workspace.id);
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo(workspace.id);
@@ -148,6 +151,7 @@ export function RunWorkspaceScreen({
               onEdit={setEditingAction}
               onDelete={remove}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+              onOpenNotes={(action) => setNotesActionId(action.id)}
             />
 
             <ActionListSection
@@ -162,6 +166,7 @@ export function RunWorkspaceScreen({
               onEdit={setEditingAction}
               onDelete={remove}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+              onOpenNotes={(action) => setNotesActionId(action.id)}
             />
 
             <ActionListSection
@@ -175,6 +180,7 @@ export function RunWorkspaceScreen({
               onEdit={setEditingAction}
               onDelete={remove}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+              onOpenNotes={(action) => setNotesActionId(action.id)}
             />
           </>
         )}
@@ -222,6 +228,14 @@ export function RunWorkspaceScreen({
             editAction(workspace.id, editingAction.id, edit);
             setEditingAction(null);
           }}
+        />
+      )}
+
+      {notesAction && (
+        <NotesSheet
+          action={notesAction}
+          onClose={() => setNotesActionId(null)}
+          onAddNote={(text) => addNote(workspace.id, notesAction.id, text)}
         />
       )}
 

@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionNote,
   ActionStatus,
   Priority,
   ProfessionalApproach,
@@ -48,6 +49,7 @@ export interface ActionRow {
   recurrence_rule_id: string | null;
   waiting_since: string | null;
   waiting_reminder: WaitingReminderRule | null;
+  notes: ActionNote[] | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -99,6 +101,7 @@ export function actionFromRow(row: ActionRow): Action {
     recurrenceRuleId: row.recurrence_rule_id ?? undefined,
     waitingSince: row.waiting_since ?? undefined,
     waitingReminder: row.waiting_reminder ?? undefined,
+    notes: row.notes && row.notes.length > 0 ? row.notes : undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     completedAt: row.completed_at ?? undefined,
@@ -123,6 +126,7 @@ export function actionToRow(action: Action, userHash: string): ActionRow {
     recurrence_rule_id: action.recurrenceRuleId ?? null,
     waiting_since: action.waitingSince ?? null,
     waiting_reminder: action.waitingReminder ?? null,
+    notes: action.notes ?? null,
     created_at: action.createdAt,
     updated_at: action.updatedAt,
     completed_at: action.completedAt ?? null,

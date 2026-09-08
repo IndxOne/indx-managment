@@ -46,6 +46,13 @@ export interface WaitingReminderRule {
   history: string[];
 }
 
+/** Note horodatée, texte seul — pas de pièces jointes ni de multi-utilisateur temps réel. */
+export interface ActionNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Action {
   id: string;
   workspaceId: string;
@@ -63,6 +70,8 @@ export interface Action {
   /** Instant ISO d'entrée dans le statut "waiting" en cours (absent sinon). */
   waitingSince?: string;
   waitingReminder?: WaitingReminderRule;
+  /** Journal append-only, du plus ancien au plus récent (absent tant qu'aucune note). */
+  notes?: ActionNote[];
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
