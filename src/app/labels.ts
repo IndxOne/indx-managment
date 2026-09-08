@@ -34,6 +34,17 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   low: "Basse",
 };
 
+export const ITEM_TYPE_OPTIONS: WorkItemType[] = [
+  "task",
+  "request",
+  "incident",
+  "maintenance",
+  "deliverable",
+  "milestone",
+  "decision",
+  "risk",
+];
+
 export const ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
   task: "Tâche",
   request: "Demande",
@@ -41,6 +52,8 @@ export const ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
   maintenance: "Maintenance",
   deliverable: "Livrable",
   milestone: "Jalon",
+  decision: "Décision",
+  risk: "Risque",
 };
 
 // Slugs des phaseTemplate déclarés dans preset-registry.ts : accents corrigés
