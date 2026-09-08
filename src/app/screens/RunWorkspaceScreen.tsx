@@ -6,8 +6,10 @@ import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
+import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionCard } from "../components/ActionCard";
 import { AddActionSheet } from "../components/AddActionSheet";
+import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { UndoBanner } from "../components/UndoBanner";
@@ -25,7 +27,7 @@ export function RunWorkspaceScreen({
   timezone: string;
   onOpenSettings: () => void;
 }) {
-  const { state, createAction, setReminder, disableReminder, refreshReminders } = useStore();
+  const { state, createAction, editAction, setReminder, disableReminder, refreshReminders } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = state.actionsByWorkspace[workspace.id] ?? [];
@@ -42,8 +44,10 @@ export function RunWorkspaceScreen({
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [movingAction, setMovingAction] = useState<Action | null>(null);
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo(workspace.id);
+  const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo(workspace.id);
 
   const filtered = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
 
@@ -134,6 +138,8 @@ export function RunWorkspaceScreen({
                     timezone={timezone}
                     statusLabel={statusLabels[action.status]}
                     onMove={() => setMovingAction(action)}
+                    onEdit={() => setEditingAction(action)}
+                    onDelete={() => remove(action)}
                     onDisableReminder={() => disableReminder(workspace.id, action.id)}
                   />
                 ))}
@@ -154,6 +160,8 @@ export function RunWorkspaceScreen({
                     timezone={timezone}
                     statusLabel={statusLabels[action.status]}
                     onMove={() => setMovingAction(action)}
+                    onEdit={() => setEditingAction(action)}
+                    onDelete={() => remove(action)}
                     onDisableReminder={() => disableReminder(workspace.id, action.id)}
                   />
                 ))
@@ -172,6 +180,8 @@ export function RunWorkspaceScreen({
                     timezone={timezone}
                     statusLabel={statusLabels[action.status]}
                     onMove={() => setMovingAction(action)}
+                    onEdit={() => setEditingAction(action)}
+                    onDelete={() => remove(action)}
                     onDisableReminder={() => disableReminder(workspace.id, action.id)}
                   />
                 ))}
@@ -218,8 +228,24 @@ export function RunWorkspaceScreen({
         />
       )}
 
-      {pendingUndo && (
-        <UndoBanner message="Déplacement effectué." onUndo={cancelLastMove} />
+      {editingAction && (
+        <EditActionSheet
+          action={editingAction}
+          onCancel={() => setEditingAction(null)}
+          onSave={(edit) => {
+            editAction(workspace.id, editingAction.id, edit);
+            setEditingAction(null);
+          }}
+        />
+      )}
+
+      {pendingUndo && <UndoBanner message="Déplacement effectué." onUndo={cancelLastMove} />}
+      {pendingDeleteUndo && (
+        <UndoBanner
+          message="Action supprimée."
+          onUndo={cancelLastDelete}
+          style={pendingUndo ? { bottom: "calc(var(--bottom-nav-height) + 72px)" } : undefined}
+        />
       )}
     </div>
   );

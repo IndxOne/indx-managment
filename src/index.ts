@@ -1,6 +1,7 @@
 export * from "./domain/types";
 export * from "./domain/workspace";
 export * from "./domain/move-action";
+export * from "./domain/edit-action";
 export * from "./calendar/iso-week";
 export * from "./calendar/calendar-engine";
 export * from "./presets/preset-registry";

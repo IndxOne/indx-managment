@@ -7,6 +7,7 @@ import {
   type Workspace,
 } from "../../domain/workspace";
 import { moveAction, type MoveDestination } from "../../domain/move-action";
+import { editActionContent, type ActionContentEdit } from "../../domain/edit-action";
 import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 
 /**
@@ -42,7 +43,10 @@ type AppEvent =
   | { type: "action/restore"; workspaceId: string; action: Action }
   | { type: "action/setReminder"; workspaceId: string; actionId: string; afterDays: number }
   | { type: "action/disableReminder"; workspaceId: string; actionId: string }
-  | { type: "action/refreshReminders"; workspaceId: string; now: string };
+  | { type: "action/refreshReminders"; workspaceId: string; now: string }
+  | { type: "action/edit"; workspaceId: string; actionId: string; edit: ActionContentEdit; now: string }
+  | { type: "action/delete"; workspaceId: string; actionId: string }
+  | { type: "action/undoDelete"; workspaceId: string; action: Action; index: number };
 
 function reducer(state: AppState, event: AppEvent): AppState {
   switch (event.type) {
@@ -150,6 +154,37 @@ function reducer(state: AppState, event: AppEvent): AppState {
         },
       };
     }
+    case "action/edit": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? editActionContent(action, event.edit, event.now) : action
+          ),
+        },
+      };
+    }
+    case "action/delete": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.filter((action) => action.id !== event.actionId),
+        },
+      };
+    }
+    case "action/undoDelete": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      const insertAt = Math.min(Math.max(event.index, 0), existing.length);
+      const restored = [...existing.slice(0, insertAt), event.action, ...existing.slice(insertAt)];
+      return {
+        ...state,
+        actionsByWorkspace: { ...state.actionsByWorkspace, [event.workspaceId]: restored },
+      };
+    }
     default:
       return state;
   }
@@ -173,6 +208,10 @@ interface StoreContextValue {
   setReminder: (workspaceId: string, actionId: string, afterDays: number) => void;
   disableReminder: (workspaceId: string, actionId: string) => void;
   refreshReminders: (workspaceId: string) => void;
+  editAction: (workspaceId: string, actionId: string, edit: ActionContentEdit) => void;
+  /** Retourne l'action et sa position avant suppression, pour permettre l'annulation. */
+  deleteAction: (workspaceId: string, actionId: string) => { action: Action; index: number } | undefined;
+  undoDeleteAction: (workspaceId: string, action: Action, index: number) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -211,6 +250,18 @@ export function StoreProvider({
         dispatch({ type: "action/disableReminder", workspaceId, actionId }),
       refreshReminders: (workspaceId) =>
         dispatch({ type: "action/refreshReminders", workspaceId, now: new Date().toISOString() }),
+      editAction: (workspaceId, actionId, edit) =>
+        dispatch({ type: "action/edit", workspaceId, actionId, edit, now: new Date().toISOString() }),
+      deleteAction: (workspaceId, actionId) => {
+        const list = state.actionsByWorkspace[workspaceId] ?? [];
+        const index = list.findIndex((action) => action.id === actionId);
+        const action = index === -1 ? undefined : list[index];
+        if (!action) return undefined;
+        dispatch({ type: "action/delete", workspaceId, actionId });
+        return { action, index };
+      },
+      undoDeleteAction: (workspaceId, action, index) =>
+        dispatch({ type: "action/undoDelete", workspaceId, action, index }),
     }),
     [state]
   );

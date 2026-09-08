@@ -8,12 +8,16 @@ export function ActionCard({
   timezone,
   statusLabel,
   onMove,
+  onEdit,
+  onDelete,
   onDisableReminder,
 }: {
   action: Action;
   timezone: string;
   statusLabel: string;
   onMove: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onDisableReminder?: () => void;
 }) {
   const derived = deriveScheduleKeys(action.schedule, timezone);
@@ -24,7 +28,7 @@ export function ActionCard({
 
   return (
     <div className="action-row" data-waiting={isWaiting}>
-      <div>
+      <div className="action-row-content">
         <span
           className="priority-dot"
           data-priority={action.priority}
@@ -48,14 +52,36 @@ export function ActionCard({
           </div>
         )}
       </div>
-      <button
-        type="button"
-        className="btn tap-target"
-        onClick={onMove}
-        aria-label={`Déplacer "${action.title}"`}
-      >
-        Déplacer
-      </button>
+      <div className="action-row-buttons">
+        {onEdit && (
+          <button
+            type="button"
+            className="btn icon-btn tap-target"
+            onClick={onEdit}
+            aria-label={`Éditer "${action.title}"`}
+          >
+            <span aria-hidden="true">✏️</span>
+          </button>
+        )}
+        <button
+          type="button"
+          className="btn tap-target"
+          onClick={onMove}
+          aria-label={`Déplacer "${action.title}"`}
+        >
+          Déplacer
+        </button>
+        {onDelete && (
+          <button
+            type="button"
+            className="btn icon-btn tap-target"
+            onClick={onDelete}
+            aria-label={`Supprimer "${action.title}"`}
+          >
+            <span aria-hidden="true">🗑</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
