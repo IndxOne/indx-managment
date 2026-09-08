@@ -15,6 +15,7 @@ export function ActionListSection({
   onDelete,
   onDisableReminder,
   onOpenNotes,
+  onOpenLink,
 }: {
   id: string;
   title: string;
@@ -29,6 +30,7 @@ export function ActionListSection({
   onDelete: (action: Action) => void;
   onDisableReminder: (action: Action) => void;
   onOpenNotes: (action: Action) => void;
+  onOpenLink: (action: Action) => void;
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -73,6 +75,7 @@ export function ActionListSection({
             onDelete={() => onDelete(action)}
             onDisableReminder={() => onDisableReminder(action)}
             onOpenNotes={() => onOpenNotes(action)}
+            onOpenLink={() => onOpenLink(action)}
           />
         ))
       )}

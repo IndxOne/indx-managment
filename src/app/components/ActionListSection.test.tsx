@@ -28,6 +28,7 @@ const noop = {
   onDelete: vi.fn(),
   onDisableReminder: vi.fn(),
   onOpenNotes: vi.fn(),
+  onOpenLink: vi.fn(),
 };
 
 describe("ActionListSection — masquer les actions terminées", () => {

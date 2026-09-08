@@ -72,6 +72,8 @@ export interface Action {
   waitingReminder?: WaitingReminderRule;
   /** Journal append-only, du plus ancien au plus récent (absent tant qu'aucune note). */
   notes?: ActionNote[];
+  /** Référence vers une autre action (RUN ou PROJET), lien simple non bidirectionnel. */
+  linkedActionId?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

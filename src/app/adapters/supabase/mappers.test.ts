@@ -88,4 +88,15 @@ describe("actionToRow / actionFromRow", () => {
     const withoutNotes = actionFromRow(actionToRow(action({ notes: [] }), USER_HASH));
     expect(withoutNotes.notes).toBeUndefined();
   });
+
+  it("lien vers une autre action : round-trip, absence devient null puis undefined", () => {
+    const linked = action({ linkedActionId: "33333333-3333-3333-3333-333333333333" });
+    const row = actionToRow(linked, USER_HASH);
+    expect(row.linked_action_id).toBe(linked.linkedActionId);
+    expect(actionFromRow(row)).toEqual(linked);
+
+    const unlinkedRow = actionToRow(action({ linkedActionId: undefined }), USER_HASH);
+    expect(unlinkedRow.linked_action_id).toBeNull();
+    expect(actionFromRow(unlinkedRow).linkedActionId).toBeUndefined();
+  });
 });

@@ -68,6 +68,10 @@ function AppShell() {
     setRoute({ screen: "workspace-detail", workspaceId: workspace.id });
   }
 
+  function goToWorkspaceId(workspaceId: string) {
+    setRoute({ screen: "workspace-detail", workspaceId });
+  }
+
   function handleNavChange(tab: NavTab) {
     if (tab === "spaces") setRoute({ screen: "spaces-list" });
     else setRoute({ screen: tab });
@@ -122,12 +126,14 @@ function AppShell() {
                 workspace={workspace}
                 timezone={timezone}
                 onOpenSettings={() => setRoute({ screen: "workspace-settings", workspaceId: workspace.id })}
+                onNavigateToWorkspace={goToWorkspaceId}
               />
             ) : (
               <ProjectWorkspaceScreen
                 workspace={workspace}
                 timezone={timezone}
                 onOpenSettings={() => setRoute({ screen: "workspace-settings", workspaceId: workspace.id })}
+                onNavigateToWorkspace={goToWorkspaceId}
               />
             )
           ) : (
