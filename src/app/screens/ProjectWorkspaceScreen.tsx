@@ -3,7 +3,7 @@ import { deriveScheduleKeys } from "../../calendar/calendar-engine";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
-import { STATUS_LABELS_DEFAULT } from "../labels";
+import { phaseLabel, STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
@@ -102,7 +102,7 @@ export function ProjectWorkspaceScreen({
                       className="segmented-item"
                       onClick={() => setCurrentPhase(phase)}
                     >
-                      {phase}
+                      {phaseLabel(phase)}
                     </button>
                   ))}
                 </div>

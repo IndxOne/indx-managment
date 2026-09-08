@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * Bottom sheet accessible : focus posé à l'ouverture, Échap pour fermer,
@@ -14,9 +14,12 @@ export function BottomSheet({
   children: ReactNode;
 }) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  // Capturé au premier rendu (avant le commit DOM), donc avant qu'un
+  // éventuel autoFocus d'un champ enfant ne déplace le focus : capturer
+  // dans useEffect serait trop tard, l'enfant montant avant le parent.
+  const [previouslyFocused] = useState<HTMLElement | null>(() => document.activeElement as HTMLElement | null);
 
   useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
     sheetRef.current?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
@@ -29,7 +32,7 @@ export function BottomSheet({
       document.removeEventListener("keydown", onKeyDown);
       previouslyFocused?.focus();
     };
-  }, [onClose]);
+  }, [onClose, previouslyFocused]);
 
   return (
     <>

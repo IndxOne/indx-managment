@@ -1,4 +1,4 @@
-import type { ActionStatus, Priority, ProfessionalApproach, WorkspaceKind } from "../domain/types";
+import type { ActionStatus, Priority, ProfessionalApproach, WorkItemType, WorkspaceKind } from "../domain/types";
 
 export const APPROACH_LABELS: Record<ProfessionalApproach, string> = {
   simple: "Simple",
@@ -33,3 +33,27 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   normal: "Normale",
   low: "Basse",
 };
+
+export const ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
+  task: "Tâche",
+  request: "Demande",
+  incident: "Incident",
+  maintenance: "Maintenance",
+  deliverable: "Livrable",
+  milestone: "Jalon",
+};
+
+// Slugs des phaseTemplate déclarés dans preset-registry.ts : accents corrigés
+// pour l'affichage, capitalisation générique en repli pour un slug inconnu.
+const PHASE_LABEL_OVERRIDES: Record<string, string> = {
+  cadrage: "Cadrage",
+  ateliers: "Ateliers",
+  realisations: "Réalisations",
+  validations: "Validations",
+  restitutions: "Restitutions",
+  cloture: "Clôture",
+};
+
+export function phaseLabel(phase: string): string {
+  return PHASE_LABEL_OVERRIDES[phase] ?? phase.charAt(0).toUpperCase() + phase.slice(1);
+}

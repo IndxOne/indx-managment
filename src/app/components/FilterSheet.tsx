@@ -1,5 +1,5 @@
 import type { ActionStatus, Priority, WorkItemType } from "../../domain/types";
-import { PRIORITY_LABELS } from "../labels";
+import { ITEM_TYPE_LABELS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 import type { ActionFilters } from "../utils/filter-actions";
 
@@ -64,7 +64,7 @@ export function FilterSheet({
               checked={filters.itemTypes.has(itemType)}
               onChange={() => onChange({ ...filters, itemTypes: toggle(filters.itemTypes, itemType) })}
             />
-            {itemType}
+            {ITEM_TYPE_LABELS[itemType]}
           </label>
         ))}
       </div>
