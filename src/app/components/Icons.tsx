@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import type { ActionStatus } from "../../domain/types";
 
 /**
  * Icônes SVG inline, style trait uniforme — remplace les emoji bruts (rendu
@@ -123,6 +124,86 @@ export function IconArrowRight(props: IconProps) {
     <svg {...base} {...props}>
       <line x1="4" y1="12" x2="18.5" y2="12" />
       <path d="M13.5 6.5 L19.5 12 L13.5 17.5" />
+    </svg>
+  );
+}
+
+export function IconFilter(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 5h16" />
+      <path d="M7 12h10" />
+      <path d="M10 19h4" />
+    </svg>
+  );
+}
+
+export function IconPlusCircle(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9.25" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+}
+
+export function IconChevronRight(props: IconProps) {
+  return (
+    <svg {...base} strokeWidth={2.4} {...props}>
+      <path d="M9 5 l7 7 l-7 7" />
+    </svg>
+  );
+}
+
+/**
+ * Checkbox de statut façon Reminders/Things : cercle creux (à faire),
+ * demi-disque plein (en cours), cercle plein + coche (terminé), cercle
+ * pointillé (en attente). Dessinée en SVG plutôt qu'en ::before CSS pour
+ * reproduire fidèlement le rendu validé sur la maquette iOS.
+ */
+export function StatusCheckIcon({ status, size = 24 }: { status: ActionStatus; size?: number }) {
+  if (status === "done") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10.5" fill="#34C759" />
+        <path
+          d="M7.5 12.5 L10.3 15.3 L16.5 8.7"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (status === "doing") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="var(--color-accent)" strokeWidth={1.8} />
+        <path d="M12 12 L12 2 A10 10 0 0 1 22 12 Z" fill="var(--color-accent)" />
+      </svg>
+    );
+  }
+  if (status === "waiting") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          fill="none"
+          stroke="var(--color-warning)"
+          strokeWidth={1.8}
+          strokeDasharray="3.2 3.2"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="var(--color-text-tertiary)" strokeWidth={1.8} />
     </svg>
   );
 }

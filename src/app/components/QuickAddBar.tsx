@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from "react";
-import { IconMore, IconPlus } from "./Icons";
+import { IconMore, IconPlusCircle } from "./Icons";
 
 /**
  * Capture rapide façon Columns : un seul champ toujours visible, Entrée
@@ -30,6 +30,15 @@ export function QuickAddBar({
 
   return (
     <form className="quick-add" onSubmit={handleSubmit}>
+      <button
+        type="submit"
+        className="icon-btn"
+        disabled={!title.trim()}
+        aria-label="Ajouter"
+        style={{ color: "var(--color-accent)", flexShrink: 0 }}
+      >
+        <IconPlusCircle width={20} height={20} />
+      </button>
       <input
         ref={inputRef}
         type="text"
@@ -39,14 +48,12 @@ export function QuickAddBar({
         onChange={(event) => setTitle(event.target.value)}
         aria-label="Nouvelle action"
       />
-      <button type="submit" className="btn btn-primary tap-target" disabled={!title.trim()} aria-label="Ajouter">
-        <IconPlus />
-      </button>
       <button
         type="button"
-        className="btn tap-target"
+        className="icon-btn"
         onClick={() => onOpenFullForm(title.trim())}
         aria-label="Options avancées (type, priorité, phase)"
+        style={{ flexShrink: 0 }}
       >
         <IconMore />
       </button>

@@ -53,21 +53,26 @@ export function AggregatedActionsScreen({
         {entries.length === 0 ? (
           <EmptyState title="Rien à afficher" description={emptyDescription} />
         ) : (
-          entries.map(({ workspaceName, action }) => {
-            const derived = deriveScheduleKeys(action.schedule, timezone);
-            const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey;
-            return (
-              <div className="action-row" key={action.id} data-waiting={action.status === "waiting"}>
-                <div>
-                  <span className="action-title">{action.title}</span>
-                  <div className="action-sub">
-                    {workspaceName} · {STATUS_LABELS_DEFAULT[action.status]}
-                    {scheduleLabel ? ` · ${scheduleLabel}` : ""}
+          <div className="ios-group">
+            {entries.map(({ workspaceName, action }, index) => {
+              const derived = deriveScheduleKeys(action.schedule, timezone);
+              const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey;
+              return (
+                <div key={action.id}>
+                  {index > 0 && <div className="ios-separator" />}
+                  <div className="ios-row" data-waiting={action.status === "waiting"}>
+                    <div>
+                      <span className="action-title">{action.title}</span>
+                      <div className="action-sub">
+                        {workspaceName} · {STATUS_LABELS_DEFAULT[action.status]}
+                        {scheduleLabel ? ` · ${scheduleLabel}` : ""}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

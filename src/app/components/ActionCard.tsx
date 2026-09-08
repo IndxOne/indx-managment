@@ -4,7 +4,7 @@ import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ActionMenuSheet } from "./ActionMenuSheet";
-import { IconLink, IconMessage, IconMore } from "./Icons";
+import { IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
 export function ActionCard({
   action,
@@ -36,6 +36,7 @@ export function ActionCard({
   const derived = deriveScheduleKeys(action.schedule, timezone);
   const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
   const isWaiting = action.status === "waiting";
+  const isDone = action.status === "done";
   const reminderActive = isWaiting && action.waitingReminder?.enabled;
   const reminderDue = reminderActive && isWaitingReminderDue(action);
   const statusLabel = statusLabels[action.status];
@@ -43,26 +44,29 @@ export function ActionCard({
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
 
   return (
-    <div className="action-row" data-waiting={isWaiting}>
-      <div className="action-row-content">
-        {onCycleStatus && (
-          <button
-            type="button"
-            className="status-check tap-target"
-            data-status={action.status}
-            role="checkbox"
-            aria-checked={ariaChecked}
-            aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
-            onClick={onCycleStatus}
-          />
-        )}
-        <span
-          className="priority-dot"
-          data-priority={action.priority}
-          aria-hidden="true"
-          style={{ display: "inline-block", marginRight: 8 }}
-        />
-        <span className="action-title">{action.title}</span>
+    <div className="ios-row">
+      {onCycleStatus && (
+        <button
+          type="button"
+          className="status-check"
+          role="checkbox"
+          aria-checked={ariaChecked}
+          aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
+          onClick={onCycleStatus}
+        >
+          <StatusCheckIcon status={action.status} />
+        </button>
+      )}
+      <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span className="priority-dot" data-priority={action.priority} aria-hidden="true" />
+          <span
+            className="action-title"
+            style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
+          >
+            {action.title}
+          </span>
+        </div>
         <div className="action-sub">
           <span>
             {statusLabel}
@@ -84,19 +88,14 @@ export function ActionCard({
           <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
             Relance due
             {onDisableReminder && (
-              <button type="button" className="btn tap-target" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
+              <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
                 Désactiver la relance
               </button>
             )}
           </div>
         )}
       </div>
-      <button
-        type="button"
-        className="btn icon-btn tap-target"
-        onClick={() => setMenuOpen(true)}
-        aria-label={`Actions pour "${action.title}"`}
-      >
+      <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
         <IconMore />
       </button>
       {menuOpen && (

@@ -20,9 +20,7 @@ export function BottomNav({ active, onChange }: { active: NavTab; onChange: (tab
           aria-current={active === id ? "page" : undefined}
           onClick={() => onChange(id)}
         >
-          <span className="nav-icon">
-            <Icon />
-          </span>
+          <Icon width={24} height={24} strokeWidth={1.6} />
           <span>{label}</span>
         </button>
       ))}
