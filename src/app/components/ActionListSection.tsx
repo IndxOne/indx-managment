@@ -11,6 +11,7 @@ export function ActionListSection({
   emptyMessage,
   resolveWorkspace,
   resolveStatusLabels,
+  onOpenWorkspace,
   onMove,
   onCycleStatus,
   onEdit,
@@ -30,6 +31,8 @@ export function ActionListSection({
   resolveWorkspace?: (action: Action) => { name: string; kind: WorkspaceKind } | undefined;
   /** Certains préréglages redéfinissent les libellés de statut ; à défaut, `statusLabels`. */
   resolveStatusLabels?: (action: Action) => Record<ActionStatus, string>;
+  /** Fourni avec resolveWorkspace : navigue vers l'espace d'origine depuis le badge. */
+  onOpenWorkspace?: (action: Action) => void;
   onMove: (action: Action) => void;
   onCycleStatus: (action: Action) => void;
   onEdit: (action: Action) => void;
@@ -80,6 +83,7 @@ export function ActionListSection({
               statusLabels={resolveStatusLabels?.(action) ?? statusLabels}
               workspaceName={workspace?.name}
               workspaceKind={workspace?.kind}
+              onOpenWorkspace={workspace && onOpenWorkspace ? () => onOpenWorkspace(action) : undefined}
               onMove={() => onMove(action)}
               onCycleStatus={() => onCycleStatus(action)}
               onEdit={() => onEdit(action)}

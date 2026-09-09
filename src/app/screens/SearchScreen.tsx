@@ -30,7 +30,7 @@ export function SearchScreen({
   onNavigate: (destination: MoreDestination) => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
-  const { state, editAction, disableReminder, addNote, linkAction, unlinkAction } = useStore();
+  const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
@@ -109,6 +109,7 @@ export function SearchScreen({
             statusLabels={STATUS_LABELS_DEFAULT}
             resolveWorkspace={resolveWorkspace}
             resolveStatusLabels={resolveStatusLabels}
+            onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
             onMove={setMovingAction}
             onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
             onEdit={setEditingAction}
@@ -130,6 +131,7 @@ export function SearchScreen({
             move(movingAction.workspaceId, movingAction, destination);
             setMovingAction(null);
           }}
+          onSetReminder={(afterDays) => setReminder(movingAction.workspaceId, movingAction.id, afterDays)}
         />
       )}
 

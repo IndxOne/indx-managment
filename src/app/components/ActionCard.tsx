@@ -15,6 +15,7 @@ export function ActionCard({
   /** Fourni uniquement dans les vues transversales (plusieurs espaces mélangés). */
   workspaceName,
   workspaceKind,
+  onOpenWorkspace,
   onMove,
   onCycleStatus,
   onEdit,
@@ -28,6 +29,8 @@ export function ActionCard({
   statusLabels: Record<ActionStatus, string>;
   workspaceName?: string;
   workspaceKind?: WorkspaceKind;
+  /** Navigue vers l'espace d'origine de l'action ; fourni avec workspaceKind dans les vues transversales. */
+  onOpenWorkspace?: () => void;
   onMove: () => void;
   /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". */
   onCycleStatus?: () => void;
@@ -55,7 +58,13 @@ export function ActionCard({
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
       {hasChips && (
         <div className="action-card-chips">
-          {workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>}
+          {workspaceKind && onOpenWorkspace ? (
+            <button type="button" className={`badge badge-${workspaceKind} badge-button`} onClick={onOpenWorkspace}>
+              {KIND_LABELS[workspaceKind]}
+            </button>
+          ) : (
+            workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>
+          )}
           {action.phaseId && (
             <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
           )}
