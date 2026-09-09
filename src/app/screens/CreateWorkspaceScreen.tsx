@@ -4,6 +4,7 @@ import type { Workspace } from "../../domain/workspace";
 import { PRESET_REGISTRY } from "../../presets/preset-registry";
 import { APPROACH_DESCRIPTIONS, APPROACH_LABELS } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { IconGrid, IconSun } from "../components/Icons";
 
 // Mirroir du cadrage §8 (valeurs proposées par défaut) — sert uniquement à
 // préremplir le formulaire ; la création réelle passe par createWorkspace
@@ -80,6 +81,9 @@ export function CreateWorkspaceScreen({
                 checked={kind === "run"}
                 onChange={() => handleKindChange("run")}
               />
+              <span className="workspace-icon" data-kind="run" aria-hidden="true">
+                <IconSun width={18} height={18} />
+              </span>
               Travail continu (RUN)
             </label>
             <label className="choice-option">
@@ -89,6 +93,9 @@ export function CreateWorkspaceScreen({
                 checked={kind === "project"}
                 onChange={() => handleKindChange("project")}
               />
+              <span className="workspace-icon" data-kind="project" aria-hidden="true">
+                <IconGrid width={18} height={18} />
+              </span>
               Projet avec étapes (PROJET)
             </label>
           </div>

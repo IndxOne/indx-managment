@@ -3,6 +3,7 @@ import type { Action } from "../../domain/types";
 import { BottomSheet } from "./BottomSheet";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" });
+const RECENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 export function NotesSheet({
   action,
@@ -30,14 +31,21 @@ export function NotesSheet({
         <p className="action-sub">Aucune note pour l'instant.</p>
       ) : (
         <ul className="notes-list">
-          {notes.map((note) => (
-            <li key={note.id} className="notes-list-item">
-              <p>{note.text}</p>
-              <time className="action-sub" dateTime={note.createdAt}>
-                {DATE_FORMAT.format(new Date(note.createdAt))}
-              </time>
-            </li>
-          ))}
+          {notes.map((note) => {
+            const isRecent = Date.now() - new Date(note.createdAt).getTime() < RECENT_THRESHOLD_MS;
+            return (
+              <li key={note.id} className="notes-list-item">
+                <p>{note.text}</p>
+                <time
+                  className="action-sub"
+                  dateTime={note.createdAt}
+                  style={isRecent ? { color: "var(--color-accent)", fontWeight: 600 } : undefined}
+                >
+                  {DATE_FORMAT.format(new Date(note.createdAt))}
+                </time>
+              </li>
+            );
+          })}
         </ul>
       )}
 

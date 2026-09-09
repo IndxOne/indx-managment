@@ -1,6 +1,7 @@
 import type { ActionStatus, Priority } from "../../domain/types";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
+import { StatusCheckIcon } from "./Icons";
 import type { ActionFilters } from "../utils/filter-actions";
 
 const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "waiting", "done"];
@@ -35,6 +36,7 @@ export function FilterSheet({
               checked={filters.statuses.has(status)}
               onChange={() => onChange({ ...filters, statuses: toggle(filters.statuses, status) })}
             />
+            <StatusCheckIcon status={status} size={18} />
             {statusLabels[status]}
           </label>
         ))}
@@ -49,6 +51,12 @@ export function FilterSheet({
               checked={filters.priorities.has(priority)}
               onChange={() => onChange({ ...filters, priorities: toggle(filters.priorities, priority) })}
             />
+            {priority === "high" && (
+              <span
+                aria-hidden="true"
+                style={{ width: 10, height: 10, borderRadius: 999, background: "var(--color-danger)", flexShrink: 0 }}
+              />
+            )}
             {PRIORITY_LABELS[priority]}
           </label>
         ))}
