@@ -259,6 +259,7 @@ export function ProjectWorkspaceScreen({
           action={movingAction}
           phaseOptions={phases}
           statusLabels={statusLabels}
+          timezone={timezone}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
             move(workspace.id, movingAction, destination);

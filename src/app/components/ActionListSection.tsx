@@ -10,6 +10,7 @@ export function ActionListSection({
   statusLabels,
   emptyMessage,
   resolveWorkspace,
+  resolveStatusLabels,
   onMove,
   onCycleStatus,
   onEdit,
@@ -27,6 +28,8 @@ export function ActionListSection({
   emptyMessage?: string;
   /** Fourni uniquement en vue transversale (Aujourd'hui/Semaine) pour afficher le nom/type d'espace sur chaque carte. */
   resolveWorkspace?: (action: Action) => { name: string; kind: WorkspaceKind } | undefined;
+  /** Fourni uniquement en vue transversale : chaque espace peut personnaliser ses libellés de statut (ex. preset product_tech), donc `statusLabels` seul ne suffit plus dès qu'une section mélange plusieurs espaces. */
+  resolveStatusLabels?: (action: Action) => Record<ActionStatus, string>;
   onMove: (action: Action) => void;
   onCycleStatus: (action: Action) => void;
   onEdit: (action: Action) => void;
@@ -74,7 +77,7 @@ export function ActionListSection({
               key={action.id}
               action={action}
               timezone={timezone}
-              statusLabels={statusLabels}
+              statusLabels={resolveStatusLabels?.(action) ?? statusLabels}
               workspaceName={workspace?.name}
               workspaceKind={workspace?.kind}
               onMove={() => onMove(action)}

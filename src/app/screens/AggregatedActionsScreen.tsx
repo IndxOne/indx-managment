@@ -82,6 +82,10 @@ export function AggregatedActionsScreen({
     return workspace ? { name: workspace.name, kind: workspace.kind } : undefined;
   }
 
+  function resolveStatusLabels(action: Action) {
+    return { ...STATUS_LABELS_DEFAULT, ...presetFor(action.workspaceId)?.statusLabels };
+  }
+
   function findAction(actionId: string): Action | undefined {
     for (const workspace of state.workspaces) {
       const found = (state.actionsByWorkspace[workspace.id] ?? []).find((candidate) => candidate.id === actionId);
@@ -112,6 +116,7 @@ export function AggregatedActionsScreen({
               timezone={timezone}
               statusLabels={STATUS_LABELS_DEFAULT}
               resolveWorkspace={resolveWorkspace}
+              resolveStatusLabels={resolveStatusLabels}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
               onEdit={setEditingAction}
@@ -128,6 +133,7 @@ export function AggregatedActionsScreen({
               statusLabels={STATUS_LABELS_DEFAULT}
               emptyMessage={emptyDescription}
               resolveWorkspace={resolveWorkspace}
+              resolveStatusLabels={resolveStatusLabels}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
               onEdit={setEditingAction}
@@ -144,7 +150,8 @@ export function AggregatedActionsScreen({
         <MoveActionSheet
           action={movingAction}
           phaseOptions={presetFor(movingAction.workspaceId)?.phaseTemplate ?? []}
-          statusLabels={{ ...STATUS_LABELS_DEFAULT, ...presetFor(movingAction.workspaceId)?.statusLabels }}
+          statusLabels={resolveStatusLabels(movingAction)}
+          timezone={timezone}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
             move(movingAction.workspaceId, movingAction, destination);
