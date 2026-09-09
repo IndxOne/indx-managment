@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Action, ActionStatus } from "../../domain/types";
+import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { ActionCard } from "./ActionCard";
 
 export function ActionListSection({
@@ -9,6 +9,7 @@ export function ActionListSection({
   timezone,
   statusLabels,
   emptyMessage,
+  resolveWorkspace,
   onMove,
   onCycleStatus,
   onEdit,
@@ -24,6 +25,8 @@ export function ActionListSection({
   statusLabels: Record<ActionStatus, string>;
   /** Affichée si la section est vide ; sinon la section entière est masquée (cf. PROJET). */
   emptyMessage?: string;
+  /** Fourni uniquement en vue transversale (Aujourd'hui/Semaine) pour afficher le nom/type d'espace sur chaque carte. */
+  resolveWorkspace?: (action: Action) => { name: string; kind: WorkspaceKind } | undefined;
   onMove: (action: Action) => void;
   onCycleStatus: (action: Action) => void;
   onEdit: (action: Action) => void;
@@ -64,12 +67,16 @@ export function ActionListSection({
         <p className="action-sub">Toutes les actions sont terminées.</p>
       ) : (
         <div className="action-card-list">
-          {visible.map((action) => (
+          {visible.map((action) => {
+            const workspace = resolveWorkspace?.(action);
+            return (
             <ActionCard
               key={action.id}
               action={action}
               timezone={timezone}
               statusLabels={statusLabels}
+              workspaceName={workspace?.name}
+              workspaceKind={workspace?.kind}
               onMove={() => onMove(action)}
               onCycleStatus={() => onCycleStatus(action)}
               onEdit={() => onEdit(action)}
@@ -78,7 +85,8 @@ export function ActionListSection({
               onOpenNotes={() => onOpenNotes(action)}
               onOpenLink={() => onOpenLink(action)}
             />
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

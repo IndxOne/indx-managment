@@ -111,6 +111,8 @@ function AppShell() {
             title="Aujourd'hui"
             includeLabels={["today"]}
             emptyDescription="Aucune action prévue aujourd'hui, ni en attente."
+            timezone={timezone}
+            onNavigateToWorkspace={goToWorkspaceId}
           />
         )}
 
@@ -119,6 +121,8 @@ function AppShell() {
             title="Cette semaine"
             includeLabels={["today", "tomorrow", "this_week"]}
             emptyDescription="Aucune action prévue cette semaine, ni en attente."
+            timezone={timezone}
+            onNavigateToWorkspace={goToWorkspaceId}
           />
         )}
 

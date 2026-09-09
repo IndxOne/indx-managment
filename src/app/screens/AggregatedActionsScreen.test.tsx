@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
+import { AnnouncerProvider } from "../a11y/announcer";
 import { StoreProvider, type AppState } from "../adapters/temporary-store";
 import { AggregatedActionsScreen } from "./AggregatedActionsScreen";
 
@@ -45,9 +46,17 @@ describe("AggregatedActionsScreen", () => {
     };
 
     render(
-      <StoreProvider initialState={state}>
-        <AggregatedActionsScreen title="Aujourd'hui" includeLabels={["today"]} emptyDescription="Rien." />
-      </StoreProvider>
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <AggregatedActionsScreen
+            title="Aujourd'hui"
+            includeLabels={["today"]}
+            emptyDescription="Rien."
+            timezone="Europe/Paris"
+            onNavigateToWorkspace={() => {}}
+          />
+        </StoreProvider>
+      </AnnouncerProvider>
     );
 
     expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
@@ -57,9 +66,17 @@ describe("AggregatedActionsScreen", () => {
 
   it("état vide quand rien à afficher", () => {
     render(
-      <StoreProvider>
-        <AggregatedActionsScreen title="Aujourd'hui" includeLabels={["today"]} emptyDescription="Rien à voir." />
-      </StoreProvider>
+      <AnnouncerProvider>
+        <StoreProvider>
+          <AggregatedActionsScreen
+            title="Aujourd'hui"
+            includeLabels={["today"]}
+            emptyDescription="Rien à voir."
+            timezone="Europe/Paris"
+            onNavigateToWorkspace={() => {}}
+          />
+        </StoreProvider>
+      </AnnouncerProvider>
     );
     expect(screen.getByText("Rien à afficher")).toBeInTheDocument();
     expect(screen.getByText("Rien à voir.")).toBeInTheDocument();

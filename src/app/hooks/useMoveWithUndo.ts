@@ -9,32 +9,36 @@ const UNDO_WINDOW_MS = 8000;
 /**
  * Encapsule le couple déplacement + proposition d'annulation
  * (cadrage §8 "Annulation proposée après déplacement"), partagé entre
- * l'écran RUN et l'écran PROJET.
+ * l'écran RUN, l'écran PROJET et les vues transversales (Aujourd'hui/
+ * Semaine) — d'où le workspaceId pris par appel plutôt qu'à la
+ * construction du hook, chaque action pouvant venir d'un espace différent.
  */
-export function useMoveWithUndo(workspaceId: string) {
+export function useMoveWithUndo() {
   const { moveActionEvent, restoreAction } = useStore();
   const { announce } = useAnnouncer();
-  const [pendingUndo, setPendingUndo] = useState<{ actionId: string; previous: Action } | null>(null);
+  const [pendingUndo, setPendingUndo] = useState<{ workspaceId: string; actionId: string; previous: Action } | null>(
+    null
+  );
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const move = useCallback(
-    (action: Action, destination: MoveDestination) => {
+    (workspaceId: string, action: Action, destination: MoveDestination) => {
       moveActionEvent(workspaceId, action.id, destination);
-      setPendingUndo({ actionId: action.id, previous: action });
+      setPendingUndo({ workspaceId, actionId: action.id, previous: action });
       announce(`Action "${action.title}" déplacée.`);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setPendingUndo(null), UNDO_WINDOW_MS);
     },
-    [workspaceId, moveActionEvent, announce]
+    [moveActionEvent, announce]
   );
 
   const cancelLastMove = useCallback(() => {
     if (!pendingUndo) return;
-    restoreAction(workspaceId, pendingUndo.previous);
+    restoreAction(pendingUndo.workspaceId, pendingUndo.previous);
     announce("Déplacement annulé.");
     setPendingUndo(null);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, [pendingUndo, workspaceId, restoreAction, announce]);
+  }, [pendingUndo, restoreAction, announce]);
 
   return { pendingUndo, move, cancelLastMove };
 }

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
 import { cycleStatus } from "../../domain/move-action";
-import type { Action, ActionStatus } from "../../domain/types";
+import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
-import { phaseLabel } from "../labels";
+import { KIND_LABELS, phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
@@ -12,6 +12,9 @@ export function ActionCard({
   action,
   timezone,
   statusLabels,
+  /** Renseigné uniquement dans une vue transversale (Aujourd'hui/Semaine) où l'espace n'est pas déjà implicite. */
+  workspaceName,
+  workspaceKind,
   onMove,
   onCycleStatus,
   onEdit,
@@ -23,6 +26,8 @@ export function ActionCard({
   action: Action;
   timezone: string;
   statusLabels: Record<ActionStatus, string>;
+  workspaceName?: string;
+  workspaceKind?: WorkspaceKind;
   onMove: () => void;
   /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". */
   onCycleStatus?: () => void;
@@ -44,12 +49,13 @@ export function ActionCard({
   const statusLabel = statusLabels[action.status];
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
-  const hasChips = Boolean(action.phaseId) || action.priority === "high";
+  const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind);
 
   return (
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
       {hasChips && (
         <div className="action-card-chips">
+          {workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>}
           {action.phaseId && (
             <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
           )}
@@ -78,6 +84,7 @@ export function ActionCard({
           </span>
           <div className="action-sub">
             <span>
+              {workspaceName ? `${workspaceName} · ` : ""}
               {statusLabel}
               {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
               {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
