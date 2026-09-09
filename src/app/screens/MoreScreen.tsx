@@ -1,13 +1,5 @@
-import { IconBell, IconChevronRight, IconLayers, IconNotebook, IconSettings } from "../components/Icons";
-
-export type MoreDestination = "reminders" | "carnet" | "hub" | "app-settings";
-
-const LINKS: { key: MoreDestination; label: string; Icon: typeof IconBell }[] = [
-  { key: "reminders", label: "Rappels", Icon: IconBell },
-  { key: "carnet", label: "Carnet", Icon: IconNotebook },
-  { key: "hub", label: "Hub", Icon: IconLayers },
-  { key: "app-settings", label: "Réglages", Icon: IconSettings },
-];
+import { IconChevronRight } from "../components/Icons";
+import { MORE_LINKS, type MoreDestination } from "../more-links";
 
 export function MoreScreen({ onSelect }: { onSelect: (destination: MoreDestination) => void }) {
   return (
@@ -17,7 +9,7 @@ export function MoreScreen({ onSelect }: { onSelect: (destination: MoreDestinati
       </div>
       <div className="app-main">
         <ul className="list action-card-list">
-          {LINKS.map(({ key, label, Icon }) => (
+          {MORE_LINKS.map(({ key, label, Icon }) => (
             <li key={key}>
               <button
                 type="button"

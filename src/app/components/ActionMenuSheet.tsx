@@ -35,7 +35,7 @@ export function ActionMenuSheet({
   }
 
   return (
-    <BottomSheet title={`Actions — ${action.title}`} onClose={onClose}>
+    <BottomSheet title={`Actions - ${action.title}`} onClose={onClose}>
       <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 8px" }}>
         {action.title}
       </p>

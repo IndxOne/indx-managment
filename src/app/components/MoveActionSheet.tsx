@@ -33,7 +33,7 @@ export function MoveActionSheet({
 
   if (axis === null) {
     return (
-      <BottomSheet title="Déplacer — choisir l'axe" onClose={onCancel}>
+      <BottomSheet title="Déplacer - choisir l'axe" onClose={onCancel}>
         <p id="move-axis-heading" style={{ fontWeight: 600 }}>
           Déplacer « {action.title} »
         </p>
@@ -73,7 +73,7 @@ export function MoveActionSheet({
 
   if (axis === "phase") {
     return (
-      <BottomSheet title="Déplacer — choisir la phase" onClose={onCancel}>
+      <BottomSheet title="Déplacer - choisir la phase" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Nouvelle phase</p>
         <div className="choice-group" style={{ marginBottom: 8 }}>
           {phaseOptions.map((phase) => (
@@ -138,7 +138,7 @@ function StatusDestinationStep({
     const days = Number(reminderDays);
     const validDays = Number.isInteger(days) && days >= 1;
     return (
-      <BottomSheet title="Déplacer — relance" onClose={onCancel}>
+      <BottomSheet title="Déplacer - relance" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Passer « {action.title} » en attente</p>
         <div className="choice-group">
           <label className="choice-option">
@@ -182,7 +182,7 @@ function StatusDestinationStep({
   }
 
   return (
-    <BottomSheet title="Déplacer — choisir le statut" onClose={onCancel}>
+    <BottomSheet title="Déplacer - choisir le statut" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Nouveau statut</p>
       <div className="choice-group" style={{ marginBottom: 8 }}>
         {(Object.keys(statusLabels) as ActionStatus[]).map((status) => (
@@ -224,7 +224,7 @@ function ScheduleDestinationStep({
   const [confirmed, setConfirmed] = useState(false);
 
   return (
-    <BottomSheet title="Déplacer — choisir la semaine" onClose={onCancel}>
+    <BottomSheet title="Déplacer - choisir la semaine" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Déplacer vers la semaine</p>
       <div className="field">
         <label htmlFor="move-target-week">Semaine cible</label>

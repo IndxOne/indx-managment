@@ -9,11 +9,11 @@ export const APPROACH_LABELS: Record<ProfessionalApproach, string> = {
 };
 
 export const APPROACH_DESCRIPTIONS: Record<ProfessionalApproach, string> = {
-  simple: "Titre, statut, échéance — pour non-techniciens.",
-  it_ops: "Catégorie, priorité, attente, récurrence — support et exploitation.",
-  project_amoa: "Livrable, jalon, décision, risque — CDP, AMOA, PMO.",
-  product_tech: "Backlog, revue, dette, incident — dev et tech lead.",
-  management: "Charge, blocage, échéance — pilotage d'équipe.",
+  simple: "Titre, statut, échéance - pour non-techniciens.",
+  it_ops: "Catégorie, priorité, attente, récurrence - support et exploitation.",
+  project_amoa: "Livrable, jalon, décision, risque - CDP, AMOA, PMO.",
+  product_tech: "Backlog, revue, dette, incident - dev et tech lead.",
+  management: "Charge, blocage, échéance - pilotage d'équipe.",
 };
 
 export const KIND_LABELS: Record<WorkspaceKind, string> = {

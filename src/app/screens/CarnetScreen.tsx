@@ -3,6 +3,8 @@ import { ConvertNoteSheet } from "../components/ConvertNoteSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { IconPlus } from "../components/Icons";
 import { useStore } from "../adapters/temporary-store";
+import { MoreSubNav } from "../components/MoreSubNav";
+import type { MoreDestination } from "../more-links";
 
 /**
  * Inbox de notes libres non rattachées à un espace : capture rapide, puis
@@ -10,7 +12,7 @@ import { useStore } from "../adapters/temporary-store";
  * supprimer. Une note convertie disparaît du Carnet (son texte vit dans
  * l'action créée, reliée via sourceNoteId).
  */
-export function CarnetScreen() {
+export function CarnetScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
   const { state, createCarnetNote, deleteCarnetNote, convertCarnetNote } = useStore();
   const [text, setText] = useState("");
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export function CarnetScreen() {
       <div className="top-bar">
         <h1>Carnet</h1>
       </div>
+      <MoreSubNav active="carnet" onNavigate={onNavigate} />
       <div className="app-main">
         <form className="quick-add" onSubmit={handleSubmit}>
           <button type="submit" className="quick-add-plus" disabled={!text.trim()} aria-label="Ajouter une note">
@@ -50,7 +53,7 @@ export function CarnetScreen() {
         {state.carnetNotes.length === 0 ? (
           <EmptyState
             title="Carnet vide"
-            description="Note une idée sans l'attribuer tout de suite à un espace — tu la trieras plus tard."
+            description="Note une idée sans l'attribuer tout de suite à un espace - tu la trieras plus tard."
           />
         ) : (
           <div className="action-card-list">
