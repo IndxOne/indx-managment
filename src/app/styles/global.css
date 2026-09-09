@@ -1197,6 +1197,124 @@ a {
   }
 }
 
+/* Tableau Kanban (espaces PROJET, desktop uniquement — cf. useIsDesktop). */
+.kanban-board {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-4);
+  align-items: flex-start;
+}
+
+.kanban-column {
+  flex: 0 0 280px;
+  background: var(--color-page);
+  border-radius: var(--radius-lg);
+  border-top: 3px solid var(--color-border);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kanban-column[data-drag-over="true"] {
+  background: var(--color-fill);
+}
+
+.kanban-column.phase-chip-blue { border-top-color: var(--chip-blue-text); }
+.kanban-column.phase-chip-purple { border-top-color: var(--chip-purple-text); }
+.kanban-column.phase-chip-orange { border-top-color: var(--chip-orange-text); }
+.kanban-column.phase-chip-green { border-top-color: var(--chip-green-text); }
+.kanban-column.phase-chip-red { border-top-color: var(--chip-red-text); }
+.kanban-column.phase-chip-teal { border-top-color: var(--chip-teal-text); }
+.kanban-column.phase-chip-pink { border-top-color: var(--chip-pink-text); }
+.kanban-column.phase-chip-gray { border-top-color: var(--chip-gray-text); }
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.kanban-column-title {
+  font-weight: 700;
+  flex: 1;
+}
+
+.kanban-column-count {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  background: var(--color-fill);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.kanban-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 8px;
+}
+
+.kanban-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3);
+  cursor: grab;
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card-handle {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.kanban-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.status-chip[data-status="todo"] {
+  background: var(--chip-gray-bg);
+  color: var(--chip-gray-text);
+}
+
+.status-chip[data-status="doing"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.status-chip[data-status="waiting"] {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-chip[data-status="done"] {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
 /* Desktop : navigation basse remplacée par une barre latérale. */
 @media (min-width: 1024px) {
   .app-shell {
