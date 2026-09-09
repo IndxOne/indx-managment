@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ActionStatus } from "../domain/types";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
 import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
@@ -6,6 +7,7 @@ import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
+import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
@@ -29,6 +31,7 @@ type Route =
   | { screen: "reminders" }
   | { screen: "carnet" }
   | { screen: "hub" }
+  | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "app-settings" };
 
 function routeToTab(route: Route): NavTab {
@@ -41,6 +44,7 @@ function routeToTab(route: Route): NavTab {
     case "reminders":
     case "carnet":
     case "hub":
+    case "actions-by-status":
     case "app-settings":
       return "more";
     default:
@@ -179,7 +183,22 @@ function AppShell() {
           <CarnetScreen onNavigate={(destination) => setRoute({ screen: destination })} />
         )}
 
-        {route.screen === "hub" && <HubScreen onNavigate={(destination) => setRoute({ screen: destination })} />}
+        {route.screen === "hub" && (
+          <HubScreen
+            onNavigate={(destination) => setRoute({ screen: destination })}
+            onOpenSpaces={() => setRoute({ screen: "spaces-list" })}
+            onOpenStatus={(status) => setRoute({ screen: "actions-by-status", status })}
+          />
+        )}
+
+        {route.screen === "actions-by-status" && (
+          <ActionsByStatusScreen
+            status={route.status}
+            timezone={timezone}
+            onBack={() => setRoute({ screen: "hub" })}
+            onNavigateToWorkspace={goToWorkspaceId}
+          />
+        )}
 
         {route.screen === "app-settings" && (
           <AppSettingsScreen onNavigate={(destination) => setRoute({ screen: destination })} />
