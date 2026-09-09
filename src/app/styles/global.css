@@ -21,6 +21,7 @@
   --color-warning: #ff9500;
   --color-success: #34c759;
   --color-success-soft: #e8f8ed;
+  --color-warning-soft: #fff3e0;
   --focus-ring: 3px solid #007aff;
   --space-1: 4px;
   --space-2: 8px;
@@ -75,6 +76,7 @@
     --color-warning: #ff9f0a;
     --color-success: #30d158;
     --color-success-soft: #0f2417;
+    --color-warning-soft: #2a2210;
     --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.5);
     --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
@@ -639,6 +641,50 @@ a {
   .phase-select-btn {
     transition: none;
   }
+}
+
+.status-select-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-weight: 700;
+  font-size: 1rem;
+  transition: opacity 100ms ease;
+}
+
+.status-select-btn:active {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-select-btn {
+    transition: none;
+  }
+}
+
+.status-select-btn[data-status="todo"] {
+  background: var(--chip-gray-bg);
+  color: var(--chip-gray-text);
+}
+
+.status-select-btn[data-status="doing"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.status-select-btn[data-status="waiting"] {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-select-btn[data-status="done"] {
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .move-axis-row {

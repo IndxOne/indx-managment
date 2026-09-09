@@ -3,6 +3,7 @@ import { formatIsoWeek } from "../../calendar/iso-week";
 import type { Action, ActionStatus, Schedule } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
+import { phaseChipClass } from "../utils/phase-color";
 import { BottomSheet } from "./BottomSheet";
 import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
 
@@ -93,13 +94,12 @@ export function MoveActionSheet({
     return (
       <BottomSheet title="Déplacer - choisir la phase" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Nouvelle phase</p>
-        <div className="choice-group" style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
           {phaseOptions.map((phase) => (
             <button
               key={phase}
               type="button"
-              className="action-menu-item"
-              style={{ justifyContent: "center" }}
+              className={`phase-select-btn ${phaseChipClass(phase)}`}
               onClick={() => onConfirm({ axis: "phase", phaseId: phase })}
             >
               {phaseLabel(phase)}
@@ -202,13 +202,13 @@ function StatusDestinationStep({
   return (
     <BottomSheet title="Déplacer - choisir le statut" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Nouveau statut</p>
-      <div className="choice-group" style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
         {(Object.keys(statusLabels) as ActionStatus[]).map((status) => (
           <button
             key={status}
             type="button"
-            className="action-menu-item"
-            style={{ justifyContent: "center" }}
+            className="status-select-btn"
+            data-status={status}
             onClick={() => (status === "waiting" ? setPendingWaiting(true) : onConfirm({ axis: "status", status }))}
           >
             <StatusCheckIcon status={status} size={18} /> {statusLabels[status]}
