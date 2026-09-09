@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
 import { defaultMaterializationWindow, generateRecurringOccurrences } from "../../recurrence/recurrence-engine";
@@ -122,6 +122,36 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       });
     },
     []
+  );
+
+  /**
+   * File d'attente par actionId : sans ça, deux mutations coup sur coup sur
+   * la même action (ex. MoveActionSheet qui passe une action en "En attente"
+   * PUIS active une relance dans la même confirmation) partent en parallèle
+   * vers Supabase, et l'ordre d'arrivée réseau n'est pas garanti. Si
+   * l'écriture du déplacement (qui réécrit la ligne entière, calculée AVANT
+   * l'activation de la relance) arrive après celle de la relance, elle
+   * efface silencieusement la relance en base — jamais visible dans l'UI
+   * locale, seulement au prochain rechargement. Sérialiser les écritures
+   * par actionId garantit qu'elles atteignent la base dans l'ordre où elles
+   * ont été déclenchées.
+   */
+  const actionPersistQueues = useRef(new Map<string, Promise<void>>());
+
+  const queueActionPersist = useCallback((actionId: string, persist: () => Promise<void>) => {
+    const previous = actionPersistQueues.current.get(actionId) ?? Promise.resolve();
+    const next = previous.catch(() => {}).then(persist).catch((cause) => {
+      setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+    });
+    actionPersistQueues.current.set(actionId, next);
+  }, []);
+
+  const dispatchAndPersistAction = useCallback(
+    (actionId: string, event: AppEvent, persist: () => Promise<void>) => {
+      dispatch(event);
+      queueActionPersist(actionId, persist);
+    },
+    [queueActionPersist]
   );
 
   const value = useMemo<StoreContextValue>(
@@ -264,7 +294,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       },
 
       moveActionEvent: (workspaceId, actionId, destination) => {
-        dispatchAndPersist({ type: "action/move", workspaceId, actionId, destination }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/move", workspaceId, actionId, destination }, async () => {
           const moved = appReducer(state, { type: "action/move", workspaceId, actionId, destination })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!moved) return;
@@ -274,14 +304,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       },
 
       restoreAction: (workspaceId, action) => {
-        dispatchAndPersist({ type: "action/restore", workspaceId, action }, async () => {
+        dispatchAndPersistAction(action.id, { type: "action/restore", workspaceId, action }, async () => {
           const { error } = await client.from("projets_actions").update(actionToRow(action, userHash)).eq("id", action.id);
           if (error) throw error;
         });
       },
 
       setReminder: (workspaceId, actionId, afterDays) => {
-        dispatchAndPersist({ type: "action/setReminder", workspaceId, actionId, afterDays }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/setReminder", workspaceId, actionId, afterDays }, async () => {
           const updated = appReducer(state, { type: "action/setReminder", workspaceId, actionId, afterDays })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
@@ -294,7 +324,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       },
 
       disableReminder: (workspaceId, actionId) => {
-        dispatchAndPersist({ type: "action/disableReminder", workspaceId, actionId }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/disableReminder", workspaceId, actionId }, async () => {
           const updated = appReducer(state, { type: "action/disableReminder", workspaceId, actionId })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
@@ -309,24 +339,25 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       refreshReminders: (workspaceId) => {
         const now = new Date().toISOString();
         const before = state.actionsByWorkspace[workspaceId] ?? [];
-        dispatchAndPersist({ type: "action/refreshReminders", workspaceId, now }, async () => {
-          const after = appReducer(state, { type: "action/refreshReminders", workspaceId, now }).actionsByWorkspace[
-            workspaceId
-          ] ?? [];
-          const changed = after.filter((action, index) => action.waitingReminder !== before[index]?.waitingReminder);
-          for (const action of changed) {
+        dispatch({ type: "action/refreshReminders", workspaceId, now });
+        const after = appReducer(state, { type: "action/refreshReminders", workspaceId, now }).actionsByWorkspace[
+          workspaceId
+        ] ?? [];
+        const changed = after.filter((action, index) => action.waitingReminder !== before[index]?.waitingReminder);
+        for (const action of changed) {
+          queueActionPersist(action.id, async () => {
             const { error } = await client
               .from("projets_actions")
               .update({ waiting_reminder: action.waitingReminder })
               .eq("id", action.id);
             if (error) throw error;
-          }
-        });
+          });
+        }
       },
 
       editAction: (workspaceId, actionId, edit) => {
         const now = new Date().toISOString();
-        dispatchAndPersist({ type: "action/edit", workspaceId, actionId, edit, now }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/edit", workspaceId, actionId, edit, now }, async () => {
           const updated = appReducer(state, { type: "action/edit", workspaceId, actionId, edit, now })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
@@ -338,7 +369,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       addNote: (workspaceId, actionId, text) => {
         const noteId = generateId();
         const now = new Date().toISOString();
-        dispatchAndPersist({ type: "action/addNote", workspaceId, actionId, noteId, text, now }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/addNote", workspaceId, actionId, noteId, text, now }, async () => {
           const updated = appReducer(state, { type: "action/addNote", workspaceId, actionId, noteId, text, now })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
@@ -349,7 +380,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
       linkAction: (workspaceId, actionId, linkedActionId) => {
         const now = new Date().toISOString();
-        dispatchAndPersist({ type: "action/link", workspaceId, actionId, linkedActionId, now }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/link", workspaceId, actionId, linkedActionId, now }, async () => {
           const { error } = await client
             .from("projets_actions")
             .update({ linked_action_id: linkedActionId, updated_at: now })
@@ -360,7 +391,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
       unlinkAction: (workspaceId, actionId) => {
         const now = new Date().toISOString();
-        dispatchAndPersist({ type: "action/unlink", workspaceId, actionId, now }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/unlink", workspaceId, actionId, now }, async () => {
           const { error } = await client
             .from("projets_actions")
             .update({ linked_action_id: null, updated_at: now })
@@ -374,7 +405,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         const index = list.findIndex((a) => a.id === actionId);
         const action = index === -1 ? undefined : list[index];
         if (!action) return undefined;
-        dispatchAndPersist({ type: "action/delete", workspaceId, actionId }, async () => {
+        dispatchAndPersistAction(actionId, { type: "action/delete", workspaceId, actionId }, async () => {
           const { error } = await client.from("projets_actions").delete().eq("id", actionId);
           if (error) throw error;
         });
@@ -382,13 +413,13 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       },
 
       undoDeleteAction: (workspaceId, action, index) => {
-        dispatchAndPersist({ type: "action/undoDelete", workspaceId, action, index }, async () => {
+        dispatchAndPersistAction(action.id, { type: "action/undoDelete", workspaceId, action, index }, async () => {
           const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash));
           if (error) throw error;
         });
       },
     }),
-    [state, client, userHash, dispatchAndPersist]
+    [state, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist]
   );
 
   if (status === "loading") {
