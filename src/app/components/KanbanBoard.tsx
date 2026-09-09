@@ -56,6 +56,11 @@ export function KanbanBoard({
               event.preventDefault();
               setDragOverPhase(null);
               if (draggingId) onDropOnPhase(draggingId, phase);
+              // Le "dragend" de la carte source peut ne jamais bouillonner ici si
+              // le déplacement démonte cette carte avant qu'il ne se déclenche
+              // (changement de colonne React) : on efface l'état ici aussi, pour
+              // qu'un drag externe ultérieur ne réutilise pas un draggingId périmé.
+              setDraggingId(null);
             }}
           >
             <div className="kanban-column-header">

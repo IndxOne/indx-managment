@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Action, ActionStatus } from "../../domain/types";
+import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconGripVertical, IconMore } from "./Icons";
@@ -38,6 +39,8 @@ export function KanbanCard({
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const isDone = action.status === "done";
+  const reminderActive = action.status === "waiting" && action.waitingReminder?.enabled;
+  const reminderDue = reminderActive && isWaitingReminderDue(action);
 
   return (
     <div className="kanban-card" draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd}>
@@ -61,7 +64,7 @@ export function KanbanCard({
         </div>
         <div className="action-sub">
           {scheduleSummary(action.schedule)}
-          {hasLink ? " · Note liée" : ""}
+          {hasLink ? " · Action liée" : ""}
           {noteCount > 0 ? ` · ${noteCount} note${noteCount > 1 ? "s" : ""}` : ""}
         </div>
       </div>
@@ -86,9 +89,9 @@ export function KanbanCard({
           onOpenLink={onOpenLink}
         />
       )}
-      {onDisableReminder && action.status === "waiting" && action.waitingReminder?.enabled && (
+      {onDisableReminder && reminderActive && (
         <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
-          Relance active
+          {reminderDue ? "Relance due" : "Relance active"}
           <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
             Désactiver
           </button>
