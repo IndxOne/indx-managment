@@ -7,15 +7,16 @@ const UNDO_WINDOW_MS = 8000;
 
 /**
  * Supprime une action avec proposition d'annulation immédiate (même
- * fenêtre que le déplacement), pour couvrir "suppression/annulation" de
- * la checklist de non-régression. workspaceId pris par appel (pas à la
- * construction) pour rester utilisable depuis une vue transversale
- * (Aujourd'hui/Semaine) où chaque action vient d'un espace différent.
+ * fenêtre que le déplacement), pour couvrir "suppression/annulation"
+ * de la checklist de non-régression. L'espace est passé par appel (pas
+ * au constructeur), même raison que useMoveWithUndo : vues transversales.
  */
 export function useDeleteWithUndo() {
   const { deleteAction, undoDeleteAction } = useStore();
   const { announce } = useAnnouncer();
-  const [pendingUndo, setPendingUndo] = useState<{ workspaceId: string; action: Action; index: number } | null>(null);
+  const [pendingUndo, setPendingUndo] = useState<{ workspaceId: string; action: Action; index: number } | null>(
+    null
+  );
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const remove = useCallback(

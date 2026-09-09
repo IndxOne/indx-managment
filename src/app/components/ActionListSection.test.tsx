@@ -105,3 +105,41 @@ describe("ActionListSection — masquer les actions terminées", () => {
     expect(screen.getByText("Aucune action planifiée.")).toBeInTheDocument();
   });
 });
+
+describe("ActionListSection — vue transversale (resolveWorkspace)", () => {
+  it("le badge d'espace appelle onOpenWorkspace avec l'action", async () => {
+    const user = userEvent.setup();
+    const onOpenWorkspace = vi.fn();
+    render(
+      <ActionListSection
+        id="section-test"
+        title="Relances actives"
+        actions={[makeAction({ id: "a1", title: "Relancer" })]}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        resolveWorkspace={() => ({ name: "Suivi quotidien", kind: "run" })}
+        onOpenWorkspace={onOpenWorkspace}
+        {...noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "RUN" }));
+    expect(onOpenWorkspace).toHaveBeenCalledWith(expect.objectContaining({ id: "a1" }));
+  });
+
+  it("le badge d'espace n'est pas cliquable sans onOpenWorkspace", () => {
+    render(
+      <ActionListSection
+        id="section-test"
+        title="Relances actives"
+        actions={[makeAction({ id: "a1", title: "Relancer" })]}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        resolveWorkspace={() => ({ name: "Suivi quotidien", kind: "run" })}
+        {...noop}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "RUN" })).not.toBeInTheDocument();
+    expect(screen.getByText("RUN")).toBeInTheDocument();
+  });
+});

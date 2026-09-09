@@ -6,12 +6,14 @@ import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { phaseLabel, STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { IconSettings } from "../components/Icons";
+import { KanbanBoard } from "../components/KanbanBoard";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -47,13 +49,15 @@ export function ProjectWorkspaceScreen({
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
-  const phases = preset.phaseTemplate ?? [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preset dérive uniquement de kind/approach, pas d'un objet stable
+  const phases = useMemo(() => preset.phaseTemplate ?? [], [workspace.kind, workspace.approach]);
 
   useEffect(() => {
     refreshReminders(workspace.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id, allActions.length]);
 
+  const isDesktop = useIsDesktop();
   const [mode, setMode] = useState<ProjectMode>("phase");
   const [currentPhase, setCurrentPhase] = useState<string | undefined>(phases[0]);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -78,6 +82,15 @@ export function ProjectWorkspaceScreen({
   const deliverables = phaseActions.filter(
     (action) => !["milestone", "decision", "risk"].includes(action.itemType)
   );
+
+  const actionsByPhase = useMemo(() => {
+    const grouped: Record<string, Action[]> = {};
+    for (const phase of phases) grouped[phase] = [];
+    for (const action of allActions) {
+      if (action.phaseId && grouped[action.phaseId]) grouped[action.phaseId]!.push(action);
+    }
+    return grouped;
+  }, [allActions, phases]);
 
   const weekActions = useMemo(() => {
     if (mode !== "week") return [];
@@ -111,6 +124,27 @@ export function ProjectWorkspaceScreen({
               <EmptyState
                 title="Aucune phase configurée"
                 description="Cet espace PROJET fonctionne sans découpage en phases pour l'instant."
+              />
+            ) : isDesktop ? (
+              <KanbanBoard
+                phases={phases}
+                actionsByPhase={actionsByPhase}
+                statusLabels={statusLabels}
+                onAddToPhase={(phaseId) => {
+                  setCurrentPhase(phaseId);
+                  setAddSheetDraftTitle("");
+                  setAddSheetOpen(true);
+                }}
+                onDropOnPhase={(actionId, phaseId) => {
+                  const action = allActions.find((candidate) => candidate.id === actionId);
+                  if (action && action.phaseId !== phaseId) move(action, { axis: "phase", phaseId });
+                }}
+                onMove={setMovingAction}
+                onEdit={setEditingAction}
+                onDelete={remove}
+                onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                onOpenNotes={(action) => setNotesActionId(action.id)}
+                onOpenLink={(action) => setLinkingActionId(action.id)}
               />
             ) : (
               <>

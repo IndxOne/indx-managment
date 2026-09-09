@@ -9,9 +9,9 @@ const UNDO_WINDOW_MS = 8000;
 /**
  * Encapsule le couple déplacement + proposition d'annulation
  * (cadrage §8 "Annulation proposée après déplacement"), partagé entre
- * l'écran RUN, l'écran PROJET et les vues transversales (Aujourd'hui/
- * Semaine) — d'où le workspaceId pris par appel plutôt qu'à la
- * construction du hook, chaque action pouvant venir d'un espace différent.
+ * l'écran RUN et l'écran PROJET. L'espace est passé par appel (pas au
+ * constructeur) pour couvrir les vues transversales (Aujourd'hui/Semaine,
+ * Rappels) qui mélangent des actions de plusieurs espaces.
  */
 export function useMoveWithUndo() {
   const { moveActionEvent, restoreAction } = useStore();

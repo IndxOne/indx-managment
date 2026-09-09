@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ActionStatus } from "../domain/types";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
 import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
@@ -6,6 +7,7 @@ import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
+import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
@@ -16,6 +18,7 @@ import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
 import { RemindersScreen } from "./screens/RemindersScreen";
 import { RunWorkspaceScreen } from "./screens/RunWorkspaceScreen";
+import { SearchScreen } from "./screens/SearchScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
 
 type Route =
@@ -29,6 +32,8 @@ type Route =
   | { screen: "reminders" }
   | { screen: "carnet" }
   | { screen: "hub" }
+  | { screen: "actions-by-status"; status: ActionStatus }
+  | { screen: "search" }
   | { screen: "app-settings" };
 
 function routeToTab(route: Route): NavTab {
@@ -41,6 +46,8 @@ function routeToTab(route: Route): NavTab {
     case "reminders":
     case "carnet":
     case "hub":
+    case "actions-by-status":
+    case "search":
     case "app-settings":
       return "more";
     default:
@@ -173,6 +180,7 @@ function AppShell() {
 
         {route.screen === "reminders" && (
           <RemindersScreen
+            timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
             onNavigate={(destination) => setRoute({ screen: destination })}
           />
@@ -182,7 +190,30 @@ function AppShell() {
           <CarnetScreen onNavigate={(destination) => setRoute({ screen: destination })} />
         )}
 
-        {route.screen === "hub" && <HubScreen onNavigate={(destination) => setRoute({ screen: destination })} />}
+        {route.screen === "hub" && (
+          <HubScreen
+            onNavigate={(destination) => setRoute({ screen: destination })}
+            onOpenSpaces={() => setRoute({ screen: "spaces-list" })}
+            onOpenStatus={(status) => setRoute({ screen: "actions-by-status", status })}
+          />
+        )}
+
+        {route.screen === "actions-by-status" && (
+          <ActionsByStatusScreen
+            status={route.status}
+            timezone={timezone}
+            onBack={() => setRoute({ screen: "hub" })}
+            onNavigateToWorkspace={goToWorkspaceId}
+          />
+        )}
+
+        {route.screen === "search" && (
+          <SearchScreen
+            timezone={timezone}
+            onNavigate={(destination) => setRoute({ screen: destination })}
+            onNavigateToWorkspace={goToWorkspaceId}
+          />
+        )}
 
         {route.screen === "app-settings" && (
           <AppSettingsScreen onNavigate={(destination) => setRoute({ screen: destination })} />

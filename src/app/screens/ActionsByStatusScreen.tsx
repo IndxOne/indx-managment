@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { deriveScheduleKeys, type RelativeLabelKey } from "../../calendar/calendar-engine";
+import { useMemo, useState } from "react";
 import { cycleStatus } from "../../domain/move-action";
-import type { Action } from "../../domain/types";
+import type { Action, ActionStatus } from "../../domain/types";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
@@ -14,40 +13,26 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { UndoBanner } from "../components/UndoBanner";
+import { IconChevronRight } from "../components/Icons";
 
 /**
- * Vue transversale (Aujourd'hui / Semaine) : agrège RUN et PROJET. Comme les
- * écrans d'espace, entièrement interactive (cycle de statut, déplacer,
- * éditer, notes, lien, supprimer+annuler) — chaque action garde son
- * workspaceId propre, donc les hooks undo et le préréglage (phases/libellés
- * de statut) sont résolus par action plutôt que fixés pour tout l'écran.
+ * Drill-down depuis une tuile de statut du Hub : mêmes actions que
+ * RemindersScreen (vue transversale interactive), filtrées par statut
+ * au lieu de "en attente + relance". Accessible uniquement depuis le
+ * Hub, donc bouton retour dédié plutôt que MoreSubNav.
  */
-export function AggregatedActionsScreen({
-  title,
-  includeLabels,
-  emptyDescription,
+export function ActionsByStatusScreen({
+  status,
   timezone,
+  onBack,
   onNavigateToWorkspace,
 }: {
-  title: string;
-  includeLabels: RelativeLabelKey[];
-  emptyDescription: string;
+  status: ActionStatus;
   timezone: string;
+  onBack: () => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
-  const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
-    useStore();
-
-  const totalActionCount = useMemo(
-    () => state.workspaces.reduce((sum, workspace) => sum + (state.actionsByWorkspace[workspace.id]?.length ?? 0), 0),
-    [state.workspaces, state.actionsByWorkspace]
-  );
-
-  useEffect(() => {
-    for (const workspace of state.workspaces) refreshReminders(workspace.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.workspaces.length, totalActionCount]);
-
+  const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
@@ -56,21 +41,15 @@ export function AggregatedActionsScreen({
   const [notesActionId, setNotesActionId] = useState<string | null>(null);
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
 
-  const { waiting, inView } = useMemo(() => {
-    const waitingBucket: Action[] = [];
-    const inViewBucket: Action[] = [];
+  const entries = useMemo(() => {
+    const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.status === "waiting") {
-          waitingBucket.push(action);
-          continue;
-        }
-        const derived = deriveScheduleKeys(action.schedule, timezone);
-        if (includeLabels.includes(derived.relativeLabel)) inViewBucket.push(action);
+        if (action.status === status) result.push(action);
       }
     }
-    return { waiting: waitingBucket, inView: inViewBucket };
-  }, [state.workspaces, state.actionsByWorkspace, timezone, includeLabels]);
+    return result;
+  }, [state, status]);
 
   function presetFor(workspaceId: string) {
     const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -97,54 +76,37 @@ export function AggregatedActionsScreen({
   const notesAction = notesActionId ? findAction(notesActionId) ?? null : null;
   const linkingAction = linkingActionId ? findAction(linkingActionId) ?? null : null;
 
-  const nothingToShow = waiting.length === 0 && inView.length === 0;
-
   return (
     <div>
       <div className="top-bar">
-        <h1>{title}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button type="button" className="btn btn-icon" onClick={onBack} aria-label="Retour au Hub">
+            <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <h1>{STATUS_LABELS_DEFAULT[status]}</h1>
+        </div>
       </div>
       <div className="app-main">
-        {nothingToShow ? (
-          <EmptyState title="Rien à afficher" description={emptyDescription} />
+        {entries.length === 0 ? (
+          <EmptyState title="Aucune action" description="Aucune action dans ce statut pour l'instant." />
         ) : (
-          <>
-            <ActionListSection
-              id="section-waiting"
-              title="En attente"
-              actions={waiting}
-              timezone={timezone}
-              statusLabels={STATUS_LABELS_DEFAULT}
-              resolveWorkspace={resolveWorkspace}
-              resolveStatusLabels={resolveStatusLabels}
-              onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
-              onMove={setMovingAction}
-              onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
-              onEdit={setEditingAction}
-              onDelete={(action) => remove(action.workspaceId, action)}
-              onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
-              onOpenNotes={(action) => setNotesActionId(action.id)}
-              onOpenLink={(action) => setLinkingActionId(action.id)}
-            />
-            <ActionListSection
-              id="section-inview"
-              title={title}
-              actions={inView}
-              timezone={timezone}
-              statusLabels={STATUS_LABELS_DEFAULT}
-              emptyMessage={emptyDescription}
-              resolveWorkspace={resolveWorkspace}
-              resolveStatusLabels={resolveStatusLabels}
-              onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
-              onMove={setMovingAction}
-              onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
-              onEdit={setEditingAction}
-              onDelete={(action) => remove(action.workspaceId, action)}
-              onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
-              onOpenNotes={(action) => setNotesActionId(action.id)}
-              onOpenLink={(action) => setLinkingActionId(action.id)}
-            />
-          </>
+          <ActionListSection
+            id="section-actions-by-status"
+            title={`${STATUS_LABELS_DEFAULT[status]} (${entries.length})`}
+            actions={entries}
+            timezone={timezone}
+            statusLabels={STATUS_LABELS_DEFAULT}
+            resolveWorkspace={resolveWorkspace}
+            resolveStatusLabels={resolveStatusLabels}
+            onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
+            onMove={setMovingAction}
+            onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
+            onEdit={setEditingAction}
+            onDelete={(action) => remove(action.workspaceId, action)}
+            onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
+            onOpenNotes={(action) => setNotesActionId(action.id)}
+            onOpenLink={(action) => setLinkingActionId(action.id)}
+          />
         )}
       </div>
 

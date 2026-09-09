@@ -41,6 +41,20 @@ export function IconMore(props: IconProps) {
   );
 }
 
+/** Poignée de glisser (drag handle), 2×3 points — même convention que IconMore. */
+export function IconGripVertical(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function IconSettings(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -236,6 +250,15 @@ export function IconNotebook(props: IconProps) {
       <line x1="9" y1="3.5" x2="9" y2="20.5" />
       <line x1="12.5" y1="8" x2="16" y2="8" />
       <line x1="12.5" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+}
+
+export function IconSearch(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <line x1="15.3" y1="15.3" x2="20.5" y2="20.5" />
     </svg>
   );
 }

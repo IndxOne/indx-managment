@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { deriveScheduleKeys, type RelativeLabelKey } from "../../calendar/calendar-engine";
+import { useMemo, useState } from "react";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
@@ -14,63 +13,45 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { UndoBanner } from "../components/UndoBanner";
+import { MoreSubNav } from "../components/MoreSubNav";
+import type { MoreDestination } from "../more-links";
 
 /**
- * Vue transversale (Aujourd'hui / Semaine) : agrège RUN et PROJET. Comme les
- * écrans d'espace, entièrement interactive (cycle de statut, déplacer,
- * éditer, notes, lien, supprimer+annuler) — chaque action garde son
- * workspaceId propre, donc les hooks undo et le préréglage (phases/libellés
- * de statut) sont résolus par action plutôt que fixés pour tout l'écran.
+ * Recherche transversale par titre, tous espaces confondus. Même wiring
+ * interactif que Rappels/ActionsByStatus (pas de vue en lecture seule
+ * dans l'app) : filtrage local pur, aucune donnée dupliquée.
  */
-export function AggregatedActionsScreen({
-  title,
-  includeLabels,
-  emptyDescription,
+export function SearchScreen({
   timezone,
+  onNavigate,
   onNavigateToWorkspace,
 }: {
-  title: string;
-  includeLabels: RelativeLabelKey[];
-  emptyDescription: string;
   timezone: string;
+  onNavigate: (destination: MoreDestination) => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
-  const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
-    useStore();
-
-  const totalActionCount = useMemo(
-    () => state.workspaces.reduce((sum, workspace) => sum + (state.actionsByWorkspace[workspace.id]?.length ?? 0), 0),
-    [state.workspaces, state.actionsByWorkspace]
-  );
-
-  useEffect(() => {
-    for (const workspace of state.workspaces) refreshReminders(workspace.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.workspaces.length, totalActionCount]);
-
+  const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
+  const [query, setQuery] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [notesActionId, setNotesActionId] = useState<string | null>(null);
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
 
-  const { waiting, inView } = useMemo(() => {
-    const waitingBucket: Action[] = [];
-    const inViewBucket: Action[] = [];
+  const trimmedQuery = query.trim().toLowerCase();
+
+  const entries = useMemo(() => {
+    if (!trimmedQuery) return [];
+    const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.status === "waiting") {
-          waitingBucket.push(action);
-          continue;
-        }
-        const derived = deriveScheduleKeys(action.schedule, timezone);
-        if (includeLabels.includes(derived.relativeLabel)) inViewBucket.push(action);
+        if (action.title.toLowerCase().includes(trimmedQuery)) result.push(action);
       }
     }
-    return { waiting: waitingBucket, inView: inViewBucket };
-  }, [state.workspaces, state.actionsByWorkspace, timezone, includeLabels]);
+    return result;
+  }, [state, trimmedQuery]);
 
   function presetFor(workspaceId: string) {
     const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -97,54 +78,46 @@ export function AggregatedActionsScreen({
   const notesAction = notesActionId ? findAction(notesActionId) ?? null : null;
   const linkingAction = linkingActionId ? findAction(linkingActionId) ?? null : null;
 
-  const nothingToShow = waiting.length === 0 && inView.length === 0;
-
   return (
     <div>
       <div className="top-bar">
-        <h1>{title}</h1>
+        <h1>Recherche</h1>
       </div>
+      <MoreSubNav active="search" onNavigate={onNavigate} />
       <div className="app-main">
-        {nothingToShow ? (
-          <EmptyState title="Rien à afficher" description={emptyDescription} />
+        <div className="field">
+          <label htmlFor="search-query">Rechercher une action</label>
+          <input
+            id="search-query"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Titre d'une action…"
+          />
+        </div>
+
+        {!trimmedQuery ? (
+          <EmptyState title="Rechercher une action" description="Tapez un titre pour retrouver une action dans tous vos espaces." />
+        ) : entries.length === 0 ? (
+          <EmptyState title="Aucun résultat" description={`Aucune action ne correspond à « ${query.trim()} ».`} />
         ) : (
-          <>
-            <ActionListSection
-              id="section-waiting"
-              title="En attente"
-              actions={waiting}
-              timezone={timezone}
-              statusLabels={STATUS_LABELS_DEFAULT}
-              resolveWorkspace={resolveWorkspace}
-              resolveStatusLabels={resolveStatusLabels}
-              onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
-              onMove={setMovingAction}
-              onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
-              onEdit={setEditingAction}
-              onDelete={(action) => remove(action.workspaceId, action)}
-              onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
-              onOpenNotes={(action) => setNotesActionId(action.id)}
-              onOpenLink={(action) => setLinkingActionId(action.id)}
-            />
-            <ActionListSection
-              id="section-inview"
-              title={title}
-              actions={inView}
-              timezone={timezone}
-              statusLabels={STATUS_LABELS_DEFAULT}
-              emptyMessage={emptyDescription}
-              resolveWorkspace={resolveWorkspace}
-              resolveStatusLabels={resolveStatusLabels}
-              onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
-              onMove={setMovingAction}
-              onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
-              onEdit={setEditingAction}
-              onDelete={(action) => remove(action.workspaceId, action)}
-              onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
-              onOpenNotes={(action) => setNotesActionId(action.id)}
-              onOpenLink={(action) => setLinkingActionId(action.id)}
-            />
-          </>
+          <ActionListSection
+            id="section-search-results"
+            title={`Résultats (${entries.length})`}
+            actions={entries}
+            timezone={timezone}
+            statusLabels={STATUS_LABELS_DEFAULT}
+            resolveWorkspace={resolveWorkspace}
+            resolveStatusLabels={resolveStatusLabels}
+            onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
+            onMove={setMovingAction}
+            onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
+            onEdit={setEditingAction}
+            onDelete={(action) => remove(action.workspaceId, action)}
+            onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
+            onOpenNotes={(action) => setNotesActionId(action.id)}
+            onOpenLink={(action) => setLinkingActionId(action.id)}
+          />
         )}
       </div>
 
