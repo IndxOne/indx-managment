@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { formatIsoWeek } from "../../calendar/iso-week";
-import type { Action, ActionStatus, Schedule } from "../../domain/types";
+import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
+import { scheduleSummary } from "../utils/schedule-summary";
 import { BottomSheet } from "./BottomSheet";
 import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
-
-/** Résumé lisible de la planification actuelle, affiché sous "Planification" dans le choix de l'axe. */
-function scheduleSummary(schedule: Schedule | undefined): string {
-  if (!schedule || schedule.granularity === "none") return "Non planifiée";
-  if (schedule.granularity === "day") return `Jour · ${schedule.value}`;
-  if (schedule.granularity === "week") return `Semaine ${schedule.value}`;
-  return `Mois ${schedule.value}`;
-}
 
 export function MoveActionSheet({
   action,

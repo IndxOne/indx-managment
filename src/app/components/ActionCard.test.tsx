@@ -153,8 +153,9 @@ describe("ActionCard — menu d'actions unique", () => {
       />
     );
     await openMenu(user);
-    expect(screen.getByRole("button", { name: /Notes \(1\)/ })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Action liée" }));
+    expect(screen.getByRole("button", { name: /^Notes/ })).toBeInTheDocument();
+    expect(screen.getByText("1 note")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Action liée/ }));
     expect(onOpenLink).toHaveBeenCalledTimes(1);
   });
 

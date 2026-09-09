@@ -1,4 +1,7 @@
+import type { ReactNode } from "react";
 import type { Action } from "../../domain/types";
+import { ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS_DEFAULT } from "../labels";
+import { scheduleSummary } from "../utils/schedule-summary";
 import { BottomSheet } from "./BottomSheet";
 import { IconArrowRight, IconLink, IconMessage, IconPencil, IconTrash } from "./Icons";
 
@@ -41,27 +44,47 @@ export function ActionMenuSheet({
       </p>
       <div className="choice-group" style={{ marginBottom: 8 }}>
         {onOpenNotes && (
-          <button type="button" className="action-menu-item" onClick={() => run(onOpenNotes)}>
-            <IconMessage /> Notes{noteCount > 0 ? ` (${noteCount})` : ""}
-          </button>
+          <MenuRow
+            chipClass="phase-chip-teal"
+            icon={<IconMessage width={18} height={18} />}
+            label="Notes"
+            sub={noteCount > 0 ? `${noteCount} note${noteCount > 1 ? "s" : ""}` : "Aucune note"}
+            onClick={() => run(onOpenNotes)}
+          />
         )}
         {onOpenLink && (
-          <button type="button" className="action-menu-item" onClick={() => run(onOpenLink)}>
-            <IconLink /> {hasLink ? "Action liée" : "Lier à une autre action"}
-          </button>
+          <MenuRow
+            chipClass="phase-chip-purple"
+            icon={<IconLink width={18} height={18} />}
+            label={hasLink ? "Action liée" : "Lier à une autre action"}
+            sub={hasLink ? "Une action est liée" : "Aucune liaison"}
+            onClick={() => run(onOpenLink)}
+          />
         )}
         {onEdit && (
-          <button type="button" className="action-menu-item" onClick={() => run(onEdit)}>
-            <IconPencil /> Éditer
-          </button>
+          <MenuRow
+            chipClass="phase-chip-blue"
+            icon={<IconPencil width={18} height={18} />}
+            label="Éditer"
+            sub={`${ITEM_TYPE_LABELS[action.itemType]} · ${PRIORITY_LABELS[action.priority]}`}
+            onClick={() => run(onEdit)}
+          />
         )}
-        <button type="button" className="action-menu-item" onClick={() => run(onMove)}>
-          <IconArrowRight /> Déplacer
-        </button>
+        <MenuRow
+          chipClass="phase-chip-orange"
+          icon={<IconArrowRight width={18} height={18} />}
+          label="Déplacer"
+          sub={`${STATUS_LABELS_DEFAULT[action.status]} · ${scheduleSummary(action.schedule)}`}
+          onClick={() => run(onMove)}
+        />
         {onDelete && (
-          <button type="button" className="action-menu-item action-menu-item-danger" onClick={() => run(onDelete)}>
-            <IconTrash /> Supprimer
-          </button>
+          <MenuRow
+            chipClass="phase-chip-red"
+            icon={<IconTrash width={18} height={18} />}
+            label="Supprimer"
+            danger
+            onClick={() => run(onDelete)}
+          />
         )}
       </div>
       <div className="choice-group">
@@ -75,5 +98,35 @@ export function ActionMenuSheet({
         </button>
       </div>
     </BottomSheet>
+  );
+}
+
+function MenuRow({
+  chipClass,
+  icon,
+  label,
+  sub,
+  danger,
+  onClick,
+}: {
+  chipClass: string;
+  icon: ReactNode;
+  label: string;
+  sub?: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="action-menu-row" onClick={onClick}>
+      <span className={`action-menu-icon ${chipClass}`} aria-hidden="true">
+        {icon}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span className="action-menu-row-label" style={danger ? { color: "var(--color-danger)" } : undefined}>
+          {label}
+        </span>
+        {sub && <span className="action-menu-row-sub">{sub}</span>}
+      </span>
+    </button>
   );
 }

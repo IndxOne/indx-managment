@@ -740,6 +740,57 @@ a {
   color: var(--color-text-muted);
 }
 
+.action-menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-bottom: 0.5px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  transition: background 100ms ease;
+}
+
+.action-menu-row:last-child {
+  border-bottom: none;
+}
+
+.action-menu-row:active {
+  background: var(--color-fill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-menu-row {
+    transition: none;
+  }
+}
+
+.action-menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.action-menu-row-label {
+  display: block;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.action-menu-row-sub {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
 .more-subnav {
   display: flex;
   gap: var(--space-2);
