@@ -16,6 +16,7 @@ export function EditActionSheet({
   onSave: (edit: ActionContentEdit) => void;
 }) {
   const [title, setTitle] = useState(action.title);
+  const [description, setDescription] = useState(action.description ?? "");
   const [itemType, setItemType] = useState<WorkItemType>(action.itemType);
   const [priority, setPriority] = useState<Priority>(action.priority);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function EditActionSheet({
       setError("Le titre est requis.");
       return;
     }
-    onSave({ title, itemType, priority });
+    onSave({ title, description, itemType, priority });
   }
 
   return (
@@ -46,6 +47,17 @@ export function EditActionSheet({
             {error}
           </p>
         )}
+      </div>
+
+      <div className="field">
+        <label htmlFor="edit-action-description">Description</label>
+        <textarea
+          id="edit-action-description"
+          rows={3}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="Détails, contexte, lien utile…"
+        />
       </div>
 
       <div className="field">

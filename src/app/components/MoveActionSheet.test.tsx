@@ -41,7 +41,7 @@ describe("MoveActionSheet — axe Statut", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Statut" }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "Terminé" }));
 
     expect(onConfirm).toHaveBeenCalledWith({ axis: "status", status: "done" });
@@ -62,7 +62,7 @@ describe("MoveActionSheet — axe Statut", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Statut" }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "En attente" }));
     expect(await screen.findByText(/Passer « Relancer le prestataire » en attente/)).toBeInTheDocument();
 
@@ -86,7 +86,7 @@ describe("MoveActionSheet — axe Statut", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Statut" }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "En attente" }));
     await user.click(screen.getByLabelText("Activer une relance automatique"));
 
@@ -112,7 +112,7 @@ describe("MoveActionSheet — axe Statut", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Statut" }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "En attente" }));
     await user.click(screen.getByLabelText("Activer une relance automatique"));
 
@@ -137,7 +137,7 @@ describe("MoveActionSheet — axe Statut", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Statut" }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "Retour" }));
     expect(await screen.findByText(/Déplacer « Relancer le prestataire »/)).toBeInTheDocument();
   });
@@ -157,7 +157,7 @@ describe("MoveActionSheet — axe Phase", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Phase" }));
+    await user.click(screen.getByRole("button", { name: /^Phase/ }));
     await user.click(screen.getByRole("button", { name: "Cadrage" }));
 
     expect(onConfirm).toHaveBeenCalledWith({ axis: "phase", phaseId: "cadrage" });
@@ -178,7 +178,7 @@ describe("MoveActionSheet — axe Planification", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Planification" }));
+    await user.click(screen.getByRole("button", { name: /^Planification/ }));
     expect(screen.getByRole("button", { name: "Confirmer" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "Confirmer" }));
@@ -200,7 +200,7 @@ describe("MoveActionSheet — axe Planification", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Planification" }));
+    await user.click(screen.getByRole("button", { name: /^Planification/ }));
     expect(screen.getByRole("button", { name: "Confirmer" })).toBeDisabled();
 
     await user.click(screen.getByLabelText(/Je confirme le passage d'une planification mensuelle/));
@@ -225,7 +225,7 @@ describe("MoveActionSheet — axe Planification", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Planification" }));
+    await user.click(screen.getByRole("button", { name: /^Planification/ }));
     await user.click(screen.getByRole("button", { name: "Annuler" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

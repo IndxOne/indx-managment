@@ -167,13 +167,22 @@ function AppShell() {
 
         {route.screen === "more" && <MoreScreen onSelect={(destination) => setRoute({ screen: destination })} />}
 
-        {route.screen === "reminders" && <RemindersScreen onNavigateToWorkspace={goToWorkspaceId} />}
+        {route.screen === "reminders" && (
+          <RemindersScreen
+            onNavigateToWorkspace={goToWorkspaceId}
+            onNavigate={(destination) => setRoute({ screen: destination })}
+          />
+        )}
 
-        {route.screen === "carnet" && <CarnetScreen />}
+        {route.screen === "carnet" && (
+          <CarnetScreen onNavigate={(destination) => setRoute({ screen: destination })} />
+        )}
 
-        {route.screen === "hub" && <HubScreen />}
+        {route.screen === "hub" && <HubScreen onNavigate={(destination) => setRoute({ screen: destination })} />}
 
-        {route.screen === "app-settings" && <AppSettingsScreen />}
+        {route.screen === "app-settings" && (
+          <AppSettingsScreen onNavigate={(destination) => setRoute({ screen: destination })} />
+        )}
         </div>
       </main>
     </div>

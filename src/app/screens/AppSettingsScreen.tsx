@@ -2,6 +2,8 @@ import { useState } from "react";
 import { isSupabaseConfigured } from "../adapters/supabase/client";
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
 import { EmptyState } from "../components/StateBlocks";
+import { MoreSubNav } from "../components/MoreSubNav";
+import type { MoreDestination } from "../more-links";
 
 /**
  * Réglages globaux (pas de compte Supabase Auth — cf. supabase-store.tsx) :
@@ -9,7 +11,7 @@ import { EmptyState } from "../components/StateBlocks";
  * synchronisation, seul moyen de retrouver ses données depuis un autre
  * navigateur/appareil (voir user-hash.ts).
  */
-export function AppSettingsScreen() {
+export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
   const configured = isSupabaseConfigured();
   const currentCode = configured ? getOrCreateUserHash() : null;
   const [pastedCode, setPastedCode] = useState("");
@@ -45,6 +47,7 @@ export function AppSettingsScreen() {
       <div className="top-bar">
         <h1>Réglages</h1>
       </div>
+      <MoreSubNav active="app-settings" onNavigate={onNavigate} />
       <div className="app-main">
         {!configured || !currentCode ? (
           <EmptyState

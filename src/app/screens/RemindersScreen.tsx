@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { useStore } from "../adapters/temporary-store";
 import { EmptyState } from "../components/StateBlocks";
+import { MoreSubNav } from "../components/MoreSubNav";
+import type { MoreDestination } from "../more-links";
 
 interface ReminderEntry {
   workspaceName: string;
@@ -17,7 +19,13 @@ interface ReminderEntry {
  * activée), tous espaces confondus — la vérification/déclenchement reste
  * du ressort de refreshReminders (par espace), ceci n'est qu'une lecture.
  */
-export function RemindersScreen({ onNavigateToWorkspace }: { onNavigateToWorkspace: (workspaceId: string) => void }) {
+export function RemindersScreen({
+  onNavigateToWorkspace,
+  onNavigate,
+}: {
+  onNavigateToWorkspace: (workspaceId: string) => void;
+  onNavigate: (destination: MoreDestination) => void;
+}) {
   const { state } = useStore();
 
   const entries = useMemo<ReminderEntry[]>(() => {
@@ -44,6 +52,7 @@ export function RemindersScreen({ onNavigateToWorkspace }: { onNavigateToWorkspa
       <div className="top-bar">
         <h1>Rappels</h1>
       </div>
+      <MoreSubNav active="reminders" onNavigate={onNavigate} />
       <div className="app-main">
         {entries.length === 0 ? (
           <EmptyState title="Aucune relance active" description="Les actions en attente avec une relance activée apparaîtront ici." />

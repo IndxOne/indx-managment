@@ -3,14 +3,10 @@ import { formatIsoWeek } from "../../calendar/iso-week";
 import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
+import { phaseChipClass } from "../utils/phase-color";
+import { scheduleSummary } from "../utils/schedule-summary";
 import { BottomSheet } from "./BottomSheet";
-import { StatusCheckIcon } from "./Icons";
-
-const AXIS_LABELS: Record<MoveAxis, string> = {
-  schedule: "Planification",
-  phase: "Phase",
-  status: "Statut",
-};
+import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
 
 export function MoveActionSheet({
   action,
@@ -33,22 +29,38 @@ export function MoveActionSheet({
 
   if (axis === null) {
     return (
-      <BottomSheet title="Déplacer — choisir l'axe" onClose={onCancel}>
+      <BottomSheet title="Déplacer - choisir l'axe" onClose={onCancel}>
         <p id="move-axis-heading" style={{ fontWeight: 600 }}>
           Déplacer « {action.title} »
         </p>
         <div className="choice-group" role="group" aria-labelledby="move-axis-heading" style={{ marginBottom: 8 }}>
-          {(Object.keys(AXIS_LABELS) as MoveAxis[]).map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              className="action-menu-item"
-              style={{ justifyContent: "center" }}
-              onClick={() => setAxis(candidate)}
-            >
-              {AXIS_LABELS[candidate]}
-            </button>
-          ))}
+          <button type="button" className="move-axis-row" onClick={() => setAxis("schedule")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <IconCalendar width={18} height={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Planification</span>
+              <span className="move-axis-sub">{scheduleSummary(action.schedule)}</span>
+            </span>
+          </button>
+          <button type="button" className="move-axis-row" onClick={() => setAxis("phase")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <IconLayers width={18} height={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Phase</span>
+              <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
+            </span>
+          </button>
+          <button type="button" className="move-axis-row" onClick={() => setAxis("status")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <StatusCheckIcon status={action.status} size={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Statut</span>
+              <span className="move-axis-sub">{statusLabels[action.status]}</span>
+            </span>
+          </button>
         </div>
         <div className="choice-group">
           <button type="button" className="action-menu-item" style={{ justifyContent: "center", fontWeight: 600 }} onClick={onCancel}>
@@ -73,15 +85,14 @@ export function MoveActionSheet({
 
   if (axis === "phase") {
     return (
-      <BottomSheet title="Déplacer — choisir la phase" onClose={onCancel}>
+      <BottomSheet title="Déplacer - choisir la phase" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Nouvelle phase</p>
-        <div className="choice-group" style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
           {phaseOptions.map((phase) => (
             <button
               key={phase}
               type="button"
-              className="action-menu-item"
-              style={{ justifyContent: "center" }}
+              className={`phase-select-btn ${phaseChipClass(phase)}`}
               onClick={() => onConfirm({ axis: "phase", phaseId: phase })}
             >
               {phaseLabel(phase)}
@@ -138,7 +149,7 @@ function StatusDestinationStep({
     const days = Number(reminderDays);
     const validDays = Number.isInteger(days) && days >= 1;
     return (
-      <BottomSheet title="Déplacer — relance" onClose={onCancel}>
+      <BottomSheet title="Déplacer - relance" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Passer « {action.title} » en attente</p>
         <div className="choice-group">
           <label className="choice-option">
@@ -182,15 +193,15 @@ function StatusDestinationStep({
   }
 
   return (
-    <BottomSheet title="Déplacer — choisir le statut" onClose={onCancel}>
+    <BottomSheet title="Déplacer - choisir le statut" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Nouveau statut</p>
-      <div className="choice-group" style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
         {(Object.keys(statusLabels) as ActionStatus[]).map((status) => (
           <button
             key={status}
             type="button"
-            className="action-menu-item"
-            style={{ justifyContent: "center" }}
+            className="status-select-btn"
+            data-status={status}
             onClick={() => (status === "waiting" ? setPendingWaiting(true) : onConfirm({ axis: "status", status }))}
           >
             <StatusCheckIcon status={status} size={18} /> {statusLabels[status]}
@@ -224,7 +235,7 @@ function ScheduleDestinationStep({
   const [confirmed, setConfirmed] = useState(false);
 
   return (
-    <BottomSheet title="Déplacer — choisir la semaine" onClose={onCancel}>
+    <BottomSheet title="Déplacer - choisir la semaine" onClose={onCancel}>
       <p style={{ fontWeight: 600 }}>Déplacer vers la semaine</p>
       <div className="field">
         <label htmlFor="move-target-week">Semaine cible</label>
