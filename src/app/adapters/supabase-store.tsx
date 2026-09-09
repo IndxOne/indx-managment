@@ -41,6 +41,21 @@ import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue } from
 
 type SyncStatus = "loading" | "ready" | "error";
 
+/**
+ * Les erreurs Supabase (PostgrestError) sont de simples objets, pas des
+ * instances d'Error : `cause instanceof Error` échoue toujours dessus et
+ * masquerait le vrai message Postgres (ex. violation NOT NULL) derrière
+ * un fallback générique.
+ */
+function extractErrorMessage(cause: unknown, fallback: string): string {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === "object" && cause !== null && "message" in cause) {
+    const message = (cause as { message?: unknown }).message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
+  return fallback;
+}
+
 export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE);
   const [status, setStatus] = useState<SyncStatus>("loading");
@@ -89,7 +104,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes } });
       setStatus("ready");
     } catch (cause) {
-      setSyncError(cause instanceof Error ? cause.message : "Erreur de chargement Supabase");
+      setSyncError(extractErrorMessage(cause, "Erreur de chargement Supabase"));
       setStatus("error");
     }
   }, [client]);
@@ -103,9 +118,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     (event: AppEvent, persist: () => Promise<void>) => {
       dispatch(event);
       persist().catch((cause) => {
-        setSyncError(
-          `Synchronisation Supabase échouée : ${cause instanceof Error ? cause.message : "erreur inconnue"}`
-        );
+        setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
       });
     },
     []

@@ -52,7 +52,7 @@ export interface ActionRow {
   recurrence_rule_id: string | null;
   waiting_since: string | null;
   waiting_reminder: WaitingReminderRule | null;
-  notes: ActionNote[] | null;
+  notes: ActionNote[];
   linked_action_id: string | null;
   created_at: string;
   updated_at: string;
@@ -196,7 +196,7 @@ export function actionToRow(action: Action, userHash: string): ActionRow {
     recurrence_rule_id: action.recurrenceRuleId ?? null,
     waiting_since: action.waitingSince ?? null,
     waiting_reminder: action.waitingReminder ?? null,
-    notes: action.notes ?? null,
+    notes: action.notes ?? [],
     linked_action_id: action.linkedActionId ?? null,
     created_at: action.createdAt,
     updated_at: action.updatedAt,
