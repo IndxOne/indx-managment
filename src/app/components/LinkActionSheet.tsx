@@ -50,7 +50,7 @@ export function LinkActionSheet({
   }, [action.id, action.linkedActionId, actionsByWorkspace, query, workspaces]);
 
   return (
-    <BottomSheet title={`Lien — ${action.title}`} onClose={onClose}>
+    <BottomSheet title={`Lien - ${action.title}`} onClose={onClose}>
       <p style={{ fontWeight: 600 }}>Action liée à « {action.title} »</p>
 
       {action.linkedActionId ? (

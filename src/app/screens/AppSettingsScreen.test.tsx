@@ -6,7 +6,7 @@ describe("AppSettingsScreen", () => {
   it("signale l'absence de synchronisation quand Supabase n'est pas configuré", () => {
     // Les tests tournent toujours avec VITE_SUPABASE_URL vide (cf. vite.config.ts) :
     // seule la branche "persistance locale" est atteignable ici.
-    render(<AppSettingsScreen />);
+    render(<AppSettingsScreen onNavigate={() => {}} />);
     expect(screen.getByText("Persistance locale uniquement")).toBeInTheDocument();
   });
 });

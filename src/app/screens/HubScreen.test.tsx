@@ -52,11 +52,11 @@ describe("HubScreen", () => {
 
     render(
       <StoreProvider initialState={state}>
-        <HubScreen />
+        <HubScreen onNavigate={() => {}} />
       </StoreProvider>
     );
 
-    expect(screen.getByText("Hub")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hub" })).toBeInTheDocument();
     expect(screen.getByText("Actions (3)")).toBeInTheDocument();
     expect(screen.getByText(/Relances actives/)).toBeInTheDocument();
   });

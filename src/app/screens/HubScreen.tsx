@@ -3,13 +3,15 @@ import type { ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { MoreSubNav } from "../components/MoreSubNav";
+import type { MoreDestination } from "../more-links";
 
 /**
  * Vue d'ensemble transversale, tous espaces confondus : uniquement des
  * compteurs dérivés de l'état déjà chargé (pas de nouvelle donnée, pas de
  * liste — Aujourd'hui/Semaine couvrent déjà les listes d'actions).
  */
-export function HubScreen() {
+export function HubScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
   const { state } = useStore();
 
   const stats = useMemo(() => {
@@ -41,6 +43,7 @@ export function HubScreen() {
       <div className="top-bar">
         <h1>Hub</h1>
       </div>
+      <MoreSubNav active="hub" onNavigate={onNavigate} />
       <div className="app-main">
         <h2 className="section-title" style={{ marginTop: 0 }}>
           Espaces

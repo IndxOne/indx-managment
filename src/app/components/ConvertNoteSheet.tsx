@@ -3,7 +3,9 @@ import type { CarnetNote } from "../adapters/store-context";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { KIND_LABELS, phaseLabel } from "../labels";
+import { phaseChipClass } from "../utils/phase-color";
 import { BottomSheet } from "./BottomSheet";
+import { IconGrid, IconSun } from "./Icons";
 
 /**
  * Conversion minimale : le texte de la note devient le titre d'une tâche
@@ -27,15 +29,14 @@ export function ConvertNoteSheet({
 
   if (workspace && phaseOptions.length > 0) {
     return (
-      <BottomSheet title="Convertir — choisir la phase" onClose={onCancel}>
+      <BottomSheet title="Convertir - choisir la phase" onClose={onCancel}>
         <p style={{ fontWeight: 600 }}>Nouvelle phase</p>
-        <div className="choice-group" style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
           {phaseOptions.map((phase) => (
             <button
               key={phase}
               type="button"
-              className="action-menu-item"
-              style={{ justifyContent: "center" }}
+              className={`phase-select-btn ${phaseChipClass(phase)}`}
               onClick={() => onConvert(workspace.id, phase)}
             >
               {phaseLabel(phase)}
@@ -61,14 +62,14 @@ export function ConvertNoteSheet({
       <p style={{ fontWeight: 600 }}>« {note.text} »</p>
       <p className="action-sub">Choisir l'espace de destination</p>
       {workspaces.length === 0 ? (
-        <p className="action-sub">Aucun espace disponible — crée d'abord un espace.</p>
+        <p className="action-sub">Aucun espace disponible - crée d'abord un espace.</p>
       ) : (
         <div className="choice-group" style={{ marginBottom: 8 }}>
           {workspaces.map((candidate) => (
             <button
               key={candidate.id}
               type="button"
-              className="action-menu-item"
+              className="workspace-choice-row"
               onClick={() => {
                 const preset = resolveWorkspacePreset(candidate);
                 if ((preset.phaseTemplate ?? []).length > 0) {
@@ -78,7 +79,11 @@ export function ConvertNoteSheet({
                 }
               }}
             >
-              {candidate.name} <span className={`badge badge-${candidate.kind}`}>{KIND_LABELS[candidate.kind]}</span>
+              <span className="workspace-icon" data-kind={candidate.kind} aria-hidden="true" style={{ width: 36, height: 36 }}>
+                {candidate.kind === "run" ? <IconSun width={16} height={16} /> : <IconGrid width={16} height={16} />}
+              </span>
+              <span style={{ flex: 1 }}>{candidate.name}</span>
+              <span className={`badge badge-${candidate.kind}`}>{KIND_LABELS[candidate.kind]}</span>
             </button>
           ))}
         </div>

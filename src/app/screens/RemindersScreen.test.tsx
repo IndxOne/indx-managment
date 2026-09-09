@@ -53,7 +53,7 @@ describe("RemindersScreen", () => {
 
     render(
       <StoreProvider initialState={state}>
-        <RemindersScreen onNavigateToWorkspace={vi.fn()} />
+        <RemindersScreen onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
       </StoreProvider>
     );
 
@@ -76,7 +76,7 @@ describe("RemindersScreen", () => {
 
     render(
       <StoreProvider initialState={state}>
-        <RemindersScreen onNavigateToWorkspace={onNavigate} />
+        <RemindersScreen onNavigateToWorkspace={onNavigate} onNavigate={() => {}} />
       </StoreProvider>
     );
 
@@ -87,7 +87,7 @@ describe("RemindersScreen", () => {
   it("état vide quand aucune relance active", () => {
     render(
       <StoreProvider>
-        <RemindersScreen onNavigateToWorkspace={vi.fn()} />
+        <RemindersScreen onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
       </StoreProvider>
     );
     expect(screen.getByText("Aucune relance active")).toBeInTheDocument();
