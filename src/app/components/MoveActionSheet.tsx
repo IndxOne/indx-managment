@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { formatIsoWeek } from "../../calendar/iso-week";
-import type { Action, ActionStatus } from "../../domain/types";
+import type { Action, ActionStatus, Schedule } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
 import { BottomSheet } from "./BottomSheet";
-import { StatusCheckIcon } from "./Icons";
+import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
 
-const AXIS_LABELS: Record<MoveAxis, string> = {
-  schedule: "Planification",
-  phase: "Phase",
-  status: "Statut",
-};
+/** Résumé lisible de la planification actuelle, affiché sous "Planification" dans le choix de l'axe. */
+function scheduleSummary(schedule: Schedule | undefined): string {
+  if (!schedule || schedule.granularity === "none") return "Non planifiée";
+  if (schedule.granularity === "day") return `Jour · ${schedule.value}`;
+  if (schedule.granularity === "week") return `Semaine ${schedule.value}`;
+  return `Mois ${schedule.value}`;
+}
 
 export function MoveActionSheet({
   action,
@@ -38,17 +40,33 @@ export function MoveActionSheet({
           Déplacer « {action.title} »
         </p>
         <div className="choice-group" role="group" aria-labelledby="move-axis-heading" style={{ marginBottom: 8 }}>
-          {(Object.keys(AXIS_LABELS) as MoveAxis[]).map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              className="action-menu-item"
-              style={{ justifyContent: "center" }}
-              onClick={() => setAxis(candidate)}
-            >
-              {AXIS_LABELS[candidate]}
-            </button>
-          ))}
+          <button type="button" className="move-axis-row" onClick={() => setAxis("schedule")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <IconCalendar width={18} height={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Planification</span>
+              <span className="move-axis-sub">{scheduleSummary(action.schedule)}</span>
+            </span>
+          </button>
+          <button type="button" className="move-axis-row" onClick={() => setAxis("phase")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <IconLayers width={18} height={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Phase</span>
+              <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
+            </span>
+          </button>
+          <button type="button" className="move-axis-row" onClick={() => setAxis("status")}>
+            <span className="move-axis-icon" aria-hidden="true">
+              <StatusCheckIcon status={action.status} size={18} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="move-axis-label">Statut</span>
+              <span className="move-axis-sub">{statusLabels[action.status]}</span>
+            </span>
+          </button>
         </div>
         <div className="choice-group">
           <button type="button" className="action-menu-item" style={{ justifyContent: "center", fontWeight: 600 }} onClick={onCancel}>

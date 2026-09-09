@@ -641,6 +641,59 @@ a {
   }
 }
 
+.move-axis-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-bottom: 0.5px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  transition: background 100ms ease;
+}
+
+.move-axis-row:last-child {
+  border-bottom: none;
+}
+
+.move-axis-row:active {
+  background: var(--color-fill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .move-axis-row {
+    transition: none;
+  }
+}
+
+.move-axis-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.move-axis-label {
+  display: block;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.move-axis-sub {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
 .more-subnav {
   display: flex;
   gap: var(--space-2);
