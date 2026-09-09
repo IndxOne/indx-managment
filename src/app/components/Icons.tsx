@@ -219,3 +219,33 @@ export function IconTrash(props: IconProps) {
     </svg>
   );
 }
+
+export function IconBell(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c0.5 -0.5 2 -2 2 -6Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+export function IconNotebook(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="5" y="3.5" width="14" height="17" rx="1.8" />
+      <line x1="9" y1="3.5" x2="9" y2="20.5" />
+      <line x1="12.5" y1="8" x2="16" y2="8" />
+      <line x1="12.5" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+}
+
+export function IconLayers(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5 20.5 8 12 12.5 3.5 8Z" />
+      <path d="M3.5 12 12 16.5 20.5 12" />
+      <path d="M3.5 16 12 20.5 20.5 16" />
+    </svg>
+  );
+}

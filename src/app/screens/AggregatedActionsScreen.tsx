@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { deriveScheduleKeys, formatRelativeLabel, type RelativeLabelKey } from "../../calendar/calendar-engine";
-import type { Action } from "../../domain/types";
-import { STATUS_LABELS_DEFAULT } from "../labels";
+import type { Action, WorkspaceKind } from "../../domain/types";
+import { KIND_LABELS, STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { EmptyState } from "../components/StateBlocks";
+import { StatusCheckIcon } from "../components/Icons";
 
 interface AggregatedEntry {
   workspaceName: string;
+  workspaceKind: WorkspaceKind;
   action: Action;
 }
 
@@ -37,7 +39,7 @@ export function AggregatedActionsScreen({
       for (const action of actions) {
         const derived = deriveScheduleKeys(action.schedule, timezone);
         if (action.status === "waiting" || includeLabels.includes(derived.relativeLabel)) {
-          result.push({ workspaceName: workspace.name, action });
+          result.push({ workspaceName: workspace.name, workspaceKind: workspace.kind, action });
         }
       }
     }
@@ -54,15 +56,23 @@ export function AggregatedActionsScreen({
           <EmptyState title="Rien à afficher" description={emptyDescription} />
         ) : (
           <div className="action-card-list">
-            {entries.map(({ workspaceName, action }) => {
+            {entries.map(({ workspaceName, workspaceKind, action }) => {
               const derived = deriveScheduleKeys(action.schedule, timezone);
               const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey;
               return (
                 <div className="action-card" key={action.id}>
-                  <span className="action-title">{action.title}</span>
-                  <div className="action-sub">
-                    {workspaceName} · {STATUS_LABELS_DEFAULT[action.status]}
-                    {scheduleLabel ? ` · ${scheduleLabel}` : ""}
+                  <div className="action-card-chips">
+                    <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>
+                  </div>
+                  <div className="action-card-body">
+                    <StatusCheckIcon status={action.status} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span className="action-title">{action.title}</span>
+                      <div className="action-sub">
+                        {workspaceName} · {STATUS_LABELS_DEFAULT[action.status]}
+                        {scheduleLabel ? ` · ${scheduleLabel}` : ""}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

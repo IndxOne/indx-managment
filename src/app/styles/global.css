@@ -585,6 +585,33 @@ a {
   background: #6355ff;
 }
 
+.more-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.more-icon[data-key="reminders"] {
+  background: var(--color-warning);
+}
+
+.more-icon[data-key="carnet"] {
+  background: #8b5cf6;
+}
+
+.more-icon[data-key="hub"] {
+  background: var(--color-accent);
+}
+
+.more-icon[data-key="app-settings"] {
+  background: var(--color-text-muted);
+}
+
 .card-title {
   font-weight: 700;
   font-size: 1.0625rem;
@@ -868,6 +895,32 @@ a {
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   margin: var(--space-4) var(--space-1) var(--space-2);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.stat-tile {
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+.stat-tile-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.stat-tile-label {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin-top: 2px;
 }
 
 .confirm-diff {

@@ -20,6 +20,39 @@ function stateWithWorkspace(): AppState {
   return { ...EMPTY_STATE, actionsByWorkspace: { w1: [] }, recurrenceRulesByWorkspace: { w1: [] } };
 }
 
+describe("appReducer — carnet/*", () => {
+  it("carnet/create ajoute une note", () => {
+    const note = { id: "n1", text: "Vérifier le contrat X", createdAt: "2026-09-09T08:00:00.000Z" };
+    const next = appReducer(EMPTY_STATE, { type: "carnet/create", note });
+    expect(next.carnetNotes).toEqual([note]);
+  });
+
+  it("carnet/delete retire une note par id, laisse les autres intactes", () => {
+    const noteA = { id: "n1", text: "A", createdAt: "2026-09-09T08:00:00.000Z" };
+    const noteB = { id: "n2", text: "B", createdAt: "2026-09-09T08:01:00.000Z" };
+    const before: AppState = { ...EMPTY_STATE, carnetNotes: [noteA, noteB] };
+    const next = appReducer(before, { type: "carnet/delete", noteId: "n1" });
+    expect(next.carnetNotes).toEqual([noteB]);
+  });
+
+  it("carnet/convert crée l'action avec sourceNoteId et retire la note du Carnet", () => {
+    const note = { id: "n1", text: "Relancer le prestataire", createdAt: "2026-09-09T08:00:00.000Z" };
+    const before: AppState = { ...stateWithWorkspace(), carnetNotes: [note] };
+
+    const next = appReducer(before, {
+      type: "carnet/convert",
+      noteId: "n1",
+      input: { workspaceId: "w1", title: note.text, itemType: "task", priority: "normal" },
+      id: "a1",
+      now: "2026-09-09T08:05:00.000Z",
+    });
+
+    expect(next.carnetNotes).toEqual([]);
+    expect(next.actionsByWorkspace.w1).toHaveLength(1);
+    expect(next.actionsByWorkspace.w1?.[0]).toMatchObject({ id: "a1", title: "Relancer le prestataire", sourceNoteId: "n1" });
+  });
+});
+
 describe("appReducer — recurrence/create", () => {
   it("ajoute la règle et matérialise les occurrences de la fenêtre dans actionsByWorkspace", () => {
     const next = appReducer(stateWithWorkspace(), {

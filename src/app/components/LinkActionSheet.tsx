@@ -60,7 +60,8 @@ export function LinkActionSheet({
             <>
               <p>{linked.action.title}</p>
               <p className="action-sub">
-                {KIND_LABELS[linked.workspace.kind]} · {linked.workspace.name}
+                <span className={`badge badge-${linked.workspace.kind}`}>{KIND_LABELS[linked.workspace.kind]}</span>{" "}
+                {linked.workspace.name}
               </p>
               <button
                 type="button"
@@ -101,10 +102,12 @@ export function LinkActionSheet({
                   <button
                     type="button"
                     className="btn btn-block tap-target"
-                    style={{ justifyContent: "flex-start", textAlign: "left" }}
+                    style={{ justifyContent: "flex-start", textAlign: "left", gap: 8, flexWrap: "wrap" }}
                     onClick={() => onLink(candidate.id)}
                   >
-                    {candidate.title} — {KIND_LABELS[workspace.kind]} · {workspace.name}
+                    <span>{candidate.title}</span>
+                    <span className={`badge badge-${workspace.kind}`}>{KIND_LABELS[workspace.kind]}</span>
+                    <span className="action-sub">{workspace.name}</span>
                   </button>
                 </li>
               ))}

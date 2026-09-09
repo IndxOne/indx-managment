@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import type { Action } from "../../../domain/types";
 import type { Workspace } from "../../../domain/workspace";
 import type { RecurrenceRule } from "../../../recurrence/recurrence-engine";
-import { actionFromRow, actionToRow, recurrenceRuleFromRow, recurrenceRuleToRow, workspaceFromRow, workspaceToRow } from "./mappers";
+import {
+  actionFromRow,
+  actionToRow,
+  carnetNoteFromRow,
+  carnetNoteToRow,
+  recurrenceRuleFromRow,
+  recurrenceRuleToRow,
+  workspaceFromRow,
+  workspaceToRow,
+} from "./mappers";
 
 const USER_HASH = "test-hash";
 
@@ -135,5 +144,14 @@ describe("recurrenceRuleToRow / recurrenceRuleFromRow", () => {
     const rehydrated = recurrenceRuleFromRow({ ...row, created_at: "2026-09-08T00:00:00.000Z" });
     expect(rehydrated.endDate).toBeUndefined();
     expect(rehydrated.template.phaseId).toBeUndefined();
+  });
+});
+
+describe("carnetNoteToRow / carnetNoteFromRow", () => {
+  it("round-trip sans perte", () => {
+    const original = { id: "n1", text: "Relancer le prestataire GED", createdAt: "2026-09-09T08:00:00.000Z" };
+    const row = carnetNoteToRow(original, USER_HASH);
+    expect(row.user_hash).toBe(USER_HASH);
+    expect(carnetNoteFromRow(row)).toEqual(original);
   });
 });
