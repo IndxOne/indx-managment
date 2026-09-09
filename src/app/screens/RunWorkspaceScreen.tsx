@@ -34,8 +34,18 @@ export function RunWorkspaceScreen({
   onOpenSettings: () => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
-  const { state, createAction, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
-    useStore();
+  const {
+    state,
+    createAction,
+    createRecurringRule,
+    editAction,
+    setReminder,
+    disableReminder,
+    refreshReminders,
+    addNote,
+    linkAction,
+    unlinkAction,
+  } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
@@ -214,8 +224,12 @@ export function RunWorkspaceScreen({
         <AddActionSheet
           initialTitle={addSheetDraftTitle}
           onCancel={() => setAddSheetOpen(false)}
-          onCreate={(input) => {
-            createAction({ workspaceId: workspace.id, ...input });
+          onCreate={({ repeat, ...input }) => {
+            if (repeat) {
+              createRecurringRule({ workspaceId: workspace.id, ...input, ...repeat });
+            } else {
+              createAction({ workspaceId: workspace.id, ...input });
+            }
             setAddSheetOpen(false);
           }}
         />

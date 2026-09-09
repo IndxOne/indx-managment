@@ -18,6 +18,7 @@ export interface RecurrenceRule {
     description?: string;
     priority: Priority;
     itemType: WorkItemType;
+    phaseId?: string;
     assigneeIds: string[];
     tags: string[];
   };
@@ -95,6 +96,7 @@ function buildOccurrence(rule: RecurrenceRule, dateValue: string): Action {
     status: "todo",
     priority: rule.template.priority,
     itemType: rule.template.itemType,
+    phaseId: rule.template.phaseId,
     schedule: { granularity: "day", value: dateValue },
     assigneeIds: rule.template.assigneeIds,
     tags: rule.template.tags,
@@ -102,4 +104,20 @@ function buildOccurrence(rule: RecurrenceRule, dateValue: string): Action {
     createdAt: dateValue,
     updatedAt: dateValue,
   };
+}
+
+/**
+ * Fenêtre de matérialisation par défaut à la création d'une règle : depuis
+ * son ancre jusqu'à `horizonDays` (90 par défaut), bornée par `endDate` si
+ * plus proche. Pas d'ordonnanceur en tâche de fond (cf. relances) : au-delà
+ * de cet horizon, aucune nouvelle occurrence n'apparaît pour l'instant.
+ */
+export function defaultMaterializationWindow(
+  rule: Pick<RecurrenceRule, "startDate" | "endDate">,
+  today: string,
+  horizonDays = 90
+): GenerationWindow {
+  const horizonEnd = addDays(today, horizonDays);
+  const end = rule.endDate && rule.endDate < horizonEnd ? rule.endDate : horizonEnd;
+  return { start: rule.startDate, end };
 }

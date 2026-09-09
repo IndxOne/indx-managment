@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
-import { appReducer, generateId, type AppEvent } from "./app-reducer";
+import { defaultMaterializationWindow, generateRecurringOccurrences } from "../../recurrence/recurrence-engine";
+import { appReducer, buildRecurrenceRule, generateId, type AppEvent } from "./app-reducer";
 import { getSupabaseClient } from "./supabase/client";
-import { actionFromRow, actionToRow, workspaceFromRow, workspaceToRow, type ActionRow, type WorkspaceRow } from "./supabase/mappers";
+import {
+  actionFromRow,
+  actionToRow,
+  recurrenceRuleFromRow,
+  recurrenceRuleToRow,
+  workspaceFromRow,
+  workspaceToRow,
+  type ActionRow,
+  type RecurrenceRuleRow,
+  type WorkspaceRow,
+} from "./supabase/mappers";
 import { getOrCreateUserHash } from "./supabase/user-hash";
 import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue } from "./store-context";
 
@@ -39,23 +50,36 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     setStatus("loading");
     setSyncError(null);
     try {
-      const [{ data: workspaceRows, error: workspacesError }, { data: actionRows, error: actionsError }] =
-        await Promise.all([
-          client.from("projets_workspaces").select("*").order("created_at"),
-          client.from("projets_actions").select("*").order("created_at"),
-        ]);
+      const [
+        { data: workspaceRows, error: workspacesError },
+        { data: actionRows, error: actionsError },
+        { data: recurrenceRuleRows, error: recurrenceRulesError },
+      ] = await Promise.all([
+        client.from("projets_workspaces").select("*").order("created_at"),
+        client.from("projets_actions").select("*").order("created_at"),
+        client.from("projets_recurrence_rules").select("*").order("created_at"),
+      ]);
       if (workspacesError) throw workspacesError;
       if (actionsError) throw actionsError;
+      if (recurrenceRulesError) throw recurrenceRulesError;
 
       const workspaces = ((workspaceRows ?? []) as WorkspaceRow[]).map(workspaceFromRow);
       const actionsByWorkspace: AppState["actionsByWorkspace"] = {};
-      for (const workspace of workspaces) actionsByWorkspace[workspace.id] = [];
+      const recurrenceRulesByWorkspace: AppState["recurrenceRulesByWorkspace"] = {};
+      for (const workspace of workspaces) {
+        actionsByWorkspace[workspace.id] = [];
+        recurrenceRulesByWorkspace[workspace.id] = [];
+      }
       for (const row of (actionRows ?? []) as ActionRow[]) {
         const action = actionFromRow(row);
         (actionsByWorkspace[action.workspaceId] ??= []).push(action);
       }
+      for (const row of (recurrenceRuleRows ?? []) as RecurrenceRuleRow[]) {
+        const rule = recurrenceRuleFromRow(row);
+        (recurrenceRulesByWorkspace[rule.workspaceId] ??= []).push(rule);
+      }
 
-      dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace } });
+      dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace } });
       setStatus("ready");
     } catch (cause) {
       setSyncError(cause instanceof Error ? cause.message : "Erreur de chargement Supabase");
@@ -130,6 +154,46 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           );
           const { error } = await client.from("projets_actions").insert(row);
           if (error) throw error;
+        });
+      },
+
+      createRecurringRule: (input) => {
+        const rule = buildRecurrenceRule(input);
+        const today = new Date().toISOString().slice(0, 10);
+        const window = defaultMaterializationWindow(rule, today);
+        dispatchAndPersist({ type: "recurrence/create", rule, window }, async () => {
+          const { error: ruleError } = await client
+            .from("projets_recurrence_rules")
+            .insert(recurrenceRuleToRow(rule, userHash));
+          if (ruleError) throw ruleError;
+
+          const occurrences = generateRecurringOccurrences(rule, window);
+          if (occurrences.length > 0) {
+            const { error } = await client
+              .from("projets_actions")
+              .insert(occurrences.map((occurrence) => actionToRow(occurrence, userHash)));
+            if (error) throw error;
+          }
+        });
+        return rule;
+      },
+
+      deleteRecurringRule: (workspaceId, ruleId) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const before = state.actionsByWorkspace[workspaceId] ?? [];
+        dispatchAndPersist({ type: "recurrence/delete", workspaceId, ruleId, today }, async () => {
+          const after =
+            appReducer(state, { type: "recurrence/delete", workspaceId, ruleId, today }).actionsByWorkspace[
+              workspaceId
+            ] ?? [];
+          const remainingIds = new Set(after.map((action) => action.id));
+          const removedIds = before.filter((action) => !remainingIds.has(action.id)).map((action) => action.id);
+          if (removedIds.length > 0) {
+            const { error } = await client.from("projets_actions").delete().in("id", removedIds);
+            if (error) throw error;
+          }
+          const { error: ruleError } = await client.from("projets_recurrence_rules").delete().eq("id", ruleId);
+          if (ruleError) throw ruleError;
         });
       },
 

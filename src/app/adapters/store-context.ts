@@ -3,6 +3,7 @@ import type { Action, ActionStatus, Priority, WorkItemType } from "../../domain/
 import type { ActionContentEdit } from "../../domain/edit-action";
 import type { MoveDestination } from "../../domain/move-action";
 import type { CreateWorkspaceInput, Workspace } from "../../domain/workspace";
+import type { RecurrenceFrequency, RecurrenceRule } from "../../recurrence/recurrence-engine";
 
 /**
  * Contrat partagé par tous les adaptateurs de persistance (mémoire, Supabase,
@@ -14,9 +15,10 @@ import type { CreateWorkspaceInput, Workspace } from "../../domain/workspace";
 export interface AppState {
   workspaces: Workspace[];
   actionsByWorkspace: Record<string, Action[]>;
+  recurrenceRulesByWorkspace: Record<string, RecurrenceRule[]>;
 }
 
-export const EMPTY_STATE: AppState = { workspaces: [], actionsByWorkspace: {} };
+export const EMPTY_STATE: AppState = { workspaces: [], actionsByWorkspace: {}, recurrenceRulesByWorkspace: {} };
 
 export interface NewActionInput {
   workspaceId: string;
@@ -27,6 +29,18 @@ export interface NewActionInput {
   status?: ActionStatus;
 }
 
+export interface NewRecurrenceRuleInput {
+  workspaceId: string;
+  title: string;
+  itemType: WorkItemType;
+  priority: Priority;
+  phaseId?: string;
+  frequency: RecurrenceFrequency;
+  interval: number;
+  startDate: string;
+  endDate?: string;
+}
+
 export type NewWorkspaceInput = Omit<CreateWorkspaceInput, "id">;
 
 export interface StoreContextValue {
@@ -34,6 +48,8 @@ export interface StoreContextValue {
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
   createAction: (input: NewActionInput) => void;
+  createRecurringRule: (input: NewRecurrenceRuleInput) => RecurrenceRule;
+  deleteRecurringRule: (workspaceId: string, ruleId: string) => void;
   moveActionEvent: (workspaceId: string, actionId: string, destination: MoveDestination) => void;
   restoreAction: (workspaceId: string, action: Action) => void;
   setReminder: (workspaceId: string, actionId: string, afterDays: number) => void;

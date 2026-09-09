@@ -1,9 +1,29 @@
 import { useState } from "react";
 import type { Priority, WorkItemType } from "../../domain/types";
+import type { RecurrenceFrequency } from "../../recurrence/recurrence-engine";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, phaseLabel, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
+const FREQUENCY_OPTIONS: { value: RecurrenceFrequency; label: string }[] = [
+  { value: "daily", label: "Quotidienne" },
+  { value: "weekly", label: "Hebdomadaire" },
+  { value: "monthly", label: "Mensuelle" },
+];
+
+export interface AddActionInput {
+  title: string;
+  itemType: WorkItemType;
+  priority: Priority;
+  phaseId?: string;
+  /** Présent seulement si "Répéter cette action" est activé. */
+  repeat?: {
+    frequency: RecurrenceFrequency;
+    interval: number;
+    startDate: string;
+    endDate?: string;
+  };
+}
 
 export function AddActionSheet({
   phaseOptions,
@@ -16,7 +36,7 @@ export function AddActionSheet({
   defaultPhaseId?: string;
   initialTitle?: string;
   onCancel: () => void;
-  onCreate: (input: { title: string; itemType: WorkItemType; priority: Priority; phaseId?: string }) => void;
+  onCreate: (input: AddActionInput) => void;
 }) {
   const [title, setTitle] = useState(initialTitle ?? "");
   const [itemType, setItemType] = useState<WorkItemType>("task");
@@ -24,12 +44,36 @@ export function AddActionSheet({
   const [phaseId, setPhaseId] = useState<string | undefined>(defaultPhaseId ?? phaseOptions?.[0]);
   const [error, setError] = useState<string | null>(null);
 
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>("weekly");
+  const [interval, setInterval] = useState("1");
+  const [endDate, setEndDate] = useState("");
+  const intervalValue = Number(interval);
+  const intervalValid = Number.isInteger(intervalValue) && intervalValue >= 1;
+
   function handleSubmit() {
     if (!title.trim()) {
       setError("Le titre est requis.");
       return;
     }
-    onCreate({ title: title.trim(), itemType, priority, phaseId });
+    if (repeatEnabled && !intervalValid) {
+      setError("L'intervalle de répétition doit être un nombre entier >= 1.");
+      return;
+    }
+    onCreate({
+      title: title.trim(),
+      itemType,
+      priority,
+      phaseId,
+      repeat: repeatEnabled
+        ? {
+            frequency,
+            interval: intervalValue,
+            startDate: new Date().toISOString().slice(0, 10),
+            endDate: endDate || undefined,
+          }
+        : undefined,
+    });
   }
 
   return (
@@ -85,6 +129,55 @@ export function AddActionSheet({
             ))}
           </select>
         </div>
+      )}
+
+      <div className="choice-group" style={{ marginBottom: 8 }}>
+        <label className="choice-option">
+          <input type="checkbox" checked={repeatEnabled} onChange={(event) => setRepeatEnabled(event.target.checked)} />
+          Répéter cette action
+        </label>
+      </div>
+
+      {repeatEnabled && (
+        <>
+          <div className="field">
+            <label htmlFor="new-action-frequency">Fréquence</label>
+            <select
+              id="new-action-frequency"
+              value={frequency}
+              onChange={(event) => setFrequency(event.target.value as RecurrenceFrequency)}
+            >
+              {FREQUENCY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-action-interval">Tous les combien</label>
+            <input
+              id="new-action-interval"
+              type="number"
+              min={1}
+              step={1}
+              value={interval}
+              onChange={(event) => setInterval(event.target.value)}
+              aria-invalid={!intervalValid}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-action-end-date">Jusqu'au (optionnel)</label>
+            <input
+              id="new-action-end-date"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+            />
+          </div>
+        </>
       )}
 
       <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>

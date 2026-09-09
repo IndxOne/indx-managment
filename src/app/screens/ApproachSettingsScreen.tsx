@@ -6,15 +6,18 @@ import {
   isRecommendedApproach,
   PRESET_REGISTRY,
 } from "../../presets/preset-registry";
-import { APPROACH_DESCRIPTIONS, APPROACH_LABELS } from "../labels";
+import { APPROACH_DESCRIPTIONS, APPROACH_LABELS, phaseLabel } from "../labels";
 import { useAnnouncer } from "../a11y/announcer";
 import { useStore } from "../adapters/temporary-store";
 
 const ALL_APPROACHES = Object.keys(PRESET_REGISTRY) as ProfessionalApproach[];
 
+const FREQUENCY_LABELS = { daily: "Quotidienne", weekly: "Hebdomadaire", monthly: "Mensuelle" } as const;
+
 export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Workspace; onDone: () => void }) {
-  const { changeApproach } = useStore();
+  const { state, changeApproach, deleteRecurringRule } = useStore();
   const { announce } = useAnnouncer();
+  const recurrenceRules = state.recurrenceRulesByWorkspace[workspace.id] ?? [];
   const [selected, setSelected] = useState<ProfessionalApproach>(workspace.approach);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -103,9 +106,42 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
         >
           Appliquer l'approche
         </button>
-        <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onDone}>
+        <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8, marginBottom: 24 }} onClick={onDone}>
           Annuler
         </button>
+
+        {recurrenceRules.length > 0 && (
+          <fieldset className="field" style={{ border: "none", padding: 0 }}>
+            <legend style={{ fontWeight: 600, marginBottom: 8 }}>Récurrences actives</legend>
+            <div className="action-card-list">
+              {recurrenceRules.map((rule) => (
+                <div className="action-card" key={rule.id}>
+                  <div className="action-card-body">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span className="action-title">{rule.template.title}</span>
+                      <div className="action-sub">
+                        {FREQUENCY_LABELS[rule.frequency]}
+                        {rule.interval > 1 ? ` (tous les ${rule.interval})` : ""}
+                        {rule.template.phaseId ? ` · ${phaseLabel(rule.template.phaseId)}` : ""}
+                        {rule.endDate ? ` · jusqu'au ${rule.endDate}` : ""}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-danger-text"
+                      onClick={() => {
+                        deleteRecurringRule(workspace.id, rule.id);
+                        announce(`Récurrence « ${rule.template.title} » arrêtée.`);
+                      }}
+                    >
+                      Arrêter
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        )}
       </div>
     </div>
   );
