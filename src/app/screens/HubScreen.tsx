@@ -46,31 +46,45 @@ export function HubScreen() {
           Espaces
         </h2>
         <div className="stat-grid">
-          <StatTile value={stats.runCount} label="Espaces RUN" />
-          <StatTile value={stats.projectCount} label="Espaces PROJET" />
+          <StatTile value={stats.runCount} label="Espaces RUN" color="var(--color-warning)" />
+          <StatTile value={stats.projectCount} label="Espaces PROJET" color="#6355ff" />
         </div>
 
         <h2 className="section-title">Actions ({stats.totalActions})</h2>
         <div className="stat-grid">
           {(Object.keys(STATUS_LABELS_DEFAULT) as ActionStatus[]).map((status) => (
-            <StatTile key={status} value={stats.byStatus[status]} label={STATUS_LABELS_DEFAULT[status]} />
+            <StatTile key={status} value={stats.byStatus[status]} label={STATUS_LABELS_DEFAULT[status]} color={STATUS_COLORS[status]} />
           ))}
         </div>
 
         <h2 className="section-title">Suivi</h2>
         <div className="stat-grid">
-          <StatTile value={stats.activeReminders} label="Relances actives" sub={stats.dueReminders > 0 ? `dont ${stats.dueReminders} due(s)` : undefined} />
-          <StatTile value={stats.activeRecurrenceRules} label="Récurrences actives" />
+          <StatTile
+            value={stats.activeReminders}
+            label="Relances actives"
+            sub={stats.dueReminders > 0 ? `dont ${stats.dueReminders} due(s)` : undefined}
+            color="var(--color-warning)"
+          />
+          <StatTile value={stats.activeRecurrenceRules} label="Récurrences actives" color="#8b5cf6" />
         </div>
       </div>
     </div>
   );
 }
 
-function StatTile({ value, label, sub }: { value: number; label: string; sub?: string }) {
+const STATUS_COLORS: Record<ActionStatus, string> = {
+  todo: "var(--color-text-tertiary)",
+  doing: "var(--color-accent)",
+  waiting: "var(--color-warning)",
+  done: "var(--color-success)",
+};
+
+function StatTile({ value, label, sub, color }: { value: number; label: string; sub?: string; color: string }) {
   return (
     <div className="stat-tile">
-      <div className="stat-tile-value">{value}</div>
+      <div className="stat-tile-value" style={{ color }}>
+        {value}
+      </div>
       <div className="stat-tile-label">
         {label}
         {sub && ` · ${sub}`}

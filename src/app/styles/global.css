@@ -585,6 +585,33 @@ a {
   background: #6355ff;
 }
 
+.more-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.more-icon[data-key="reminders"] {
+  background: var(--color-warning);
+}
+
+.more-icon[data-key="carnet"] {
+  background: #8b5cf6;
+}
+
+.more-icon[data-key="hub"] {
+  background: var(--color-accent);
+}
+
+.more-icon[data-key="app-settings"] {
+  background: var(--color-text-muted);
+}
+
 .card-title {
   font-weight: 700;
   font-size: 1.0625rem;
