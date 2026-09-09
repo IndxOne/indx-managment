@@ -78,7 +78,7 @@ export function ConvertNoteSheet({
                 }
               }}
             >
-              {candidate.name} <span className="action-sub">— {KIND_LABELS[candidate.kind]}</span>
+              {candidate.name} <span className={`badge badge-${candidate.kind}`}>{KIND_LABELS[candidate.kind]}</span>
             </button>
           ))}
         </div>

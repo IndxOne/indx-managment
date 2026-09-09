@@ -4,6 +4,7 @@ import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
 import { BottomSheet } from "./BottomSheet";
+import { StatusCheckIcon } from "./Icons";
 
 const AXIS_LABELS: Record<MoveAxis, string> = {
   schedule: "Planification",
@@ -192,7 +193,7 @@ function StatusDestinationStep({
             style={{ justifyContent: "center" }}
             onClick={() => (status === "waiting" ? setPendingWaiting(true) : onConfirm({ axis: "status", status }))}
           >
-            {statusLabels[status]}
+            <StatusCheckIcon status={status} size={18} /> {statusLabels[status]}
           </button>
         ))}
       </div>
