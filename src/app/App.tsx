@@ -169,6 +169,7 @@ function AppShell() {
 
         {route.screen === "reminders" && (
           <RemindersScreen
+            timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
             onNavigate={(destination) => setRoute({ screen: destination })}
           />

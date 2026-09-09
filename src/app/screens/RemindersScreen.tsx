@@ -1,51 +1,82 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { cycleStatus } from "../../domain/move-action";
+import type { Action } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
+import { resolveWorkspacePreset } from "../../presets/preset-registry";
+import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
+import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
+import { ActionListSection } from "../components/ActionListSection";
+import { EditActionSheet } from "../components/EditActionSheet";
+import { LinkActionSheet } from "../components/LinkActionSheet";
+import { MoveActionSheet } from "../components/MoveActionSheet";
+import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
+import { UndoBanner } from "../components/UndoBanner";
 import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
 
-interface ReminderEntry {
-  workspaceName: string;
-  workspaceId: string;
-  actionId: string;
-  title: string;
-  afterDays: number;
-  due: boolean;
-}
-
 /**
  * Vue transversale des relances actives (statut "waiting" + relance
- * activée), tous espaces confondus — la vérification/déclenchement reste
- * du ressort de refreshReminders (par espace), ceci n'est qu'une lecture.
+ * activée), tous espaces confondus. Entièrement interactive comme les
+ * écrans d'espace/Aujourd'hui — même wiring (ActionListSection + hooks
+ * undo par workspaceId, préréglage résolu par l'espace propre à chaque
+ * action) : ne pas rester en lecture seule alors que le reste de l'app
+ * ne l'est plus.
  */
 export function RemindersScreen({
-  onNavigateToWorkspace,
+  timezone,
   onNavigate,
+  onNavigateToWorkspace,
 }: {
-  onNavigateToWorkspace: (workspaceId: string) => void;
+  timezone: string;
   onNavigate: (destination: MoreDestination) => void;
+  onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
-  const { state } = useStore();
+  const { state, editAction, disableReminder, addNote, linkAction, unlinkAction } = useStore();
+  const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
+  const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
-  const entries = useMemo<ReminderEntry[]>(() => {
-    const result: ReminderEntry[] = [];
+  const [movingAction, setMovingAction] = useState<Action | null>(null);
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [notesActionId, setNotesActionId] = useState<string | null>(null);
+  const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
+
+  const entries = useMemo(() => {
+    const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.status === "waiting" && action.waitingReminder?.enabled) {
-          result.push({
-            workspaceName: workspace.name,
-            workspaceId: workspace.id,
-            actionId: action.id,
-            title: action.title,
-            afterDays: action.waitingReminder.afterDays,
-            due: isWaitingReminderDue(action),
-          });
-        }
+        if (action.status === "waiting" && action.waitingReminder?.enabled) result.push(action);
       }
     }
-    return result.sort((a, b) => Number(b.due) - Number(a.due));
+    return result.sort((a, b) => Number(isWaitingReminderDue(b)) - Number(isWaitingReminderDue(a)));
   }, [state]);
+
+  function presetFor(workspaceId: string) {
+    const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
+    return workspace ? resolveWorkspacePreset(workspace) : undefined;
+  }
+
+  function resolveWorkspace(action: Action) {
+    const workspace = state.workspaces.find((candidate) => candidate.id === action.workspaceId);
+    return workspace ? { name: workspace.name, kind: workspace.kind } : undefined;
+  }
+
+  function resolveStatusLabels(action: Action) {
+    return { ...STATUS_LABELS_DEFAULT, ...presetFor(action.workspaceId)?.statusLabels };
+  }
+
+  function findAction(actionId: string): Action | undefined {
+    for (const workspace of state.workspaces) {
+      const found = (state.actionsByWorkspace[workspace.id] ?? []).find((candidate) => candidate.id === actionId);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  const notesAction = notesActionId ? findAction(notesActionId) ?? null : null;
+  const linkingAction = linkingActionId ? findAction(linkingActionId) ?? null : null;
 
   return (
     <div>
@@ -57,29 +88,80 @@ export function RemindersScreen({
         {entries.length === 0 ? (
           <EmptyState title="Aucune relance active" description="Les actions en attente avec une relance activée apparaîtront ici." />
         ) : (
-          <div className="action-card-list">
-            {entries.map((entry) => (
-              <button
-                type="button"
-                className="action-card"
-                key={entry.actionId}
-                style={{ textAlign: "left", width: "100%", border: "none", cursor: "pointer" }}
-                onClick={() => onNavigateToWorkspace(entry.workspaceId)}
-              >
-                <span className="action-title">{entry.title}</span>
-                <div className="action-sub">
-                  {entry.workspaceName} · Relance après {entry.afterDays} j
-                  {entry.due && (
-                    <span className="phase-chip phase-chip-orange" style={{ marginLeft: 4 }}>
-                      Due
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+          <ActionListSection
+            id="section-reminders"
+            title="Relances actives"
+            actions={entries}
+            timezone={timezone}
+            statusLabels={STATUS_LABELS_DEFAULT}
+            resolveWorkspace={resolveWorkspace}
+            resolveStatusLabels={resolveStatusLabels}
+            onMove={setMovingAction}
+            onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
+            onEdit={setEditingAction}
+            onDelete={(action) => remove(action.workspaceId, action)}
+            onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
+            onOpenNotes={(action) => setNotesActionId(action.id)}
+            onOpenLink={(action) => setLinkingActionId(action.id)}
+          />
         )}
       </div>
+
+      {movingAction && (
+        <MoveActionSheet
+          action={movingAction}
+          phaseOptions={presetFor(movingAction.workspaceId)?.phaseTemplate ?? []}
+          statusLabels={resolveStatusLabels(movingAction)}
+          onCancel={() => setMovingAction(null)}
+          onConfirm={(destination) => {
+            move(movingAction.workspaceId, movingAction, destination);
+            setMovingAction(null);
+          }}
+        />
+      )}
+
+      {editingAction && (
+        <EditActionSheet
+          action={editingAction}
+          onCancel={() => setEditingAction(null)}
+          onSave={(edit) => {
+            editAction(editingAction.workspaceId, editingAction.id, edit);
+            setEditingAction(null);
+          }}
+        />
+      )}
+
+      {notesAction && (
+        <NotesSheet
+          action={notesAction}
+          onClose={() => setNotesActionId(null)}
+          onAddNote={(text) => addNote(notesAction.workspaceId, notesAction.id, text)}
+        />
+      )}
+
+      {linkingAction && (
+        <LinkActionSheet
+          action={linkingAction}
+          workspaces={state.workspaces}
+          actionsByWorkspace={state.actionsByWorkspace}
+          onClose={() => setLinkingActionId(null)}
+          onLink={(linkedId) => {
+            linkAction(linkingAction.workspaceId, linkingAction.id, linkedId);
+            setLinkingActionId(null);
+          }}
+          onUnlink={() => unlinkAction(linkingAction.workspaceId, linkingAction.id)}
+          onNavigate={onNavigateToWorkspace}
+        />
+      )}
+
+      {pendingUndo && <UndoBanner message="Déplacement effectué." onUndo={cancelLastMove} />}
+      {pendingDeleteUndo && (
+        <UndoBanner
+          message="Action supprimée."
+          onUndo={cancelLastDelete}
+          style={pendingUndo ? { bottom: "calc(var(--bottom-nav-height) + 72px)" } : undefined}
+        />
+      )}
     </div>
   );
 }

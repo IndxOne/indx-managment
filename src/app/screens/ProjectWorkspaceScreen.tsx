@@ -65,8 +65,8 @@ export function ProjectWorkspaceScreen({
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
   const linkingAction = allActions.find((action) => action.id === linkingActionId) ?? null;
 
-  const { pendingUndo, move, cancelLastMove } = useMoveWithUndo(workspace.id);
-  const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo(workspace.id);
+  const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
+  const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
   const phaseActions = useMemo(
     () => allActions.filter((action) => action.phaseId === currentPhase),
@@ -148,9 +148,9 @@ export function ProjectWorkspaceScreen({
                   timezone={timezone}
                   statusLabels={statusLabels}
                   onMove={setMovingAction}
-                  onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
                   onEdit={setEditingAction}
-                  onDelete={remove}
+                  onDelete={(action) => remove(workspace.id, action)}
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -163,9 +163,9 @@ export function ProjectWorkspaceScreen({
                   timezone={timezone}
                   statusLabels={statusLabels}
                   onMove={setMovingAction}
-                  onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
                   onEdit={setEditingAction}
-                  onDelete={remove}
+                  onDelete={(action) => remove(workspace.id, action)}
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -178,9 +178,9 @@ export function ProjectWorkspaceScreen({
                   timezone={timezone}
                   statusLabels={statusLabels}
                   onMove={setMovingAction}
-                  onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
                   onEdit={setEditingAction}
-                  onDelete={remove}
+                  onDelete={(action) => remove(workspace.id, action)}
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -201,9 +201,9 @@ export function ProjectWorkspaceScreen({
                     timezone={timezone}
                     statusLabels={statusLabels}
                     onMove={setMovingAction}
-                    onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+                    onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
                     onEdit={setEditingAction}
-                    onDelete={remove}
+                    onDelete={(action) => remove(workspace.id, action)}
                     onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                     onOpenNotes={(action) => setNotesActionId(action.id)}
                     onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -227,9 +227,9 @@ export function ProjectWorkspaceScreen({
             timezone={timezone}
             statusLabels={statusLabels}
             onMove={setMovingAction}
-            onCycleStatus={(action) => move(action, { axis: "status", status: cycleStatus(action.status) })}
+            onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
             onEdit={setEditingAction}
-            onDelete={remove}
+            onDelete={(action) => remove(workspace.id, action)}
             onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
             onOpenNotes={(action) => setNotesActionId(action.id)}
             onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -261,7 +261,7 @@ export function ProjectWorkspaceScreen({
           statusLabels={statusLabels}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
-            move(movingAction, destination);
+            move(workspace.id, movingAction, destination);
             setMovingAction(null);
           }}
           onSetReminder={(afterDays) => setReminder(workspace.id, movingAction.id, afterDays)}
