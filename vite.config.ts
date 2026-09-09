@@ -1,15 +1,45 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["icons/favicon-48.png"],
+      manifest: {
+        name: "INDXONE Projets",
+        short_name: "Projets",
+        description: "Gestion d'actions et de projets RUN/PROJET, mobile et desktop.",
+        lang: "fr",
+        start_url: "/",
+        display: "standalone",
+        background_color: "#f2f2f7",
+        theme_color: "#007aff",
+        icons: [
+          { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        // Coquille app-shell uniquement : les données viennent de Supabase
+        // (ou de l'adaptateur mémoire), jamais mises en cache ici — ce
+        // service worker ne sert qu'à rendre l'app installable et à
+        // permettre un démarrage hors-ligne du shell, pas à fonctionner
+        // sans réseau (l'app n'a pas de mode offline pour ses données).
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+      },
+    }),
+  ],
   root: "src/app",
   // envDir hérite de `root` par défaut : sans ce chemin explicite, Vite
   // cherche .env.local dans src/app/ au lieu de la racine du repo (où
   // .env.example et .gitignore l'attendent), et VITE_SUPABASE_* reste vide.
   envDir: "../..",
-  publicDir: false,
+  publicDir: "public",
   build: {
     outDir: "../../dist",
     emptyOutDir: true,
