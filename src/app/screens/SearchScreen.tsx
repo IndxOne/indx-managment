@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
-import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
@@ -18,14 +17,11 @@ import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
 
 /**
- * Vue transversale des relances actives (statut "waiting" + relance
- * activée), tous espaces confondus. Entièrement interactive comme les
- * écrans d'espace/Aujourd'hui — même wiring (ActionListSection + hooks
- * undo par workspaceId, préréglage résolu par l'espace propre à chaque
- * action) : ne pas rester en lecture seule alors que le reste de l'app
- * ne l'est plus.
+ * Recherche transversale par titre, tous espaces confondus. Même wiring
+ * interactif que Rappels/ActionsByStatus (pas de vue en lecture seule
+ * dans l'app) : filtrage local pur, aucune donnée dupliquée.
  */
-export function RemindersScreen({
+export function SearchScreen({
   timezone,
   onNavigate,
   onNavigateToWorkspace,
@@ -38,20 +34,24 @@ export function RemindersScreen({
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
+  const [query, setQuery] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [notesActionId, setNotesActionId] = useState<string | null>(null);
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
 
+  const trimmedQuery = query.trim().toLowerCase();
+
   const entries = useMemo(() => {
+    if (!trimmedQuery) return [];
     const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.status === "waiting" && action.waitingReminder?.enabled) result.push(action);
+        if (action.title.toLowerCase().includes(trimmedQuery)) result.push(action);
       }
     }
-    return result.sort((a, b) => Number(isWaitingReminderDue(b)) - Number(isWaitingReminderDue(a)));
-  }, [state]);
+    return result;
+  }, [state, trimmedQuery]);
 
   function presetFor(workspaceId: string) {
     const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -81,16 +81,29 @@ export function RemindersScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Rappels</h1>
+        <h1>Recherche</h1>
       </div>
-      <MoreSubNav active="reminders" onNavigate={onNavigate} />
+      <MoreSubNav active="search" onNavigate={onNavigate} />
       <div className="app-main">
-        {entries.length === 0 ? (
-          <EmptyState title="Aucune relance active" description="Les actions en attente avec une relance activée apparaîtront ici." />
+        <div className="field">
+          <label htmlFor="search-query">Rechercher une action</label>
+          <input
+            id="search-query"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Titre d'une action…"
+          />
+        </div>
+
+        {!trimmedQuery ? (
+          <EmptyState title="Rechercher une action" description="Tapez un titre pour retrouver une action dans tous vos espaces." />
+        ) : entries.length === 0 ? (
+          <EmptyState title="Aucun résultat" description={`Aucune action ne correspond à « ${query.trim()} ».`} />
         ) : (
           <ActionListSection
-            id="section-reminders"
-            title="Relances actives"
+            id="section-search-results"
+            title={`Résultats (${entries.length})`}
             actions={entries}
             timezone={timezone}
             statusLabels={STATUS_LABELS_DEFAULT}

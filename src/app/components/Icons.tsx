@@ -240,6 +240,15 @@ export function IconNotebook(props: IconProps) {
   );
 }
 
+export function IconSearch(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <line x1="15.3" y1="15.3" x2="20.5" y2="20.5" />
+    </svg>
+  );
+}
+
 export function IconLayers(props: IconProps) {
   return (
     <svg {...base} {...props}>

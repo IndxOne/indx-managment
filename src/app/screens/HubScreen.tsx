@@ -11,7 +11,15 @@ import type { MoreDestination } from "../more-links";
  * compteurs dérivés de l'état déjà chargé (pas de nouvelle donnée, pas de
  * liste — Aujourd'hui/Semaine couvrent déjà les listes d'actions).
  */
-export function HubScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
+export function HubScreen({
+  onNavigate,
+  onOpenSpaces,
+  onOpenStatus,
+}: {
+  onNavigate: (destination: MoreDestination) => void;
+  onOpenSpaces: () => void;
+  onOpenStatus: (status: ActionStatus) => void;
+}) {
   const { state } = useStore();
 
   const stats = useMemo(() => {
@@ -49,14 +57,20 @@ export function HubScreen({ onNavigate }: { onNavigate: (destination: MoreDestin
           Espaces
         </h2>
         <div className="stat-grid">
-          <StatTile value={stats.runCount} label="Espaces RUN" color="var(--color-warning)" />
-          <StatTile value={stats.projectCount} label="Espaces PROJET" color="#6355ff" />
+          <StatTile value={stats.runCount} label="Espaces RUN" color="var(--color-warning)" onClick={onOpenSpaces} />
+          <StatTile value={stats.projectCount} label="Espaces PROJET" color="#6355ff" onClick={onOpenSpaces} />
         </div>
 
         <h2 className="section-title">Actions ({stats.totalActions})</h2>
         <div className="stat-grid">
           {(Object.keys(STATUS_LABELS_DEFAULT) as ActionStatus[]).map((status) => (
-            <StatTile key={status} value={stats.byStatus[status]} label={STATUS_LABELS_DEFAULT[status]} color={STATUS_COLORS[status]} />
+            <StatTile
+              key={status}
+              value={stats.byStatus[status]}
+              label={STATUS_LABELS_DEFAULT[status]}
+              color={STATUS_COLORS[status]}
+              onClick={() => onOpenStatus(status)}
+            />
           ))}
         </div>
 
@@ -67,6 +81,7 @@ export function HubScreen({ onNavigate }: { onNavigate: (destination: MoreDestin
             label="Relances actives"
             sub={stats.dueReminders > 0 ? `dont ${stats.dueReminders} due(s)` : undefined}
             color="var(--color-warning)"
+            onClick={() => onNavigate("reminders")}
           />
           <StatTile value={stats.activeRecurrenceRules} label="Récurrences actives" color="#8b5cf6" />
         </div>
@@ -82,9 +97,21 @@ const STATUS_COLORS: Record<ActionStatus, string> = {
   done: "var(--color-success)",
 };
 
-function StatTile({ value, label, sub, color }: { value: number; label: string; sub?: string; color: string }) {
-  return (
-    <div className="stat-tile">
+function StatTile({
+  value,
+  label,
+  sub,
+  color,
+  onClick,
+}: {
+  value: number;
+  label: string;
+  sub?: string;
+  color: string;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
       <div className="stat-tile-value" style={{ color }}>
         {value}
       </div>
@@ -92,6 +119,14 @@ function StatTile({ value, label, sub, color }: { value: number; label: string; 
         {label}
         {sub && ` · ${sub}`}
       </div>
-    </div>
+    </>
+  );
+  if (!onClick) {
+    return <div className="stat-tile">{content}</div>;
+  }
+  return (
+    <button type="button" className="stat-tile stat-tile-button" onClick={onClick}>
+      {content}
+    </button>
   );
 }

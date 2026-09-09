@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { cycleStatus } from "../../domain/move-action";
-import type { Action } from "../../domain/types";
-import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
+import type { Action, ActionStatus } from "../../domain/types";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
@@ -14,24 +13,23 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { UndoBanner } from "../components/UndoBanner";
-import { MoreSubNav } from "../components/MoreSubNav";
-import type { MoreDestination } from "../more-links";
+import { IconChevronRight } from "../components/Icons";
 
 /**
- * Vue transversale des relances actives (statut "waiting" + relance
- * activée), tous espaces confondus. Entièrement interactive comme les
- * écrans d'espace/Aujourd'hui — même wiring (ActionListSection + hooks
- * undo par workspaceId, préréglage résolu par l'espace propre à chaque
- * action) : ne pas rester en lecture seule alors que le reste de l'app
- * ne l'est plus.
+ * Drill-down depuis une tuile de statut du Hub : mêmes actions que
+ * RemindersScreen (vue transversale interactive), filtrées par statut
+ * au lieu de "en attente + relance". Accessible uniquement depuis le
+ * Hub, donc bouton retour dédié plutôt que MoreSubNav.
  */
-export function RemindersScreen({
+export function ActionsByStatusScreen({
+  status,
   timezone,
-  onNavigate,
+  onBack,
   onNavigateToWorkspace,
 }: {
+  status: ActionStatus;
   timezone: string;
-  onNavigate: (destination: MoreDestination) => void;
+  onBack: () => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
   const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
@@ -47,11 +45,11 @@ export function RemindersScreen({
     const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.status === "waiting" && action.waitingReminder?.enabled) result.push(action);
+        if (action.status === status) result.push(action);
       }
     }
-    return result.sort((a, b) => Number(isWaitingReminderDue(b)) - Number(isWaitingReminderDue(a)));
-  }, [state]);
+    return result;
+  }, [state, status]);
 
   function presetFor(workspaceId: string) {
     const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -81,16 +79,20 @@ export function RemindersScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Rappels</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button type="button" className="btn btn-icon" onClick={onBack} aria-label="Retour au Hub">
+            <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <h1>{STATUS_LABELS_DEFAULT[status]}</h1>
+        </div>
       </div>
-      <MoreSubNav active="reminders" onNavigate={onNavigate} />
       <div className="app-main">
         {entries.length === 0 ? (
-          <EmptyState title="Aucune relance active" description="Les actions en attente avec une relance activée apparaîtront ici." />
+          <EmptyState title="Aucune action" description="Aucune action dans ce statut pour l'instant." />
         ) : (
           <ActionListSection
-            id="section-reminders"
-            title="Relances actives"
+            id="section-actions-by-status"
+            title={`${STATUS_LABELS_DEFAULT[status]} (${entries.length})`}
             actions={entries}
             timezone={timezone}
             statusLabels={STATUS_LABELS_DEFAULT}

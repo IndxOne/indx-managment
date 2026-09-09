@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { StoreProvider, type AppState } from "../adapters/temporary-store";
@@ -52,12 +53,60 @@ describe("HubScreen", () => {
 
     render(
       <StoreProvider initialState={state}>
-        <HubScreen onNavigate={() => {}} />
+        <HubScreen onNavigate={() => {}} onOpenSpaces={() => {}} onOpenStatus={() => {}} />
       </StoreProvider>
     );
 
     expect(screen.getByRole("heading", { name: "Hub" })).toBeInTheDocument();
     expect(screen.getByText("Actions (3)")).toBeInTheDocument();
     expect(screen.getByText(/Relances actives/)).toBeInTheDocument();
+  });
+
+  it("cliquer une tuile de statut navigue vers le détail de ce statut", async () => {
+    const user = userEvent.setup();
+    const onOpenStatus = vi.fn();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: { w1: [action({ status: "todo" })] },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    render(
+      <StoreProvider initialState={state}>
+        <HubScreen onNavigate={() => {}} onOpenSpaces={() => {}} onOpenStatus={onOpenStatus} />
+      </StoreProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /À faire/ }));
+    expect(onOpenStatus).toHaveBeenCalledWith("todo");
+  });
+
+  it("cliquer une tuile d'espaces navigue vers la liste des espaces", async () => {
+    const user = userEvent.setup();
+    const onOpenSpaces = vi.fn();
+
+    render(
+      <StoreProvider>
+        <HubScreen onNavigate={() => {}} onOpenSpaces={onOpenSpaces} onOpenStatus={() => {}} />
+      </StoreProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /Espaces RUN/ }));
+    expect(onOpenSpaces).toHaveBeenCalled();
+  });
+
+  it("cliquer la tuile des relances actives navigue vers Rappels", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+
+    render(
+      <StoreProvider>
+        <HubScreen onNavigate={onNavigate} onOpenSpaces={() => {}} onOpenStatus={() => {}} />
+      </StoreProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /Relances actives/ }));
+    expect(onNavigate).toHaveBeenCalledWith("reminders");
   });
 });

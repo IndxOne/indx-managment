@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
+import { AnnouncerProvider } from "../a11y/announcer";
 import { StoreProvider, type AppState } from "../adapters/temporary-store";
+import { ActionsByStatusScreen } from "./ActionsByStatusScreen";
 import { RemindersScreen } from "./RemindersScreen";
 
 function workspace(overrides: Partial<Workspace> = {}): Workspace {
@@ -52,9 +54,11 @@ describe("RemindersScreen", () => {
     };
 
     render(
-      <StoreProvider initialState={state}>
-        <RemindersScreen onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
-      </StoreProvider>
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
     );
 
     expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
@@ -62,9 +66,7 @@ describe("RemindersScreen", () => {
     expect(screen.queryByText("Relance désactivée")).not.toBeInTheDocument();
   });
 
-  it("cliquer une relance navigue vers son espace", async () => {
-    const user = userEvent.setup();
-    const onNavigate = vi.fn();
+  it("affiche l'espace d'origine de chaque relance (vue transversale)", () => {
     const state: AppState = {
       workspaces: [workspace()],
       actionsByWorkspace: {
@@ -75,20 +77,107 @@ describe("RemindersScreen", () => {
     };
 
     render(
-      <StoreProvider initialState={state}>
-        <RemindersScreen onNavigateToWorkspace={onNavigate} onNavigate={() => {}} />
-      </StoreProvider>
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /Relancer le prestataire/ }));
-    expect(onNavigate).toHaveBeenCalledWith("w1");
+    expect(screen.getByText(/Suivi quotidien ·/)).toBeInTheDocument();
+  });
+
+  it("cycler le statut déplace l'action hors des relances actives", async () => {
+    const user = userEvent.setup();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: {
+        w1: [action({ waitingReminder: { afterDays: 3, enabled: true, history: [] } })],
+      },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    render(
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: /Statut de "Relancer le prestataire"/ }));
+    expect(screen.getByText("Aucune relance active")).toBeInTheDocument();
+    expect(screen.getByText("Déplacement effectué.")).toBeInTheDocument();
+  });
+
+  it("activer une relance en déplaçant une action vers En attente la fait apparaître dans Rappels (onSetReminder câblé)", async () => {
+    const user = userEvent.setup();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: {
+        w1: [action({ id: "a1", title: "Nouvelle tâche", status: "todo", waitingReminder: undefined })],
+      },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    // Même StoreProvider pour les deux écrans : le déplacement effectué
+    // depuis ActionsByStatusScreen doit se refléter dans RemindersScreen,
+    // preuve que setReminder est bien appelé avec le bon workspaceId.
+    render(
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <ActionsByStatusScreen status="todo" timezone="Europe/Paris" onBack={() => {}} onNavigateToWorkspace={vi.fn()} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
+    );
+
+    expect(screen.getByText("Aucune relance active")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Actions pour "Nouvelle tâche"/ }));
+    await user.click(screen.getByRole("button", { name: /^Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /^Statut/ }));
+    await user.click(screen.getByRole("button", { name: "En attente" }));
+    await user.click(screen.getByLabelText("Activer une relance automatique"));
+    await user.click(screen.getByRole("button", { name: "Confirmer" }));
+
+    expect(screen.queryByText("Aucune relance active")).not.toBeInTheDocument();
+    expect(screen.getByText(/Relance après 3 j/)).toBeInTheDocument();
+  });
+
+  it("le clic sur le badge d'espace navigue vers l'espace d'origine", async () => {
+    const user = userEvent.setup();
+    const onNavigateToWorkspace = vi.fn();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: {
+        w1: [action({ waitingReminder: { afterDays: 3, enabled: true, history: [] } })],
+      },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    render(
+      <AnnouncerProvider>
+        <StoreProvider initialState={state}>
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={onNavigateToWorkspace} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "RUN" }));
+    expect(onNavigateToWorkspace).toHaveBeenCalledWith("w1");
   });
 
   it("état vide quand aucune relance active", () => {
     render(
-      <StoreProvider>
-        <RemindersScreen onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
-      </StoreProvider>
+      <AnnouncerProvider>
+        <StoreProvider>
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+        </StoreProvider>
+      </AnnouncerProvider>
     );
     expect(screen.getByText("Aucune relance active")).toBeInTheDocument();
   });
