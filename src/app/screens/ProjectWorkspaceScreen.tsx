@@ -137,11 +137,11 @@ export function ProjectWorkspaceScreen({
                 }}
                 onDropOnPhase={(actionId, phaseId) => {
                   const action = allActions.find((candidate) => candidate.id === actionId);
-                  if (action && action.phaseId !== phaseId) move(action, { axis: "phase", phaseId });
+                  if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });
                 }}
                 onMove={setMovingAction}
                 onEdit={setEditingAction}
-                onDelete={remove}
+                onDelete={(action) => remove(workspace.id, action)}
                 onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                 onOpenNotes={(action) => setNotesActionId(action.id)}
                 onOpenLink={(action) => setLinkingActionId(action.id)}
@@ -293,6 +293,7 @@ export function ProjectWorkspaceScreen({
           action={movingAction}
           phaseOptions={phases}
           statusLabels={statusLabels}
+          timezone={timezone}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
             move(workspace.id, movingAction, destination);

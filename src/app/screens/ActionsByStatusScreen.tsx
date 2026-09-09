@@ -115,6 +115,7 @@ export function ActionsByStatusScreen({
           action={movingAction}
           phaseOptions={presetFor(movingAction.workspaceId)?.phaseTemplate ?? []}
           statusLabels={resolveStatusLabels(movingAction)}
+          timezone={timezone}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
             move(movingAction.workspaceId, movingAction, destination);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { todayInTimeZone } from "../../calendar/calendar-engine";
 import { formatIsoWeek } from "../../calendar/iso-week";
 import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
@@ -12,6 +13,7 @@ export function MoveActionSheet({
   action,
   phaseOptions,
   statusLabels,
+  timezone,
   onCancel,
   onConfirm,
   onSetReminder,
@@ -19,13 +21,15 @@ export function MoveActionSheet({
   action: Action;
   phaseOptions: string[];
   statusLabels: Record<ActionStatus, string>;
+  /** Fuseau de l'écran appelant : la semaine par défaut doit correspondre à "aujourd'hui" pour l'utilisateur, pas en UTC. */
+  timezone: string;
   onCancel: () => void;
   onConfirm: (destination: MoveDestination) => void;
   /** Appelé en plus de onConfirm si l'utilisateur active une relance en passant à "waiting". */
   onSetReminder?: (afterDays: number) => void;
 }) {
   const [axis, setAxis] = useState<MoveAxis | null>(null);
-  const currentWeek = formatIsoWeek(new Date().toISOString().slice(0, 10));
+  const currentWeek = formatIsoWeek(todayInTimeZone(timezone));
 
   if (axis === null) {
     return (

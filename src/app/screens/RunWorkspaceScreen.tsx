@@ -240,6 +240,7 @@ export function RunWorkspaceScreen({
           action={movingAction}
           phaseOptions={preset.phaseTemplate ?? []}
           statusLabels={statusLabels}
+          timezone={timezone}
           onCancel={() => setMovingAction(null)}
           onConfirm={(destination) => {
             move(workspace.id, movingAction, destination);
