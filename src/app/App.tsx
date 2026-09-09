@@ -18,6 +18,7 @@ import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
 import { RemindersScreen } from "./screens/RemindersScreen";
 import { RunWorkspaceScreen } from "./screens/RunWorkspaceScreen";
+import { SearchScreen } from "./screens/SearchScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
 
 type Route =
@@ -32,6 +33,7 @@ type Route =
   | { screen: "carnet" }
   | { screen: "hub" }
   | { screen: "actions-by-status"; status: ActionStatus }
+  | { screen: "search" }
   | { screen: "app-settings" };
 
 function routeToTab(route: Route): NavTab {
@@ -45,6 +47,7 @@ function routeToTab(route: Route): NavTab {
     case "carnet":
     case "hub":
     case "actions-by-status":
+    case "search":
     case "app-settings":
       return "more";
     default:
@@ -196,6 +199,14 @@ function AppShell() {
             status={route.status}
             timezone={timezone}
             onBack={() => setRoute({ screen: "hub" })}
+            onNavigateToWorkspace={goToWorkspaceId}
+          />
+        )}
+
+        {route.screen === "search" && (
+          <SearchScreen
+            timezone={timezone}
+            onNavigate={(destination) => setRoute({ screen: destination })}
             onNavigateToWorkspace={goToWorkspaceId}
           />
         )}
