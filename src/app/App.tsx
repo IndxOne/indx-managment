@@ -7,10 +7,14 @@ import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
+import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
+import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
+import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
+import { RemindersScreen } from "./screens/RemindersScreen";
 import { RunWorkspaceScreen } from "./screens/RunWorkspaceScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
 
@@ -21,7 +25,11 @@ type Route =
   | { screen: "spaces-create" }
   | { screen: "workspace-detail"; workspaceId: string }
   | { screen: "workspace-settings"; workspaceId: string }
-  | { screen: "more" };
+  | { screen: "more" }
+  | { screen: "reminders" }
+  | { screen: "carnet" }
+  | { screen: "hub" }
+  | { screen: "app-settings" };
 
 function routeToTab(route: Route): NavTab {
   switch (route.screen) {
@@ -30,6 +38,10 @@ function routeToTab(route: Route): NavTab {
     case "week":
       return "week";
     case "more":
+    case "reminders":
+    case "carnet":
+    case "hub":
+    case "app-settings":
       return "more";
     default:
       return "spaces";
@@ -153,7 +165,15 @@ function AppShell() {
             <WorkspaceNotFound onBack={() => setRoute({ screen: "spaces-list" })} />
           ))}
 
-        {route.screen === "more" && <MoreScreen />}
+        {route.screen === "more" && <MoreScreen onSelect={(destination) => setRoute({ screen: destination })} />}
+
+        {route.screen === "reminders" && <RemindersScreen onNavigateToWorkspace={goToWorkspaceId} />}
+
+        {route.screen === "carnet" && <CarnetScreen />}
+
+        {route.screen === "hub" && <HubScreen />}
+
+        {route.screen === "app-settings" && <AppSettingsScreen />}
         </div>
       </main>
     </div>

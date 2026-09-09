@@ -12,13 +12,25 @@ import type { RecurrenceFrequency, RecurrenceRule } from "../../recurrence/recur
  * l'interface).
  */
 
+export interface CarnetNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface AppState {
   workspaces: Workspace[];
   actionsByWorkspace: Record<string, Action[]>;
   recurrenceRulesByWorkspace: Record<string, RecurrenceRule[]>;
+  carnetNotes: CarnetNote[];
 }
 
-export const EMPTY_STATE: AppState = { workspaces: [], actionsByWorkspace: {}, recurrenceRulesByWorkspace: {} };
+export const EMPTY_STATE: AppState = {
+  workspaces: [],
+  actionsByWorkspace: {},
+  recurrenceRulesByWorkspace: {},
+  carnetNotes: [],
+};
 
 export interface NewActionInput {
   workspaceId: string;
@@ -27,6 +39,8 @@ export interface NewActionInput {
   priority: Priority;
   phaseId?: string;
   status?: ActionStatus;
+  /** Présent quand l'action provient d'une note du Carnet convertie. */
+  sourceNoteId?: string;
 }
 
 export interface NewRecurrenceRuleInput {
@@ -62,6 +76,10 @@ export interface StoreContextValue {
   /** Retourne l'action et sa position avant suppression, pour permettre l'annulation. */
   deleteAction: (workspaceId: string, actionId: string) => { action: Action; index: number } | undefined;
   undoDeleteAction: (workspaceId: string, action: Action, index: number) => void;
+  createCarnetNote: (text: string) => CarnetNote;
+  deleteCarnetNote: (noteId: string) => void;
+  /** Crée l'action à partir du texte de la note puis retire la note du Carnet (triage). */
+  convertCarnetNote: (noteId: string, input: Omit<NewActionInput, "sourceNoteId">) => void;
 }
 
 export const StoreContext = createContext<StoreContextValue | null>(null);

@@ -7,11 +7,14 @@ import { getSupabaseClient } from "./supabase/client";
 import {
   actionFromRow,
   actionToRow,
+  carnetNoteFromRow,
+  carnetNoteToRow,
   recurrenceRuleFromRow,
   recurrenceRuleToRow,
   workspaceFromRow,
   workspaceToRow,
   type ActionRow,
+  type CarnetNoteRow,
   type RecurrenceRuleRow,
   type WorkspaceRow,
 } from "./supabase/mappers";
@@ -54,14 +57,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         { data: workspaceRows, error: workspacesError },
         { data: actionRows, error: actionsError },
         { data: recurrenceRuleRows, error: recurrenceRulesError },
+        { data: carnetNoteRows, error: carnetNotesError },
       ] = await Promise.all([
         client.from("projets_workspaces").select("*").order("created_at"),
         client.from("projets_actions").select("*").order("created_at"),
         client.from("projets_recurrence_rules").select("*").order("created_at"),
+        client.from("projets_carnet_notes").select("*").order("created_at"),
       ]);
       if (workspacesError) throw workspacesError;
       if (actionsError) throw actionsError;
       if (recurrenceRulesError) throw recurrenceRulesError;
+      if (carnetNotesError) throw carnetNotesError;
 
       const workspaces = ((workspaceRows ?? []) as WorkspaceRow[]).map(workspaceFromRow);
       const actionsByWorkspace: AppState["actionsByWorkspace"] = {};
@@ -78,8 +84,9 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         const rule = recurrenceRuleFromRow(row);
         (recurrenceRulesByWorkspace[rule.workspaceId] ??= []).push(rule);
       }
+      const carnetNotes = ((carnetNoteRows ?? []) as CarnetNoteRow[]).map(carnetNoteFromRow);
 
-      dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace } });
+      dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes } });
       setStatus("ready");
     } catch (cause) {
       setSyncError(cause instanceof Error ? cause.message : "Erreur de chargement Supabase");
@@ -144,6 +151,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               priority: input.priority,
               itemType: input.itemType,
               phaseId: input.phaseId,
+              sourceNoteId: input.sourceNoteId,
               schedule: { granularity: "none" },
               assigneeIds: [],
               tags: [],
@@ -154,6 +162,51 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           );
           const { error } = await client.from("projets_actions").insert(row);
           if (error) throw error;
+        });
+      },
+
+      createCarnetNote: (text) => {
+        const note = { id: generateId(), text, createdAt: new Date().toISOString() };
+        dispatchAndPersist({ type: "carnet/create", note }, async () => {
+          const { error } = await client.from("projets_carnet_notes").insert(carnetNoteToRow(note, userHash));
+          if (error) throw error;
+        });
+        return note;
+      },
+
+      deleteCarnetNote: (noteId) => {
+        dispatchAndPersist({ type: "carnet/delete", noteId }, async () => {
+          const { error } = await client.from("projets_carnet_notes").delete().eq("id", noteId);
+          if (error) throw error;
+        });
+      },
+
+      convertCarnetNote: (noteId, input) => {
+        const id = generateId();
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "carnet/convert", noteId, input, id, now }, async () => {
+          const row = actionToRow(
+            {
+              id,
+              workspaceId: input.workspaceId,
+              title: input.title,
+              status: input.status ?? "todo",
+              priority: input.priority,
+              itemType: input.itemType,
+              phaseId: input.phaseId,
+              sourceNoteId: noteId,
+              schedule: { granularity: "none" },
+              assigneeIds: [],
+              tags: [],
+              createdAt: now,
+              updatedAt: now,
+            },
+            userHash
+          );
+          const { error: insertError } = await client.from("projets_actions").insert(row);
+          if (insertError) throw insertError;
+          const { error: deleteError } = await client.from("projets_carnet_notes").delete().eq("id", noteId);
+          if (deleteError) throw deleteError;
         });
       },
 

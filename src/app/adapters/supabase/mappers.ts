@@ -12,6 +12,8 @@ import type { CollaborationMode } from "../../../domain/types";
 import type { Workspace } from "../../../domain/workspace";
 import type { WaitingReminderRule } from "../../../reminders/waiting-reminder";
 import type { RecurrenceFrequency, RecurrenceRule } from "../../../recurrence/recurrence-engine";
+import type { CarnetNote } from "../store-context";
+
 
 /**
  * Conversion ligne Postgres (snake_case) <-> domaine (camelCase). Les
@@ -134,6 +136,21 @@ export function recurrenceRuleToRow(rule: RecurrenceRule, userHash: string): Omi
     priority: rule.template.priority,
     item_type: rule.template.itemType,
   };
+}
+
+export interface CarnetNoteRow {
+  id: string;
+  user_hash: string;
+  text: string;
+  created_at: string;
+}
+
+export function carnetNoteFromRow(row: CarnetNoteRow): CarnetNote {
+  return { id: row.id, text: row.text, createdAt: row.created_at };
+}
+
+export function carnetNoteToRow(note: CarnetNote, userHash: string): CarnetNoteRow {
+  return { id: note.id, user_hash: userHash, text: note.text, created_at: note.createdAt };
 }
 
 export function actionFromRow(row: ActionRow): Action {

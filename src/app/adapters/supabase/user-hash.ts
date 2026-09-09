@@ -13,3 +13,12 @@ export function getOrCreateUserHash(): string {
   localStorage.setItem(STORAGE_KEY, generated);
   return generated;
 }
+
+/**
+ * Bascule cet appareil vers un code existant (retrouver ses données depuis
+ * un autre navigateur). Le client Supabase déjà instancié garde l'ancien
+ * en-tête en mémoire : l'appelant doit recharger la page après ce changement.
+ */
+export function setUserHash(hash: string): void {
+  localStorage.setItem(STORAGE_KEY, hash);
+}

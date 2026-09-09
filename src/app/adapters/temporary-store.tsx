@@ -80,6 +80,14 @@ export function TemporaryStoreProvider({
       },
       undoDeleteAction: (workspaceId, action, index) =>
         dispatch({ type: "action/undoDelete", workspaceId, action, index }),
+      createCarnetNote: (text) => {
+        const note = { id: generateId(), text, createdAt: new Date().toISOString() };
+        dispatch({ type: "carnet/create", note });
+        return note;
+      },
+      deleteCarnetNote: (noteId) => dispatch({ type: "carnet/delete", noteId }),
+      convertCarnetNote: (noteId, input) =>
+        dispatch({ type: "carnet/convert", noteId, input, id: generateId(), now: new Date().toISOString() }),
     }),
     [state]
   );

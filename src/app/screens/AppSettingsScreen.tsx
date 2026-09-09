@@ -1,0 +1,98 @@
+import { useState } from "react";
+import { isSupabaseConfigured } from "../adapters/supabase/client";
+import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
+import { EmptyState } from "../components/StateBlocks";
+
+/**
+ * Réglages globaux (pas de compte Supabase Auth — cf. supabase-store.tsx) :
+ * le seul réglage transversal utile aujourd'hui est le code de
+ * synchronisation, seul moyen de retrouver ses données depuis un autre
+ * navigateur/appareil (voir user-hash.ts).
+ */
+export function AppSettingsScreen() {
+  const configured = isSupabaseConfigured();
+  const currentCode = configured ? getOrCreateUserHash() : null;
+  const [pastedCode, setPastedCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleCopy() {
+    if (!currentCode) return;
+    await navigator.clipboard.writeText(currentCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleUseCode() {
+    const trimmed = pastedCode.trim();
+    if (!trimmed) {
+      setError("Colle un code de synchronisation.");
+      return;
+    }
+    if (trimmed === currentCode) {
+      setError("C'est déjà le code utilisé sur cet appareil.");
+      return;
+    }
+    if (!window.confirm("Basculer vers ce code affichera les données associées et masquera celles de l'appareil actuel. Continuer ?")) {
+      return;
+    }
+    setUserHash(trimmed);
+    window.location.reload();
+  }
+
+  return (
+    <div>
+      <div className="top-bar">
+        <h1>Réglages</h1>
+      </div>
+      <div className="app-main">
+        {!configured || !currentCode ? (
+          <EmptyState
+            title="Persistance locale uniquement"
+            description="Aucun compte Supabase configuré sur ce déploiement : les données restent dans ce navigateur, pas de synchronisation entre appareils."
+          />
+        ) : (
+          <>
+            <h2 className="section-title" style={{ marginTop: 0 }}>
+              Code de synchronisation
+            </h2>
+            <p className="action-sub">
+              Ce code relie cet appareil à tes données. Copie-le et colle-le sur un autre appareil (via "Utiliser un
+              code" ci-dessous) pour retrouver les mêmes espaces et actions.
+            </p>
+            <div className="field">
+              <input type="text" readOnly value={currentCode} onFocus={(event) => event.target.select()} />
+            </div>
+            <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleCopy}>
+              {copied ? "Copié !" : "Copier le code"}
+            </button>
+
+            <h2 className="section-title">Utiliser un code existant</h2>
+            <p className="action-sub">Colle ici le code d'un autre appareil pour retrouver ses données ici.</p>
+            <div className="field">
+              <label htmlFor="sync-code-input">Code</label>
+              <input
+                id="sync-code-input"
+                type="text"
+                value={pastedCode}
+                onChange={(event) => {
+                  setPastedCode(event.target.value);
+                  setError(null);
+                }}
+                aria-invalid={Boolean(error)}
+              />
+              {error && (
+                <p role="alert" style={{ color: "var(--color-danger)" }}>
+                  {error}
+                </p>
+              )}
+            </div>
+            <button type="button" className="btn btn-block tap-target" onClick={handleUseCode}>
+              Utiliser ce code
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

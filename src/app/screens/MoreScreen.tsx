@@ -1,11 +1,13 @@
-const STUB_LINKS = ["Rappels", "Carnet", "Hub", "Réglages"];
+export type MoreDestination = "reminders" | "carnet" | "hub" | "app-settings";
 
-/**
- * Cadrage §8 : "Rappels, Carnet, Hub et réglages restent dans Plus ou
- * contexte espace." Leur intégration réelle est hors périmètre du Lot 2
- * (Carnet/Hub = Lot 5). Stub de navigation uniquement.
- */
-export function MoreScreen() {
+const LINKS: { key: MoreDestination; label: string }[] = [
+  { key: "reminders", label: "Rappels" },
+  { key: "carnet", label: "Carnet" },
+  { key: "hub", label: "Hub" },
+  { key: "app-settings", label: "Réglages" },
+];
+
+export function MoreScreen({ onSelect }: { onSelect: (destination: MoreDestination) => void }) {
   return (
     <div>
       <div className="top-bar">
@@ -13,10 +15,11 @@ export function MoreScreen() {
       </div>
       <div className="app-main">
         <ul className="list action-card-list">
-          {STUB_LINKS.map((label) => (
-            <li key={label} className="action-card" style={{ opacity: 0.6 }}>
-              <span className="card-title">{label}</span>
-              <div className="card-meta">À venir</div>
+          {LINKS.map(({ key, label }) => (
+            <li key={key}>
+              <button type="button" className="action-card" style={{ width: "100%", border: "none", textAlign: "left", cursor: "pointer" }} onClick={() => onSelect(key)}>
+                <span className="card-title">{label}</span>
+              </button>
             </li>
           ))}
         </ul>
