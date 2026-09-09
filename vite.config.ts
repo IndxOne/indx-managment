@@ -7,7 +7,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" (pas "autoUpdate") : un nouveau déploiement ne doit jamais
+      // faire main basse sur un onglet déjà ouvert (skipWaiting +
+      // clientsClaim immédiats) pendant qu'un formulaire est en cours de
+      // saisie. Sans code d'invite personnalisé ni appel à
+      // updateServiceWorker(), le nouveau service worker reste simplement
+      // en attente jusqu'à ce que tous les onglets du site soient fermés —
+      // comportement standard du navigateur, sans risque de perte de saisie.
+      registerType: "prompt",
       includeAssets: ["icons/favicon-48.png"],
       manifest: {
         name: "INDXONE Projets",

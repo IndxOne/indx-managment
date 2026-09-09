@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "INDXONE Projets : domaine, calendrier ISO, préréglages, récurrence, migration + UI mobile-first.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
