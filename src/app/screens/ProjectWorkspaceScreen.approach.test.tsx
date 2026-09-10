@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { AnnouncerProvider } from "../a11y/announcer";
 import type { AppState } from "../adapters/store-context";
@@ -41,5 +42,25 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
     );
 
     expect(await screen.findByPlaceholderText("Ajouter une action…")).toBeInTheDocument();
+  });
+
+  it("une action ajoutée sans échéance reste visible (finding Codex PR #28)", async () => {
+    const user = userEvent.setup();
+    render(
+      <AnnouncerProvider>
+        <TemporaryStoreProvider initialState={stateWithWorkspace()}>
+          <ProjectWorkspaceScreen
+            workspace={stateWithWorkspace().workspaces[0]!}
+            timezone="Europe/Paris"
+            onOpenSettings={() => {}}
+            onNavigateToWorkspace={() => {}}
+          />
+        </TemporaryStoreProvider>
+      </AnnouncerProvider>
+    );
+
+    await user.type(await screen.findByPlaceholderText("Ajouter une action…"), "Cadrer le périmètre{Enter}");
+
+    expect(await screen.findByText("Cadrer le périmètre")).toBeInTheDocument();
   });
 });

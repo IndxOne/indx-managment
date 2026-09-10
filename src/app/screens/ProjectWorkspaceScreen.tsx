@@ -103,6 +103,15 @@ export function ProjectWorkspaceScreen({
     });
   }, [allActions, mode, timezone]);
 
+  // Une action sans échéance (ajout rapide sans détail, ou approche sans
+  // phase où rien ne planifie automatiquement) doit rester quelque part
+  // sous les yeux — sinon elle disparaît de la vue Semaine sans qu'aucune
+  // autre liste ne la montre (finding Codex PR #28).
+  const unscheduledActions = useMemo(() => {
+    if (mode !== "week") return [];
+    return allActions.filter((action) => deriveScheduleKeys(action.schedule, timezone).relativeLabel === "unscheduled");
+  }, [allActions, mode, timezone]);
+
   return (
     <div>
       <div className="top-bar">
@@ -267,7 +276,7 @@ export function ProjectWorkspaceScreen({
                 setAddSheetOpen(true);
               }}
             />
-            {weekActions.length === 0 ? (
+            {weekActions.length === 0 && unscheduledActions.length === 0 ? (
               <section aria-labelledby="section-week">
                 <h2 id="section-week" className="section-title">
                   Cette semaine
@@ -275,20 +284,36 @@ export function ProjectWorkspaceScreen({
                 <EmptyState title="Rien cette semaine" description="Aucune action planifiée dans les 7 prochains jours." />
               </section>
             ) : (
-              <ActionListSection
-                id="section-week"
-                title="Cette semaine"
-                actions={weekActions}
-                timezone={timezone}
-                statusLabels={statusLabels}
-                onMove={setMovingAction}
-                onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-                onEdit={setEditingAction}
-                onDelete={(action) => remove(workspace.id, action)}
-                onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                onOpenNotes={(action) => setNotesActionId(action.id)}
-                onOpenLink={(action) => setLinkingActionId(action.id)}
-              />
+              <>
+                <ActionListSection
+                  id="section-week"
+                  title="Cette semaine"
+                  actions={weekActions}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+                  onEdit={setEditingAction}
+                  onDelete={(action) => remove(workspace.id, action)}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                  onOpenNotes={(action) => setNotesActionId(action.id)}
+                  onOpenLink={(action) => setLinkingActionId(action.id)}
+                />
+                <ActionListSection
+                  id="section-unscheduled"
+                  title="Sans échéance"
+                  actions={unscheduledActions}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+                  onEdit={setEditingAction}
+                  onDelete={(action) => remove(workspace.id, action)}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                  onOpenNotes={(action) => setNotesActionId(action.id)}
+                  onOpenLink={(action) => setLinkingActionId(action.id)}
+                />
+              </>
             )}
           </>
         )}
