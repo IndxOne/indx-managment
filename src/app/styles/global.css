@@ -607,6 +607,14 @@ a {
   }
 }
 
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  margin: 0 0 2px;
+}
+
 .approach-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -618,6 +626,50 @@ a {
   .approach-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+@media (min-width: 900px) {
+  .approach-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.approach-card {
+  gap: 2px;
+}
+
+.approach-card-filters {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.approach-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--color-warning-soft);
+  border-radius: var(--radius-xl);
+  padding: 13px 13px 11px;
+  margin-bottom: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .approach-panel {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-5);
+  }
+
+  .approach-panel-label {
+    flex: none;
+    width: 200px;
+  }
+}
+
+.footer-note {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
 }
 
 .workspace-card {
