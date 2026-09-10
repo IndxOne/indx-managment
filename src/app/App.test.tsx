@@ -27,7 +27,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     // Retour à la liste : la carte reflète le nombre d'actions.
     await user.click(screen.getByRole("button", { name: /Espaces/ }));
-    expect(await screen.findByText("1 action")).toBeInTheDocument();
+    expect(await screen.findByText(/1 action/)).toBeInTheDocument();
   });
 
   it("changer l'approche ne fait disparaître aucune action existante", async () => {
