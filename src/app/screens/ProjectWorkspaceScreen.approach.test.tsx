@@ -82,3 +82,48 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
     expect(screen.queryByRole("button", { name: "Vue phases" })).not.toBeInTheDocument();
   });
 });
+
+function stateWithPhasedWorkspace(): AppState {
+  return {
+    workspaces: [
+      {
+        id: "w2",
+        name: "Migration ERP",
+        kind: "project",
+        approach: "project_amoa",
+        collaborationMode: "solo",
+        presetVersion: 1,
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+      },
+    ],
+    actionsByWorkspace: {},
+    recurrenceRulesByWorkspace: {},
+    carnetNotes: [],
+  };
+}
+
+describe("ProjectWorkspaceScreen — approche avec phases", () => {
+  it("une action ajoutée depuis la vue Semaine reste visible en vue Phases (rattachée à la 1ère phase)", async () => {
+    const user = userEvent.setup();
+    render(
+      <AnnouncerProvider>
+        <TemporaryStoreProvider initialState={stateWithPhasedWorkspace()}>
+          <ProjectWorkspaceScreen
+            workspace={stateWithPhasedWorkspace().workspaces[0]!}
+            timezone="Europe/Paris"
+            onOpenSettings={() => {}}
+            onNavigateToWorkspace={() => {}}
+          />
+        </TemporaryStoreProvider>
+      </AnnouncerProvider>
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Vue semaine" }));
+    await user.type(await screen.findByPlaceholderText("Ajouter une action…"), "Lister les besoins{Enter}");
+    expect(await screen.findByText("Lister les besoins")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Vue phases" }));
+    expect(await screen.findByText("Lister les besoins")).toBeInTheDocument();
+  });
+});

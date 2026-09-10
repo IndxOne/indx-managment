@@ -258,7 +258,12 @@ export function ProjectWorkspaceScreen({
         ) : (
           <>
             <QuickAddBar
-              onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}
+              // Sans phase, l'action ajoutée ici resterait invisible en vue
+              // Phases (filtrée par phase) quelle que soit l'onglet choisi —
+              // on la rattache donc à la première phase quand il y en a une.
+              onQuickAdd={(title) =>
+                createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId: phases[0] })
+              }
               onOpenFullForm={(draftTitle) => {
                 setAddSheetDraftTitle(draftTitle);
                 setAddSheetOpen(true);
