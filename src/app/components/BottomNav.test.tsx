@@ -1,11 +1,34 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { Workspace } from "../../domain/workspace";
 import { BottomNav } from "./BottomNav";
+
+function workspace(overrides: Partial<Workspace> = {}): Workspace {
+  return {
+    id: "w1",
+    name: "Support quotidien",
+    kind: "run",
+    approach: "it_ops",
+    collaborationMode: "solo",
+    presetVersion: 1,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 describe("BottomNav", () => {
   it("affiche les 4 entrées recommandées par le cadrage §8", () => {
-    render(<BottomNav active="today" onChange={() => {}} />);
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
     expect(screen.getByRole("button", { name: /Aujourd'hui/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Semaine/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Espaces/ })).toBeInTheDocument();
@@ -13,13 +36,29 @@ describe("BottomNav", () => {
   });
 
   it("marque l'onglet actif avec aria-current", () => {
-    render(<BottomNav active="spaces" onChange={() => {}} />);
+    render(
+      <BottomNav
+        active="spaces"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
     expect(screen.getByRole("button", { name: /Espaces/ })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: /Aujourd'hui/ })).not.toHaveAttribute("aria-current");
   });
 
   it("chaque cible tactile respecte le minimum 44px (classe tap-target)", () => {
-    render(<BottomNav active="today" onChange={() => {}} />);
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
     for (const button of screen.getAllByRole("button")) {
       expect(button).toHaveClass("tap-target");
     }
@@ -28,7 +67,15 @@ describe("BottomNav", () => {
   it("appelle onChange au clic et au clavier (Entrée)", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<BottomNav active="today" onChange={onChange} />);
+    render(
+      <BottomNav
+        active="today"
+        onChange={onChange}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
 
     await user.click(screen.getByRole("button", { name: /Semaine/ }));
     expect(onChange).toHaveBeenCalledWith("week");
@@ -36,5 +83,44 @@ describe("BottomNav", () => {
     screen.getByRole("button", { name: /Plus/ }).focus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("more");
+  });
+
+  it("liste les espaces dans la barre latérale, marque l'espace actif et permet d'en créer un", async () => {
+    // La liste n'est rendue qu'à partir de 1024px (useIsDesktop) : simule le
+    // passage en desktop, sinon jsdom (sans matchMedia) reste en mobile.
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    });
+    vi.stubGlobal("matchMedia", matchMedia);
+
+    const user = userEvent.setup();
+    const onSelectWorkspace = vi.fn();
+    const onCreateWorkspace = vi.fn();
+    const ws1 = workspace({ id: "w1", name: "Support quotidien" });
+    const ws2 = workspace({ id: "w2", name: "Refonte CRM", kind: "project", approach: "project_amoa" });
+
+    render(
+      <BottomNav
+        active="spaces"
+        onChange={() => {}}
+        workspaces={[ws1, ws2]}
+        activeWorkspaceId="w2"
+        onSelectWorkspace={onSelectWorkspace}
+        onCreateWorkspace={onCreateWorkspace}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /Support quotidien/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Refonte CRM/ })).toHaveAttribute("aria-current", "page");
+
+    await user.click(screen.getByRole("button", { name: /Support quotidien/ }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("w1");
+
+    await user.click(screen.getByRole("button", { name: /Nouveau projet/ }));
+    expect(onCreateWorkspace).toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
   });
 });

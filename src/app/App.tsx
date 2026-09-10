@@ -110,7 +110,14 @@ function AppShell() {
   return (
     <div className="app-shell">
       {!online && <OfflineBanner />}
-      <BottomNav active={routeToTab(route)} onChange={handleNavChange} />
+      <BottomNav
+        active={routeToTab(route)}
+        onChange={handleNavChange}
+        workspaces={state.workspaces}
+        activeWorkspaceId={workspace?.id}
+        onSelectWorkspace={goToWorkspaceId}
+        onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
+      />
       <main style={{ flex: 1 }}>
         <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
