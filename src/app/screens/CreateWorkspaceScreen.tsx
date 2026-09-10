@@ -1,21 +1,18 @@
 import { useState, type FormEvent } from "react";
 import type { ProfessionalApproach, WorkspaceKind } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
-import { PRESET_REGISTRY } from "../../presets/preset-registry";
-import { APPROACH_DESCRIPTIONS, APPROACH_LABELS } from "../labels";
 import { useStore } from "../adapters/temporary-store";
 import { BottomSheet } from "../components/BottomSheet";
 import { IconGrid, IconSun } from "../components/Icons";
 
-// Mirroir du cadrage §8 (valeurs proposées par défaut) — sert uniquement à
-// préremplir le formulaire ; la création réelle passe par createWorkspace
-// (Agent 1), qui applique le même défaut si l'approche n'est pas fournie.
+// Mirroir du cadrage §8 (valeurs proposées par défaut) — l'approche métier
+// n'est plus demandée ici (un nom suffit pour démarrer, comme le prototype
+// de référence) ; elle reste modifiable ensuite dans les réglages de
+// l'espace (ApproachSettingsScreen).
 const SUGGESTED_APPROACH_BY_KIND: Record<WorkspaceKind, ProfessionalApproach> = {
   run: "it_ops",
   project: "project_amoa",
 };
-
-const ALL_APPROACHES = Object.keys(PRESET_REGISTRY) as ProfessionalApproach[];
 
 export function CreateWorkspaceScreen({
   onCreated,
@@ -27,16 +24,7 @@ export function CreateWorkspaceScreen({
   const { createWorkspaceAction } = useStore();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<WorkspaceKind>("run");
-  const [approach, setApproach] = useState<ProfessionalApproach>(SUGGESTED_APPROACH_BY_KIND.run);
-  const [approachTouched, setApproachTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function handleKindChange(nextKind: WorkspaceKind) {
-    setKind(nextKind);
-    if (!approachTouched) {
-      setApproach(SUGGESTED_APPROACH_BY_KIND[nextKind]);
-    }
-  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -45,7 +33,7 @@ export function CreateWorkspaceScreen({
       return;
     }
     try {
-      const workspace = createWorkspaceAction({ name, kind, approach });
+      const workspace = createWorkspaceAction({ name, kind, approach: SUGGESTED_APPROACH_BY_KIND[kind] });
       onCreated(workspace);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Création impossible.");
@@ -74,24 +62,14 @@ export function CreateWorkspaceScreen({
           <legend style={{ fontWeight: 600, marginBottom: 8 }}>Nature de l'espace</legend>
           <div className="choice-group">
             <label className="choice-option">
-              <input
-                type="radio"
-                name="kind"
-                checked={kind === "run"}
-                onChange={() => handleKindChange("run")}
-              />
+              <input type="radio" name="kind" checked={kind === "run"} onChange={() => setKind("run")} />
               <span className="workspace-icon" data-kind="run" aria-hidden="true">
                 <IconSun width={18} height={18} />
               </span>
               Travail continu (RUN)
             </label>
             <label className="choice-option">
-              <input
-                type="radio"
-                name="kind"
-                checked={kind === "project"}
-                onChange={() => handleKindChange("project")}
-              />
+              <input type="radio" name="kind" checked={kind === "project"} onChange={() => setKind("project")} />
               <span className="workspace-icon" data-kind="project" aria-hidden="true">
                 <IconGrid width={18} height={18} />
               </span>
@@ -99,25 +77,6 @@ export function CreateWorkspaceScreen({
             </label>
           </div>
         </fieldset>
-
-        <div className="field">
-          <label htmlFor="workspace-approach">Approche métier (modifiable)</label>
-          <select
-            id="workspace-approach"
-            value={approach}
-            onChange={(event) => {
-              setApproachTouched(true);
-              setApproach(event.target.value as ProfessionalApproach);
-            }}
-          >
-            {ALL_APPROACHES.map((candidate) => (
-              <option key={candidate} value={candidate}>
-                {APPROACH_LABELS[candidate]}
-              </option>
-            ))}
-          </select>
-          <p className="action-sub">{APPROACH_DESCRIPTIONS[approach]}</p>
-        </div>
 
         {error && (
           <p id="workspace-name-error" role="alert" style={{ color: "var(--color-danger)" }}>
