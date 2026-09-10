@@ -84,7 +84,6 @@ const PHASE_LABEL_OVERRIDES: Record<string, string> = {
   brief: "Brief",
   devis: "Devis",
   maquette: "Maquette",
-  developpement: "Développement",
   recette: "Recette",
   livraison: "Livraison",
 };
