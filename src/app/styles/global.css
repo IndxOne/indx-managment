@@ -1147,6 +1147,8 @@ a {
   text-align: center;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-4);
+  max-width: 360px;
+  margin: 0 auto;
   color: var(--color-text-muted);
 }
 
@@ -1525,6 +1527,18 @@ a {
      toute la largeur disponible, contrairement aux écrans de liste. */
   .app-main--wide {
     max-width: none;
+  }
+
+  /* Écran vide (aucune action/espace) : seul contenu de .app-main, il se
+     retrouvait plaqué en haut à gauche d'un grand vide sur desktop large.
+     Centré uniquement dans ce cas précis (:has cible EmptyState/NoResultsState,
+     qui rendent toujours un .state-block seul) — les écrans avec du contenu
+     réel ne sont pas concernés. */
+  .app-main:has(> .state-block:only-child) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 96px);
   }
 
   .bottom-nav {
