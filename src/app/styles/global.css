@@ -1070,7 +1070,8 @@ a {
   font-size: 0.9375rem;
 }
 
-.segmented-chip[aria-current="true"] {
+.segmented-chip[aria-current="true"],
+.segmented-chip[aria-pressed="true"] {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
   font-weight: 600;
