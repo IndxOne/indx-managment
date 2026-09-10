@@ -74,6 +74,23 @@ export function changeWorkspaceApproach(
   };
 }
 
+/**
+ * Change uniquement `description` (+ `updatedAt`), sans toucher aux actions
+ * ni au preset — mêmes garanties que changeWorkspaceApproach.
+ */
+export function editWorkspaceDescription(workspace: Workspace, description: string, now?: string): Workspace {
+  const trimmed = description.trim();
+  const normalized = trimmed.length > 0 ? trimmed : undefined;
+  if (normalized === workspace.description) {
+    return workspace;
+  }
+  return {
+    ...workspace,
+    description: normalized,
+    updatedAt: now ?? new Date().toISOString(),
+  };
+}
+
 function assertKnownApproach(approach: string): asserts approach is ProfessionalApproach {
   if (!isKnownApproach(approach)) {
     throw new Error(`Approche métier inconnue : ${approach}`);

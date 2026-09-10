@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeWorkspaceApproach, createWorkspace } from "./workspace";
+import { changeWorkspaceApproach, createWorkspace, editWorkspaceDescription } from "./workspace";
 import { isRecommendedApproach } from "../presets/preset-registry";
 
 describe("createWorkspace", () => {
@@ -48,6 +48,32 @@ describe("changeWorkspaceApproach", () => {
   it("est un no-op si l'approche est identique", () => {
     const ws = createWorkspace({ id: "w1", name: "Test", kind: "run", now: "2026-09-08T00:00:00.000Z" });
     const result = changeWorkspaceApproach(ws, ws.approach, "2026-09-09T00:00:00.000Z");
+    expect(result).toBe(ws);
+  });
+});
+
+describe("editWorkspaceDescription", () => {
+  it("ne modifie que description et updatedAt", () => {
+    const ws = createWorkspace({ id: "w1", name: "Test", kind: "project", now: "2026-09-08T00:00:00.000Z" });
+    const updated = editWorkspaceDescription(ws, "Notes du projet", "2026-09-09T00:00:00.000Z");
+    expect(updated.description).toBe("Notes du projet");
+    expect(updated.updatedAt).toBe("2026-09-09T00:00:00.000Z");
+    expect(updated.id).toBe(ws.id);
+    expect(updated.approach).toBe(ws.approach);
+  });
+
+  it("efface la description quand le texte est vide (espaces compris)", () => {
+    const ws = editWorkspaceDescription(
+      createWorkspace({ id: "w1", name: "Test", kind: "project" }),
+      "Notes existantes"
+    );
+    const cleared = editWorkspaceDescription(ws, "   ", "2026-09-09T00:00:00.000Z");
+    expect(cleared.description).toBeUndefined();
+  });
+
+  it("est un no-op si le texte (après trim) est identique", () => {
+    const ws = createWorkspace({ id: "w1", name: "Test", kind: "project", now: "2026-09-08T00:00:00.000Z" });
+    const result = editWorkspaceDescription(ws, "", "2026-09-09T00:00:00.000Z");
     expect(result).toBe(ws);
   });
 });
