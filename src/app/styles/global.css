@@ -1440,6 +1440,13 @@ a {
     flex: 1;
   }
 
+  /* Kanban PROJET : la limite de 960px force un défilement horizontal
+     inutile alors que l'écran a de la place — le tableau doit occuper
+     toute la largeur disponible, contrairement aux écrans de liste. */
+  .app-main--wide {
+    max-width: none;
+  }
+
   .bottom-nav {
     position: sticky;
     top: 0;

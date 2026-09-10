@@ -117,7 +117,7 @@ export function ProjectWorkspaceScreen({
         </div>
       </div>
 
-      <div className="app-main">
+      <div className={isDesktop && mode === "phase" ? "app-main app-main--wide" : "app-main"}>
         {mode === "phase" ? (
           <>
             {phases.length === 0 ? (
