@@ -47,6 +47,8 @@ export default defineConfig({
         // permettre un démarrage hors-ligne du shell, pas à fonctionner
         // sans réseau (l'app n'a pas de mode offline pour ses données).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        // Gestionnaires push/notificationclick (src/app/public/sw-push.js).
+        importScripts: ["sw-push.js"],
         // Captures réservées aux fiches store : inutiles hors ligne.
         globIgnores: ["screenshots/**"],
       },

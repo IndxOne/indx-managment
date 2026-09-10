@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { isSupabaseConfigured } from "../adapters/supabase/client";
+import { useEffect, useState } from "react";
+import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
+import { disablePush, enablePush, isPushEnabled, isPushSupported } from "../push/push-subscription";
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
 import { EmptyState } from "../components/StateBlocks";
 import { MoreSubNav } from "../components/MoreSubNav";
@@ -17,6 +18,29 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
   const [pastedCode, setPastedCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (configured) void isPushEnabled().then(setPushEnabled);
+  }, [configured]);
+
+  async function handleTogglePush() {
+    if (!currentCode) return;
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      const client = getSupabaseClient();
+      if (pushEnabled) await disablePush(client);
+      else await enablePush(client, currentCode);
+      setPushEnabled(!pushEnabled);
+    } catch (cause) {
+      setPushError(cause instanceof Error ? cause.message : "Activation impossible.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function handleCopy() {
     if (!currentCode) return;
@@ -93,6 +117,24 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
             <button type="button" className="btn btn-block tap-target" onClick={handleUseCode}>
               Utiliser ce code
             </button>
+
+            <h2 className="section-title">Notifications de relance</h2>
+            <p className="action-sub">
+              Reçois une notification sur cet appareil quand une relance est due, même app fermée. Sur iPhone,
+              l'app doit d'abord être ajoutée à l'écran d'accueil.
+            </p>
+            {isPushSupported() ? (
+              <button type="button" className="btn btn-block tap-target" disabled={pushBusy} onClick={handleTogglePush}>
+                {pushEnabled ? "Désactiver sur cet appareil" : "Activer sur cet appareil"}
+              </button>
+            ) : (
+              <p className="action-sub">Non pris en charge par ce navigateur.</p>
+            )}
+            {pushError && (
+              <p role="alert" style={{ color: "var(--color-danger)" }}>
+                {pushError}
+              </p>
+            )}
           </>
         )}
       </div>
