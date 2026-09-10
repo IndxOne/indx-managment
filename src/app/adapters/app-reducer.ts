@@ -12,7 +12,7 @@ import { addNote } from "../../domain/add-note";
 import { linkAction, unlinkAction } from "../../domain/link-action";
 import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 import { generateRecurringOccurrences, type GenerationWindow, type RecurrenceRule } from "../../recurrence/recurrence-engine";
-import type { AppState, CarnetNote, NewActionInput, NewRecurrenceRuleInput } from "./store-context";
+import type { AppState, CarnetNote, HubSettings, NewActionInput, NewRecurrenceRuleInput } from "./store-context";
 
 /**
  * Réducteur pur partagé par tous les adaptateurs (mémoire, Supabase, ...).
@@ -42,7 +42,8 @@ export type AppEvent =
   | { type: "recurrence/delete"; workspaceId: string; ruleId: string; today: string }
   | { type: "carnet/create"; note: CarnetNote }
   | { type: "carnet/delete"; noteId: string }
-  | { type: "carnet/convert"; noteId: string; input: NewActionInput; id: string; now: string };
+  | { type: "carnet/convert"; noteId: string; input: NewActionInput; id: string; now: string }
+  | { type: "hub-settings/update"; settings: HubSettings };
 
 export function appReducer(state: AppState, event: AppEvent): AppState {
   switch (event.type) {
@@ -255,6 +256,9 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
       const input = { ...event.input, sourceNoteId: event.noteId };
       const withAction = appReducer(state, { type: "action/create", input, id: event.id, now: event.now });
       return { ...withAction, carnetNotes: withAction.carnetNotes.filter((note) => note.id !== event.noteId) };
+    }
+    case "hub-settings/update": {
+      return { ...state, hubSettings: event.settings };
     }
     case "recurrence/delete": {
       const existingRules = state.recurrenceRulesByWorkspace[event.workspaceId] ?? [];

@@ -109,4 +109,20 @@ describe("HubScreen", () => {
     await user.click(screen.getByRole("button", { name: /Relances actives/ }));
     expect(onNavigate).toHaveBeenCalledWith("reminders");
   });
+
+  it("enregistre les objectifs saisis à la main (déclaratifs, non calculés)", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StoreProvider>
+        <HubScreen onNavigate={() => {}} onOpenSpaces={() => {}} onOpenStatus={() => {}} />
+      </StoreProvider>
+    );
+
+    await user.type(screen.getByLabelText("Objectif mensuel (€)"), "6000");
+    await user.type(screen.getByLabelText("TJM de référence (€)"), "550");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(await screen.findByRole("button", { name: "Enregistré !" })).toBeInTheDocument();
+  });
 });

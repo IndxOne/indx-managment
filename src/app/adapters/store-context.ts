@@ -18,11 +18,24 @@ export interface CarnetNote {
   createdAt: string;
 }
 
+/**
+ * Repères business déclaratifs affichés dans le Hub (objectif mensuel, TJM
+ * de référence, trésorerie prévue) — saisis à la main, jamais calculés :
+ * aucune notion d'action "facturée" n'existe dans le modèle actuel.
+ */
+export interface HubSettings {
+  monthlyObjective: number | null;
+  dailyRate: number | null;
+  treasuryForecast: number | null;
+}
+
 export interface AppState {
   workspaces: Workspace[];
   actionsByWorkspace: Record<string, Action[]>;
   recurrenceRulesByWorkspace: Record<string, RecurrenceRule[]>;
   carnetNotes: CarnetNote[];
+  /** Absent tant que l'utilisateur n'a jamais renseigné ces repères. */
+  hubSettings?: HubSettings;
 }
 
 export const EMPTY_STATE: AppState = {
@@ -82,6 +95,8 @@ export interface StoreContextValue {
   deleteCarnetNote: (noteId: string) => void;
   /** Crée l'action à partir du texte de la note puis retire la note du Carnet (triage). */
   convertCarnetNote: (noteId: string, input: Omit<NewActionInput, "sourceNoteId">) => void;
+  /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */
+  updateHubSettings: (settings: HubSettings) => Promise<void>;
 }
 
 export const StoreContext = createContext<StoreContextValue | null>(null);

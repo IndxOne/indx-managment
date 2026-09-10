@@ -1,15 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import type { ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import type { HubSettings } from "../adapters/store-context";
 import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
 
 /**
- * Vue d'ensemble transversale, tous espaces confondus : uniquement des
- * compteurs dérivés de l'état déjà chargé (pas de nouvelle donnée, pas de
- * liste — Aujourd'hui/Semaine couvrent déjà les listes d'actions).
+ * Vue d'ensemble transversale, tous espaces confondus : des compteurs
+ * dérivés de l'état déjà chargé, plus des repères business déclaratifs
+ * (objectif mensuel, TJM, trésorerie) saisis à la main — jamais calculés,
+ * cf. HubSettings dans store-context.ts.
  */
 export function HubScreen({
   onNavigate,
@@ -20,7 +22,7 @@ export function HubScreen({
   onOpenSpaces: () => void;
   onOpenStatus: (status: ActionStatus) => void;
 }) {
-  const { state } = useStore();
+  const { state, updateHubSettings } = useStore();
 
   const stats = useMemo(() => {
     const byStatus: Record<ActionStatus, number> = { todo: 0, doing: 0, waiting: 0, done: 0 };
@@ -85,6 +87,12 @@ export function HubScreen({
           />
           <StatTile value={stats.activeRecurrenceRules} label="Récurrences actives" color="#8b5cf6" />
         </div>
+
+        <h2 className="section-title">Objectifs</h2>
+        <p className="action-sub" style={{ marginBottom: "var(--space-3)" }}>
+          Repères saisis à la main, non reliés aux actions ci-dessus.
+        </p>
+        <HubObjectivesForm settings={state.hubSettings} onSave={updateHubSettings} />
       </div>
     </div>
   );
@@ -128,5 +136,96 @@ function StatTile({
     <button type="button" className="stat-tile stat-tile-button" onClick={onClick}>
       {content}
     </button>
+  );
+}
+
+function toInputValue(value: number | null): string {
+  return value === null ? "" : String(value);
+}
+
+function toSettingValue(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function HubObjectivesForm({
+  settings,
+  onSave,
+}: {
+  settings: HubSettings | undefined;
+  onSave: (settings: HubSettings) => Promise<void>;
+}) {
+  const [monthlyObjective, setMonthlyObjective] = useState(toInputValue(settings?.monthlyObjective ?? null));
+  const [dailyRate, setDailyRate] = useState(toInputValue(settings?.dailyRate ?? null));
+  const [treasuryForecast, setTreasuryForecast] = useState(toInputValue(settings?.treasuryForecast ?? null));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      await onSave({
+        monthlyObjective: toSettingValue(monthlyObjective),
+        dailyRate: toSettingValue(dailyRate),
+        treasuryForecast: toSettingValue(treasuryForecast),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Enregistrement impossible.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="field">
+        <label htmlFor="hub-monthly-objective">Objectif mensuel (€)</label>
+        <input
+          id="hub-monthly-objective"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          value={monthlyObjective}
+          onChange={(event) => setMonthlyObjective(event.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="hub-daily-rate">TJM de référence (€)</label>
+        <input
+          id="hub-daily-rate"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          value={dailyRate}
+          onChange={(event) => setDailyRate(event.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="hub-treasury-forecast">Trésorerie prévue (€)</label>
+        <input
+          id="hub-treasury-forecast"
+          type="number"
+          inputMode="decimal"
+          value={treasuryForecast}
+          onChange={(event) => setTreasuryForecast(event.target.value)}
+        />
+      </div>
+      {error && (
+        <p role="alert" style={{ color: "var(--color-danger)" }}>
+          {error}
+        </p>
+      )}
+      <button type="submit" className="btn btn-primary btn-block tap-target" disabled={saving}>
+        {saved ? "Enregistré !" : "Enregistrer"}
+      </button>
+    </form>
   );
 }
