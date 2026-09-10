@@ -46,10 +46,14 @@ grant execute on function projets_push_public_key() to anon, authenticated;
 select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'projets_push_cron_secret')
 where not exists (select 1 from vault.secrets where name = 'projets_push_cron_secret');
 
+-- URL du projet dans Vault (jamais en dur : le secret scanning Netlify la refuse dans le repo).
+select vault.create_secret('https://<project-ref>.supabase.co', 'project_url')
+where not exists (select 1 from vault.secrets where name = 'project_url');
+
 -- Toutes les heures : l'Edge Function envoie les relances dues.
 select cron.schedule('projets-push-reminders', '0 * * * *', $$
   select net.http_post(
-    url := 'https://wdxvhceddrtxworblfec.supabase.co/functions/v1/projets-push-reminders',
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url') || '/functions/v1/projets-push-reminders',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'projets_push_cron_secret')
