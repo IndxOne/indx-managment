@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import type { Action } from "../../domain/types";
 import { ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS_DEFAULT } from "../labels";
 import { scheduleSummary } from "../utils/schedule-summary";
+import { shareAction } from "../utils/share-action";
 import { BottomSheet } from "./BottomSheet";
-import { IconArrowRight, IconLink, IconMessage, IconPencil, IconTrash } from "./Icons";
+import { IconArrowRight, IconLink, IconMessage, IconPencil, IconShare, IconTrash } from "./Icons";
 
 /**
  * Remplace la rangée de 5 boutons carrés sur la carte (pattern "panneau
@@ -76,6 +77,12 @@ export function ActionMenuSheet({
           label="Déplacer"
           sub={`${STATUS_LABELS_DEFAULT[action.status]} · ${scheduleSummary(action.schedule)}`}
           onClick={() => run(onMove)}
+        />
+        <MenuRow
+          chipClass="phase-chip-teal"
+          icon={<IconShare width={18} height={18} />}
+          label="Partager"
+          onClick={() => run(() => void shareAction(action))}
         />
         {onDelete && (
           <MenuRow

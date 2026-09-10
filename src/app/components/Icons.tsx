@@ -124,6 +124,16 @@ export function IconMessage(props: IconProps) {
   );
 }
 
+export function IconShare(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 15 V4" />
+      <path d="M8 8 L12 4 L16 8" />
+      <path d="M5 12 v7 a1 1 0 0 0 1 1 h12 a1 1 0 0 0 1 -1 v-7" />
+    </svg>
+  );
+}
+
 export function IconPencil(props: IconProps) {
   return (
     <svg {...base} {...props}>

@@ -4,5 +4,6 @@ dist/
 .netlify/
 *.log
 *.md
+!docs/**.md
 .env
 .env.local
