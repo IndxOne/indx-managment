@@ -2,7 +2,9 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- viewport-fit=cover permet à la PWA installée d'occuper tout l'écran ;
+         les zones non sûres sont compensées avec env(safe-area-inset-*) en CSS. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Gestion d'actions et de projets RUN/PROJET, mobile et desktop." />
     <meta name="theme-color" content="#0062cc" media="(prefers-color-scheme: light)" />
