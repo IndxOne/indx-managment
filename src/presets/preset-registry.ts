@@ -24,6 +24,7 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     visibleFields: ["title", "status", "dueDate"],
     quickFilters: ["thisWeek", "done"],
     suggestedAutomations: [],
+    phaseTemplate: ["a_traiter", "en_cours", "en_attente", "termine"],
   },
   it_ops: {
     id: "it_ops",
@@ -40,7 +41,7 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     visibleFields: ["title", "phase", "deliverable", "milestone", "decision", "risk"],
     quickFilters: ["currentPhase", "milestonesOnly"],
     suggestedAutomations: [],
-    phaseTemplate: ["cadrage", "ateliers", "realisations", "validations", "restitutions", "cloture"],
+    phaseTemplate: ["cadrage", "conception", "realisation", "deploiement"],
   },
   product_tech: {
     id: "product_tech",
@@ -50,6 +51,7 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     quickFilters: ["backlog", "inReview", "technicalDebt"],
     suggestedAutomations: [],
     statusLabels: { todo: "Backlog", doing: "En cours", waiting: "En revue", done: "Livré" },
+    phaseTemplate: ["backlog", "developpement", "revue", "livre"],
   },
   management: {
     id: "management",
@@ -58,6 +60,7 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     visibleFields: ["title", "assignee", "status", "workload", "blocker", "dueDate"],
     quickFilters: ["byAssignee", "blocked"],
     suggestedAutomations: ["overloadWarning"],
+    phaseTemplate: ["objectifs", "planification", "suivi", "bilan"],
   },
 };
 

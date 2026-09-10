@@ -104,11 +104,9 @@ describe("Scénario B — Projet cybersécurité", () => {
     const preset = resolveWorkspacePreset(workspace);
     expect(preset.phaseTemplate).toEqual([
       "cadrage",
-      "ateliers",
-      "realisations",
-      "validations",
-      "restitutions",
-      "cloture",
+      "conception",
+      "realisation",
+      "deploiement",
     ]);
   });
 

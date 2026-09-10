@@ -24,7 +24,14 @@ describe("resolveWorkspacePreset", () => {
   it("résout le préréglage déclaratif correspondant à l'approche", () => {
     const preset = resolveWorkspacePreset(workspace({ approach: "project_amoa" }));
     expect(preset.defaultView).toBe("phase");
-    expect(preset.phaseTemplate).toContain("ateliers");
+    expect(preset.phaseTemplate).toEqual(["cadrage", "conception", "realisation", "deploiement"]);
+  });
+
+  it("propose quatre colonnes métier pour chaque approche utilisable en projet", () => {
+    for (const approach of ["simple", "project_amoa", "product_tech", "management"] as const) {
+      expect(resolveWorkspacePreset(workspace({ approach })).phaseTemplate).toHaveLength(4);
+    }
+    expect(resolveWorkspacePreset(workspace({ approach: "it_ops" })).phaseTemplate).toBeUndefined();
   });
 });
 
