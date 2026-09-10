@@ -21,13 +21,14 @@ function action(overrides: Partial<Action> = {}): Action {
 describe("computeWorkspaceSummary", () => {
   const now = new Date("2026-09-08T09:00:00Z"); // mardi
 
-  it("exclut les actions terminées du compte pertinent", () => {
+  it("exclut les actions terminées du compte pertinent, mais les compte à part", () => {
     const summary = computeWorkspaceSummary(
       [action({ id: "a1", status: "done" }), action({ id: "a2", status: "todo" })],
       "Europe/Paris",
       now
     );
     expect(summary.relevantActionsCount).toBe(1);
+    expect(summary.doneCount).toBe(1);
   });
 
   it("aucune échéance -> nextDueLabel null", () => {

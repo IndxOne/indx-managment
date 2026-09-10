@@ -50,7 +50,7 @@ function renderScreen(state: AppState) {
 describe("SearchScreen", () => {
   it("invite à saisir une recherche tant que le champ est vide", () => {
     renderScreen({ workspaces: [], actionsByWorkspace: {}, recurrenceRulesByWorkspace: {}, carnetNotes: [] });
-    expect(screen.getByText(/Tapez un titre pour retrouver une action/)).toBeInTheDocument();
+    expect(screen.getByText(/Tapez un mot pour retrouver une action/)).toBeInTheDocument();
   });
 
   it("filtre les actions par titre, insensible à la casse, tous espaces confondus", async () => {
@@ -69,6 +69,31 @@ describe("SearchScreen", () => {
     await user.type(screen.getByLabelText("Rechercher une action"), "relan");
     expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
     expect(screen.queryByText("Préparer le comité")).not.toBeInTheDocument();
+  });
+
+  it("trouve aussi par description, tag et texte de note", async () => {
+    const user = userEvent.setup();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: {
+        w1: [
+          action({ id: "a1", title: "Sans rapport", description: "Contient le mot licorne quelque part" }),
+          action({ id: "a2", title: "Sans rapport non plus", tags: ["licorne"] }),
+          action({ id: "a3", title: "Encore un titre neutre", notes: [{ id: "n1", text: "licorne dans la note", createdAt: "2026-09-01T00:00:00.000Z" }] }),
+          action({ id: "a4", title: "Ne doit pas remonter" }),
+        ],
+      },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    renderScreen(state);
+
+    await user.type(screen.getByLabelText("Rechercher une action"), "licorne");
+    expect(screen.getByText("Sans rapport")).toBeInTheDocument();
+    expect(screen.getByText("Sans rapport non plus")).toBeInTheDocument();
+    expect(screen.getByText("Encore un titre neutre")).toBeInTheDocument();
+    expect(screen.queryByText("Ne doit pas remonter")).not.toBeInTheDocument();
   });
 
   it("affiche un état vide quand aucune action ne correspond", async () => {

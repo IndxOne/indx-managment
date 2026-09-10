@@ -1,8 +1,8 @@
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
-import { APPROACH_LABELS, KIND_LABELS } from "../labels";
+import { KIND_LABELS } from "../labels";
+import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { computeWorkspaceSummary } from "../utils/workspace-summary";
-import { IconChevronRight, IconGrid, IconSun } from "./Icons";
 
 export function WorkspaceCard({
   workspace,
@@ -16,28 +16,25 @@ export function WorkspaceCard({
   onSelect: () => void;
 }) {
   const summary = computeWorkspaceSummary(actions, timezone);
-  const Icon = workspace.kind === "run" ? IconSun : IconGrid;
+  const hasPhases = (resolveWorkspacePreset(workspace).phaseTemplate ?? []).length > 0;
+  const viewModeLabel = hasPhases ? "Par étapes" : "Par semaine";
+  const description = workspace.description || (actions.length === 0 ? "Ajoutez votre première action." : null);
 
   return (
     <li>
       <button type="button" className="workspace-card" data-kind={workspace.kind} onClick={onSelect}>
-        <span className="workspace-icon" data-kind={workspace.kind} aria-hidden="true">
-          <Icon width={19} height={19} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span className="card-title" style={{ display: "block" }}>
-            {workspace.name}
+        <div className="workspace-card-header">
+          <span className="card-title">{workspace.name}</span>
+          <span className={`badge badge-${workspace.kind}`}>{KIND_LABELS[workspace.kind]}</span>
+        </div>
+        {description && <p className="workspace-card-desc">{description}</p>}
+        <div className="workspace-card-footer">
+          <span>
+            {actions.length} action{actions.length > 1 ? "s" : ""} · {summary.doneCount} terminée
+            {summary.doneCount > 1 ? "s" : ""}
           </span>
-          <span className="card-meta" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <span>{KIND_LABELS[workspace.kind]}</span>
-            <span>{APPROACH_LABELS[workspace.approach]}</span>
-            <span>
-              {summary.relevantActionsCount} {summary.relevantActionsCount > 1 ? "actions" : "action"}
-            </span>
-            <span>{summary.nextDueLabel ? `Échéance : ${summary.nextDueLabel}` : "Aucune échéance"}</span>
-          </span>
-        </span>
-        <IconChevronRight className="chevron" width={11} height={11} />
+          <span className="workspace-card-viewmode">{viewModeLabel} →</span>
+        </div>
       </button>
     </li>
   );

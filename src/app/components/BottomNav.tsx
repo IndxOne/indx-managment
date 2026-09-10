@@ -1,6 +1,6 @@
 import type { Workspace } from "../../domain/workspace";
 import { useIsDesktop } from "../hooks/useIsDesktop";
-import { IconCalendar, IconGrid, IconMore, IconPlus, IconSun } from "./Icons";
+import { IconCalendar, IconCompass, IconGrid, IconMore, IconPlus, IconSun } from "./Icons";
 
 export type NavTab = "today" | "week" | "spaces" | "more";
 
@@ -18,6 +18,8 @@ export function BottomNav({
   activeWorkspaceId,
   onSelectWorkspace,
   onCreateWorkspace,
+  onOpenRoles = () => {},
+  rolesActive = false,
 }: {
   active: NavTab;
   onChange: (tab: NavTab) => void;
@@ -26,6 +28,11 @@ export function BottomNav({
   activeWorkspaceId?: string;
   onSelectWorkspace: (workspaceId: string) => void;
   onCreateWorkspace: () => void;
+  /** Accès direct à "Approches métier" depuis la sidebar desktop, en plus de
+   * l'entrée existante dans "Plus" — provisoire, le temps de voir si ça
+   * mérite une place permanente hors du sous-menu. */
+  onOpenRoles?: () => void;
+  rolesActive?: boolean;
 }) {
   // Rendu conditionnel (pas seulement masqué en CSS) : sur mobile, la liste
   // des espaces vit déjà dans l'onglet "Espaces" — la dupliquer dans le DOM
@@ -50,6 +57,15 @@ export function BottomNav({
 
       {isDesktop && (
         <div className="sidebar-workspaces">
+          <button
+            type="button"
+            className="sidebar-workspace-item tap-target"
+            aria-current={rolesActive ? "page" : undefined}
+            onClick={onOpenRoles}
+          >
+            <IconCompass width={16} height={16} strokeWidth={1.6} aria-hidden="true" />
+            <span>Approches métier</span>
+          </button>
           <span className="sidebar-workspaces-title">Mes espaces</span>
           <ul className="sidebar-workspace-list">
             {workspaces.map((workspace) => {

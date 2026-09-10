@@ -40,10 +40,6 @@
   --bottom-nav-height: 83px;
   --touch-target: 44px;
   --radius-xl: 16px;
-  --wash-run-from: #fff8ec;
-  --wash-run-border: rgba(255, 149, 0, 0.16);
-  --wash-project-from: #f0edff;
-  --wash-project-border: rgba(99, 91, 255, 0.16);
   --chip-blue-bg: #eaf0ff;
   --chip-blue-text: #0057cc;
   --chip-purple-bg: #f1ebfe;
@@ -62,8 +58,13 @@
   --chip-gray-text: #636366;
 }
 
+/* Thème : "système" (par défaut, aucun attribut) suit prefers-color-scheme ;
+   data-theme="light"/"dark" force un choix explicite (Réglages) qui prime
+   sur l'OS — cf. useThemePreference.ts. Les deux blocs ci-dessous portent
+   exactement les mêmes valeurs : la bascule manuelle ne doit rien changer
+   d'autre que la source de vérité (OS vs choix utilisateur). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-page: #000000;
     --color-bg: #1c1c1e;
     --color-fill: rgba(120, 120, 128, 0.24);
@@ -84,10 +85,6 @@
     --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
     --blur-bg: rgba(28, 28, 30, 0.85);
-    --wash-run-from: #2a2210;
-    --wash-run-border: rgba(255, 159, 10, 0.28);
-    --wash-project-from: #201f3a;
-    --wash-project-border: rgba(124, 118, 255, 0.32);
     --chip-blue-bg: #152744;
     --chip-blue-text: #6fb2ff;
     --chip-purple-bg: #2c2049;
@@ -105,6 +102,53 @@
     --chip-gray-bg: rgba(120, 120, 128, 0.24);
     --chip-gray-text: #aeaeb2;
   }
+}
+
+:root[data-theme="light"] {
+  /* Sans ça, les contrôles natifs (scrollbars, champs, cases à cocher)
+     restent thématisés par l'OS même en clair forcé sur système sombre
+     (finding Codex PR #29) — color-scheme:light dark à :root laisse le
+     navigateur choisir librement. */
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-page: #000000;
+  --color-bg: #1c1c1e;
+  --color-fill: rgba(120, 120, 128, 0.24);
+  --color-border: rgba(84, 84, 88, 0.6);
+  --color-text: #ffffff;
+  --color-text-muted: #8e8e93;
+  --color-text-tertiary: #48484a;
+  --color-accent: #0068d1;
+  --color-accent-soft: #152744;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #ff453a;
+  --color-warning: #ff9f0a;
+  --color-success: #30d158;
+  --color-success-soft: #0f2417;
+  --color-warning-soft: #2a2210;
+  --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.5);
+  --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
+  --blur-bg: rgba(28, 28, 30, 0.85);
+  --chip-blue-bg: #152744;
+  --chip-blue-text: #6fb2ff;
+  --chip-purple-bg: #2c2049;
+  --chip-purple-text: #c4a6ff;
+  --chip-orange-bg: #33230d;
+  --chip-orange-text: #ffb454;
+  --chip-green-bg: #0f2417;
+  --chip-green-text: #5fd889;
+  --chip-red-bg: #34140f;
+  --chip-red-text: #ff7a6e;
+  --chip-teal-bg: #0e2c29;
+  --chip-teal-text: #4fd6c9;
+  --chip-pink-bg: #331526;
+  --chip-pink-text: #ff8ac0;
+  --chip-gray-bg: rgba(120, 120, 128, 0.24);
+  --chip-gray-text: #aeaeb2;
 }
 
 * {
@@ -171,14 +215,18 @@ a {
   animation: route-fade-in 220ms ease-out;
 }
 
+/* Pas de transform ici : un transform sur cet ancêtre (même bref, le temps
+   de l'animation) recrée un référentiel de positionnement pour les
+   descendants position:fixed — un sheet ouvert pendant qu'une route vient
+   de monter (ex. "Nouvel espace", route à part entière) se retrouvait
+   positionné par rapport à cette boîte au lieu du viewport, d'où l'effet
+   de glissement depuis le haut au lieu d'apparaître centré. */
 @keyframes route-fade-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -526,12 +574,19 @@ a {
 }
 
 @media (prefers-color-scheme: dark) {
-  .badge-run {
+  :root:not([data-theme="light"]) .badge-run {
     color: #30d158;
   }
-  .badge-project {
+  :root:not([data-theme="light"]) .badge-project {
     color: #0a84ff;
   }
+}
+
+:root[data-theme="dark"] .badge-run {
+  color: #30d158;
+}
+:root[data-theme="dark"] .badge-project {
+  color: #0a84ff;
 }
 
 .list {
@@ -541,24 +596,76 @@ a {
 }
 
 .workspace-card-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .workspace-card-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.approach-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .approach-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .workspace-card {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
   width: 100%;
+  height: 100%;
   padding: var(--space-4);
-  min-height: 68px;
-  border: 1px solid transparent;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid transparent;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
   text-align: left;
   cursor: pointer;
   transition: box-shadow 100ms ease;
+}
+
+.workspace-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.workspace-card-desc {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  flex: 1;
+}
+
+.workspace-card-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+.workspace-card-viewmode {
+  color: var(--color-accent);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .workspace-card:active {
@@ -572,13 +679,11 @@ a {
 }
 
 .workspace-card[data-kind="run"] {
-  background: linear-gradient(180deg, var(--wash-run-from) 0%, var(--color-bg) 60%);
-  border-color: var(--wash-run-border);
+  border-left-color: var(--color-warning);
 }
 
 .workspace-card[data-kind="project"] {
-  background: linear-gradient(180deg, var(--wash-project-from) 0%, var(--color-bg) 60%);
-  border-color: var(--wash-project-border);
+  border-left-color: #6355ff;
 }
 
 .workspace-icon {
@@ -978,6 +1083,18 @@ a {
   color: var(--color-accent);
   font-size: 0.875rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.sidebar-workspace-create:active {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-workspace-create {
+    transition: none;
+  }
 }
 
 .top-bar {
@@ -1084,6 +1201,8 @@ a {
   text-align: center;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-4);
+  max-width: 360px;
+  margin: 0 auto;
   color: var(--color-text-muted);
 }
 
@@ -1094,7 +1213,9 @@ a {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.32);
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 40;
 }
 
@@ -1137,6 +1258,98 @@ a {
   border-radius: 999px;
   background: var(--color-text-tertiary);
   margin: 0 auto var(--space-4);
+}
+
+/* À partir de la largeur tablette, assez de place autour pour un vrai
+   dialogue centré plutôt qu'une feuille bord à bord tirée sur toute la
+   largeur de l'écran. */
+@media (min-width: 640px) {
+  .sheet {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    width: 100%;
+    max-width: 480px;
+    transform: translate(-50%, -50%);
+    animation: sheet-in-desktop 180ms ease-out;
+  }
+
+  .sheet-handle {
+    display: none;
+  }
+}
+
+@keyframes sheet-in-desktop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (min-width: 640px) and (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+
+/* Champs d'un formulaire en sheet (ajout d'action, création d'espace...) :
+   petit fondu en cascade au lieu d'un bloc figé, cohérent quelle que soit
+   la profondeur DOM (nth-child compte parmi les frères directs). */
+.sheet .field {
+  animation: field-fade-in 200ms ease-out backwards;
+}
+
+@keyframes field-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet .field:nth-child(1) {
+  animation-delay: 30ms;
+}
+.sheet .field:nth-child(2) {
+  animation-delay: 60ms;
+}
+.sheet .field:nth-child(3) {
+  animation-delay: 90ms;
+}
+.sheet .field:nth-child(4) {
+  animation-delay: 120ms;
+}
+.sheet .field:nth-child(5) {
+  animation-delay: 150ms;
+}
+.sheet .field:nth-child(6) {
+  animation-delay: 180ms;
+}
+.sheet .field:nth-child(7) {
+  animation-delay: 210ms;
+}
+.sheet .field:nth-child(8) {
+  animation-delay: 240ms;
+}
+.sheet .field:nth-child(9) {
+  animation-delay: 270ms;
+}
+.sheet .field:nth-child(10) {
+  animation-delay: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet .field {
+    animation: none;
+  }
 }
 
 .action-sub {
@@ -1451,17 +1664,23 @@ a {
     overflow-y: auto;
   }
 
+  /* Pas de plafond de largeur : le contenu doit occuper naturellement
+     l'espace entre la sidebar et le bord de l'écran (plafonner à 960px
+     laissait un vide systématique sur les écrans larges, corrigé au
+     coup par coup avant de le retirer complètement ici). */
   .app-main {
-    max-width: 960px;
+    max-width: none;
     margin: 0;
     flex: 1;
   }
 
-  /* Kanban PROJET : la limite de 960px force un défilement horizontal
-     inutile alors que l'écran a de la place — le tableau doit occuper
-     toute la largeur disponible, contrairement aux écrans de liste. */
-  .app-main--wide {
-    max-width: none;
+  /* Écran vide (aucune action/espace) : seul contenu de .app-main, il se
+     retrouvait plaqué en haut à gauche d'un grand vide sur desktop large. */
+  .app-main:has(> .state-block:only-child) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 96px);
   }
 
   .bottom-nav {

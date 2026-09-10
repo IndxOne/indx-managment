@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { IconTray } from "./Icons";
 
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="state-block" role="status">
+      <IconTray width={40} height={40} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-text-tertiary)" }} />
       <p style={{ fontWeight: 600, color: "var(--color-text)" }}>{title}</p>
       {description && <p>{description}</p>}
       {action}

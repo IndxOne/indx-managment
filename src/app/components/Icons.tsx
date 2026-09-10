@@ -282,3 +282,21 @@ export function IconLayers(props: IconProps) {
     </svg>
   );
 }
+
+export function IconTray(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 13 L7.5 13 a1 1 0 0 1 0.9 0.55 L9.6 16.5 a1 1 0 0 0 0.9 0.55 h3 a1 1 0 0 0 0.9 -0.55 l1.2 -2.4 a1 1 0 0 1 0.9 -0.55 L20 13" />
+      <path d="M6 6 h12 l2 7 v6 a1 1 0 0 1 -1 1 H5 a1 1 0 0 1 -1 -1 v-6 Z" />
+    </svg>
+  );
+}
+
+export function IconCompass(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M14.8 9.2 12.9 13.4 8.7 15.3 10.6 11.1Z" />
+    </svg>
+  );
+}

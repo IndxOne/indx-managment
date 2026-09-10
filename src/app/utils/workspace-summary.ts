@@ -3,6 +3,7 @@ import type { Action } from "../../domain/types";
 
 export interface WorkspaceSummary {
   relevantActionsCount: number;
+  doneCount: number;
   nextDueLabel: string | null;
 }
 
@@ -20,6 +21,7 @@ export function computeWorkspaceSummary(actions: Action[], timezone: string, now
 
   const next = scheduledDays[0];
   const nextDueLabel = next ? formatRelativeLabel(next.derived.relativeLabel) || next.derived.dayKey : null;
+  const doneCount = actions.length - relevant.length;
 
-  return { relevantActionsCount: relevant.length, nextDueLabel };
+  return { relevantActionsCount: relevant.length, doneCount, nextDueLabel };
 }

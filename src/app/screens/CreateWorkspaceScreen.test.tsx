@@ -35,13 +35,15 @@ describe("CreateWorkspaceScreen", () => {
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ name: "Suivi quotidien", kind: "run" }));
   });
 
-  it("changer la nature de l'espace adapte l'approche métier suggérée", async () => {
+  it("changer la nature de l'espace adapte l'approche métier suggérée (déduite, non demandée)", async () => {
     const user = userEvent.setup();
-    renderScreen();
+    const { onCreated } = renderScreen();
 
-    expect(screen.getByLabelText("Approche métier (modifiable)")).toHaveValue("it_ops");
+    await user.type(screen.getByLabelText("Nom de l'espace"), "Site vitrine");
     await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
-    expect(screen.getByLabelText("Approche métier (modifiable)")).toHaveValue("project_amoa");
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+
+    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ kind: "project", approach: "project_amoa" }));
   });
 
   it("Annuler déclenche onCancel", async () => {

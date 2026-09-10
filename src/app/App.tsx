@@ -10,6 +10,7 @@ import { LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
+import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
@@ -32,6 +33,7 @@ type Route =
   | { screen: "reminders" }
   | { screen: "carnet" }
   | { screen: "hub" }
+  | { screen: "roles" }
   | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "search" }
   | { screen: "app-settings" };
@@ -46,6 +48,7 @@ function routeToTab(route: Route): NavTab {
     case "reminders":
     case "carnet":
     case "hub":
+    case "roles":
     case "actions-by-status":
     case "search":
     case "app-settings":
@@ -117,6 +120,8 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
+        onOpenRoles={() => setRoute({ screen: "roles" })}
+        rolesActive={route.screen === "roles"}
       />
       <main className="app-content">
         <div key={routeKey} className="route-transition">
@@ -203,6 +208,10 @@ function AppShell() {
             onOpenSpaces={() => setRoute({ screen: "spaces-list" })}
             onOpenStatus={(status) => setRoute({ screen: "actions-by-status", status })}
           />
+        )}
+
+        {route.screen === "roles" && (
+          <ApproachesScreen onNavigate={(destination) => setRoute({ screen: destination })} />
         )}
 
         {route.screen === "actions-by-status" && (
