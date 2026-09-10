@@ -5,7 +5,8 @@ export type ProfessionalApproach =
   | "it_ops"
   | "project_amoa"
   | "product_tech"
-  | "management";
+  | "management"
+  | "client_web";
 
 export type CollaborationMode = "solo" | "team";
 

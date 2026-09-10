@@ -59,6 +59,15 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     quickFilters: ["byAssignee", "blocked"],
     suggestedAutomations: ["overloadWarning"],
   },
+  client_web: {
+    id: "client_web",
+    allowedKinds: ["project"],
+    defaultView: "phase",
+    visibleFields: ["title", "phase", "deliverable", "milestone", "decision"],
+    quickFilters: ["currentPhase", "milestonesOnly"],
+    suggestedAutomations: [],
+    phaseTemplate: ["brief", "devis", "maquette", "developpement", "recette", "livraison"],
+  },
 };
 
 export function isKnownApproach(approach: string): approach is ProfessionalApproach {

@@ -24,6 +24,7 @@ export function CreateWorkspaceScreen({
   const { createWorkspaceAction } = useStore();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<WorkspaceKind>("run");
+  const [projectApproach, setProjectApproach] = useState<ProfessionalApproach>("project_amoa");
   const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(event: FormEvent) {
@@ -32,8 +33,9 @@ export function CreateWorkspaceScreen({
       setError("Le nom de l'espace est requis.");
       return;
     }
+    const approach = kind === "project" ? projectApproach : SUGGESTED_APPROACH_BY_KIND[kind];
     try {
-      const workspace = createWorkspaceAction({ name, kind, approach: SUGGESTED_APPROACH_BY_KIND[kind] });
+      const workspace = createWorkspaceAction({ name, kind, approach });
       onCreated(workspace);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Création impossible.");
@@ -77,6 +79,32 @@ export function CreateWorkspaceScreen({
             </label>
           </div>
         </fieldset>
+
+        {kind === "project" && (
+          <fieldset className="field" style={{ border: "none", padding: 0 }}>
+            <legend style={{ fontWeight: 600, marginBottom: 8 }}>Type de projet</legend>
+            <div className="choice-group">
+              <label className="choice-option">
+                <input
+                  type="radio"
+                  name="project-approach"
+                  checked={projectApproach === "project_amoa"}
+                  onChange={() => setProjectApproach("project_amoa")}
+                />
+                AMOA classique
+              </label>
+              <label className="choice-option">
+                <input
+                  type="radio"
+                  name="project-approach"
+                  checked={projectApproach === "client_web"}
+                  onChange={() => setProjectApproach("client_web")}
+                />
+                Site web / E-commerce (brief client)
+              </label>
+            </div>
+          </fieldset>
+        )}
 
         {error && (
           <p id="workspace-name-error" role="alert" style={{ color: "var(--color-danger)" }}>
