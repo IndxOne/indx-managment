@@ -215,14 +215,18 @@ a {
   animation: route-fade-in 220ms ease-out;
 }
 
+/* Pas de transform ici : un transform sur cet ancêtre (même bref, le temps
+   de l'animation) recrée un référentiel de positionnement pour les
+   descendants position:fixed — un sheet ouvert pendant qu'une route vient
+   de monter (ex. "Nouvel espace", route à part entière) se retrouvait
+   positionné par rapport à cette boîte au lieu du viewport, d'où l'effet
+   de glissement depuis le haut au lieu d'apparaître centré. */
 @keyframes route-fade-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
