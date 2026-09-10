@@ -58,7 +58,10 @@ export function ProjectWorkspaceScreen({
   }, [workspace.id, allActions.length]);
 
   const isDesktop = useIsDesktop();
-  const [mode, setMode] = useState<ProjectMode>("phase");
+  // Les approches sans phaseTemplate (ex. "management") n'ont aucune phase à
+  // afficher : partir en vue "phase" par défaut serait un cul-de-sac sans
+  // aucun moyen d'ajouter une action (cf. bug remonté au changement d'approche).
+  const [mode, setMode] = useState<ProjectMode>(phases.length > 0 ? "phase" : "week");
   const [currentPhase, setCurrentPhase] = useState<string | undefined>(phases[0]);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
@@ -100,6 +103,15 @@ export function ProjectWorkspaceScreen({
     });
   }, [allActions, mode, timezone]);
 
+  // Une action sans échéance (ajout rapide sans détail, ou approche sans
+  // phase où rien ne planifie automatiquement) doit rester quelque part
+  // sous les yeux — sinon elle disparaît de la vue Semaine sans qu'aucune
+  // autre liste ne la montre (finding Codex PR #28).
+  const unscheduledActions = useMemo(() => {
+    if (mode !== "week") return [];
+    return allActions.filter((action) => deriveScheduleKeys(action.schedule, timezone).relativeLabel === "unscheduled");
+  }, [allActions, mode, timezone]);
+
   return (
     <div>
       <div className="top-bar">
@@ -108,9 +120,11 @@ export function ProjectWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>PROJET</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
-            {mode === "phase" ? "Vue semaine" : "Vue phases"}
-          </button>
+          {phases.length > 0 && (
+            <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
+              {mode === "phase" ? "Vue semaine" : "Vue phases"}
+            </button>
+          )}
           <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
             <IconSettings width={17} height={17} />
           </button>
@@ -120,12 +134,7 @@ export function ProjectWorkspaceScreen({
       <div className={isDesktop && mode === "phase" ? "app-main app-main--wide" : "app-main"}>
         {mode === "phase" ? (
           <>
-            {phases.length === 0 ? (
-              <EmptyState
-                title="Aucune phase configurée"
-                description="Cet espace PROJET fonctionne sans découpage en phases pour l'instant."
-              />
-            ) : isDesktop ? (
+            {isDesktop ? (
               <KanbanBoard
                 phases={phases}
                 actionsByPhase={actionsByPhase}
@@ -246,28 +255,60 @@ export function ProjectWorkspaceScreen({
               </>
             )}
           </>
-        ) : weekActions.length === 0 ? (
-          <section aria-labelledby="section-week">
-            <h2 id="section-week" className="section-title">
-              Cette semaine
-            </h2>
-            <EmptyState title="Rien cette semaine" description="Aucune action planifiée dans les 7 prochains jours." />
-          </section>
         ) : (
-          <ActionListSection
-            id="section-week"
-            title="Cette semaine"
-            actions={weekActions}
-            timezone={timezone}
-            statusLabels={statusLabels}
-            onMove={setMovingAction}
-            onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-            onEdit={setEditingAction}
-            onDelete={(action) => remove(workspace.id, action)}
-            onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-            onOpenNotes={(action) => setNotesActionId(action.id)}
-            onOpenLink={(action) => setLinkingActionId(action.id)}
-          />
+          <>
+            <QuickAddBar
+              // Sans phase, l'action ajoutée ici resterait invisible en vue
+              // Phases (filtrée par phase) quelle que soit l'onglet choisi —
+              // on la rattache donc à la première phase quand il y en a une.
+              onQuickAdd={(title) =>
+                createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId: phases[0] })
+              }
+              onOpenFullForm={(draftTitle) => {
+                setAddSheetDraftTitle(draftTitle);
+                setAddSheetOpen(true);
+              }}
+            />
+            {weekActions.length === 0 && unscheduledActions.length === 0 ? (
+              <section aria-labelledby="section-week">
+                <h2 id="section-week" className="section-title">
+                  Cette semaine
+                </h2>
+                <EmptyState title="Rien cette semaine" description="Aucune action planifiée dans les 7 prochains jours." />
+              </section>
+            ) : (
+              <>
+                <ActionListSection
+                  id="section-week"
+                  title="Cette semaine"
+                  actions={weekActions}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+                  onEdit={setEditingAction}
+                  onDelete={(action) => remove(workspace.id, action)}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                  onOpenNotes={(action) => setNotesActionId(action.id)}
+                  onOpenLink={(action) => setLinkingActionId(action.id)}
+                />
+                <ActionListSection
+                  id="section-unscheduled"
+                  title="Sans échéance"
+                  actions={unscheduledActions}
+                  timezone={timezone}
+                  statusLabels={statusLabels}
+                  onMove={setMovingAction}
+                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+                  onEdit={setEditingAction}
+                  onDelete={(action) => remove(workspace.id, action)}
+                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+                  onOpenNotes={(action) => setNotesActionId(action.id)}
+                  onOpenLink={(action) => setLinkingActionId(action.id)}
+                />
+              </>
+            )}
+          </>
         )}
       </div>
 

@@ -47,15 +47,17 @@ export function MoveActionSheet({
               <span className="move-axis-sub">{scheduleSummary(action.schedule)}</span>
             </span>
           </button>
-          <button type="button" className="move-axis-row" onClick={() => setAxis("phase")}>
-            <span className="move-axis-icon" aria-hidden="true">
-              <IconLayers width={18} height={18} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="move-axis-label">Phase</span>
-              <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
-            </span>
-          </button>
+          {phaseOptions.length > 0 && (
+            <button type="button" className="move-axis-row" onClick={() => setAxis("phase")}>
+              <span className="move-axis-icon" aria-hidden="true">
+                <IconLayers width={18} height={18} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="move-axis-label">Phase</span>
+                <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
+              </span>
+            </button>
+          )}
           <button type="button" className="move-axis-row" onClick={() => setAxis("status")}>
             <span className="move-axis-icon" aria-hidden="true">
               <StatusCheckIcon status={action.status} size={18} />

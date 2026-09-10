@@ -149,6 +149,21 @@ describe("MoveActionSheet — axe Statut", () => {
 });
 
 describe("MoveActionSheet — axe Phase", () => {
+  it("n'affiche pas l'axe Phase quand l'approche n'a aucune phase (cul-de-sac sinon)", () => {
+    render(
+      <MoveActionSheet
+        action={makeAction()}
+        phaseOptions={[]}
+        statusLabels={STATUS_LABELS}
+        timezone="Europe/Paris"
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /^Phase/ })).not.toBeInTheDocument();
+  });
+
   it("confirme la phase choisie", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
