@@ -112,7 +112,16 @@
   }
 }
 
+:root[data-theme="light"] {
+  /* Sans ça, les contrôles natifs (scrollbars, champs, cases à cocher)
+     restent thématisés par l'OS même en clair forcé sur système sombre
+     (finding Codex PR #29) — color-scheme:light dark à :root laisse le
+     navigateur choisir librement. */
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --color-page: #000000;
   --color-bg: #1c1c1e;
   --color-fill: rgba(120, 120, 128, 0.24);

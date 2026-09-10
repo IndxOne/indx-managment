@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyThemePreference, getStoredThemePreference, setThemePreference } from "./theme";
 
 afterEach(() => {
   localStorage.clear();
   delete document.documentElement.dataset.theme;
+  vi.restoreAllMocks();
 });
 
 describe("theme preference", () => {
@@ -27,5 +28,18 @@ describe("theme preference", () => {
     applyThemePreference("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(getStoredThemePreference()).toBe("system");
+  });
+
+  it("localStorage indisponible : repli en mémoire au lieu de 'system' (finding Codex)", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    setThemePreference("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("SecurityError");
+    });
+    expect(getStoredThemePreference()).toBe("dark");
   });
 });
