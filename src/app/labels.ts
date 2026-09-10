@@ -6,6 +6,7 @@ export const APPROACH_LABELS: Record<ProfessionalApproach, string> = {
   project_amoa: "Projet / AMOA",
   product_tech: "Produit / Tech",
   management: "Management",
+  client_web: "Site web / E-commerce (client)",
 };
 
 export const APPROACH_DESCRIPTIONS: Record<ProfessionalApproach, string> = {
@@ -14,6 +15,7 @@ export const APPROACH_DESCRIPTIONS: Record<ProfessionalApproach, string> = {
   project_amoa: "Livrable, jalon, décision, risque - CDP, AMOA, PMO.",
   product_tech: "Backlog, revue, dette, incident - dev et tech lead.",
   management: "Charge, blocage, échéance - pilotage d'équipe.",
+  client_web: "Brief, devis, maquette, dev, recette, livraison - projet client web/e-commerce.",
 };
 
 export const KIND_LABELS: Record<WorkspaceKind, string> = {
@@ -79,6 +81,12 @@ const PHASE_LABEL_OVERRIDES: Record<string, string> = {
   suivi: "Suivi",
   bilan: "Bilan",
   cloture: "Clôture",
+  brief: "Brief",
+  devis: "Devis",
+  maquette: "Maquette",
+  developpement: "Développement",
+  recette: "Recette",
+  livraison: "Livraison",
 };
 
 export function phaseLabel(phase: string): string {

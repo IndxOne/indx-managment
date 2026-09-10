@@ -46,6 +46,18 @@ describe("CreateWorkspaceScreen", () => {
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ kind: "project", approach: "project_amoa" }));
   });
 
+  it("choisir le template \"Site web / E-commerce\" crée un espace PROJET avec l'approche client_web", async () => {
+    const user = userEvent.setup();
+    const { onCreated } = renderScreen();
+
+    await user.type(screen.getByLabelText("Nom de l'espace"), "Boutique cliente");
+    await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
+    await user.click(screen.getByLabelText("Site web / E-commerce (brief client)"));
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+
+    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ kind: "project", approach: "client_web" }));
+  });
+
   it("Annuler déclenche onCancel", async () => {
     const user = userEvent.setup();
     const { onCancel } = renderScreen();
