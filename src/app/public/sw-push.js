@@ -2,7 +2,16 @@
 // Importé dans le service worker généré par Workbox (vite.config.ts,
 // workbox.importScripts) : réception des push de relance et clic.
 self.addEventListener("push", (event) => {
-  const data = event.data?.json() ?? {};
+  // Chrome exige un showNotification() par push reçu (sinon il compte une
+  // violation "silencieuse" et finit par rejeter les futurs subscribe()
+  // avec "Registration failed - push service error") : on l'appelle donc
+  // même si le payload n'est pas du JSON exploitable.
+  let data = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    data = { body: event.data?.text() };
+  }
   event.waitUntil(
     self.registration.showNotification(data.title ?? "INDXONE Projets", {
       body: data.body,
