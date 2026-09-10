@@ -158,6 +158,10 @@ a {
   padding-bottom: var(--bottom-nav-height);
 }
 
+.app-content {
+  flex: 1;
+}
+
 .app-main {
   flex: 1;
   padding: var(--space-4) var(--space-4) var(--space-5);
@@ -1434,6 +1438,16 @@ a {
   .app-shell {
     flex-direction: row;
     padding-bottom: 0;
+    /* Coquille figée à la hauteur de l'écran : la sidebar reste fixe, seul
+       .app-content défile (comme columns.app), au lieu de faire défiler
+       toute la page avec une sidebar qui décroche. */
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app-content {
+    height: 100%;
+    overflow-y: auto;
   }
 
   .app-main {
@@ -1450,13 +1464,12 @@ a {
   }
 
   .bottom-nav {
-    position: sticky;
-    top: 0;
-    left: auto;
-    right: auto;
-    height: 100vh;
+    position: static;
+    height: 100%;
     width: 220px;
+    flex: none;
     flex-direction: column;
+    overflow-y: auto;
     padding-bottom: 0;
     border-top: none;
     border-right: 0.5px solid var(--color-border);

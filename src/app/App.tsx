@@ -118,7 +118,7 @@ function AppShell() {
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
       />
-      <main style={{ flex: 1 }}>
+      <main className="app-content">
         <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
           <AggregatedActionsScreen
