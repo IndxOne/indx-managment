@@ -17,7 +17,7 @@ export function WorkspaceListScreen({
 
   return (
     <div>
-      <div className="top-bar">
+      <div className="top-bar" style={{ paddingTop: "var(--space-5)" }}>
         <div>
           <h1>Mes projets</h1>
           <p className="action-sub" style={{ marginTop: 2 }}>
