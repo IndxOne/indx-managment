@@ -177,7 +177,7 @@ function StatusDestinationStep({
             />
           </div>
         )}
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <div className="sheet-actions sheet-actions-inline">
           <button type="button" className="btn tap-target" style={{ flex: 1 }} onClick={() => setPendingWaiting(false)}>
             Retour
           </button>
@@ -262,7 +262,7 @@ function ScheduleDestinationStep({
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+      <div className="sheet-actions sheet-actions-inline">
         <button type="button" className="btn tap-target" onClick={onBack} style={{ flex: 1 }}>
           Retour
         </button>
@@ -280,10 +280,10 @@ function ScheduleDestinationStep({
         >
           Confirmer
         </button>
+        <button type="button" className="btn btn-block tap-target sheet-actions-wide" onClick={onCancel}>
+          Annuler
+        </button>
       </div>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onCancel}>
-        Annuler
-      </button>
     </BottomSheet>
   );
 }
