@@ -291,3 +291,12 @@ export function IconTray(props: IconProps) {
     </svg>
   );
 }
+
+export function IconCompass(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M14.8 9.2 12.9 13.4 8.7 15.3 10.6 11.1Z" />
+    </svg>
+  );
+}
