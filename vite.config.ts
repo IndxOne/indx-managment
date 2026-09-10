@@ -21,14 +21,23 @@ export default defineConfig({
         short_name: "Projets",
         description: "Gestion d'actions et de projets RUN/PROJET, mobile et desktop.",
         lang: "fr",
+        // id/scope/categories/screenshots : exigés ou notés par PWABuilder
+        // pour l'empaquetage Play Store / App Store (cf. docs/stores.md).
+        id: "/",
+        scope: "/",
         start_url: "/",
         display: "standalone",
+        categories: ["productivity", "business"],
         background_color: "#f2f2f7",
         theme_color: "#007aff",
         icons: [
           { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
           { src: "icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+        screenshots: [
+          { src: "screenshots/mobile-projet.png", sizes: "810x1440", type: "image/png", form_factor: "narrow", label: "Espace PROJET : décisions, risques, actions par phase" },
+          { src: "screenshots/desktop-kanban.png", sizes: "1920x1080", type: "image/png", form_factor: "wide", label: "Kanban desktop par phase avec barre latérale des espaces" },
         ],
       },
       workbox: {
@@ -38,6 +47,8 @@ export default defineConfig({
         // permettre un démarrage hors-ligne du shell, pas à fonctionner
         // sans réseau (l'app n'a pas de mode offline pour ses données).
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        // Captures réservées aux fiches store : inutiles hors ligne.
+        globIgnores: ["screenshots/**"],
       },
     }),
   ],
