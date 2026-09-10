@@ -1297,6 +1297,25 @@ a {
   overflow-x: auto;
   padding-bottom: var(--space-4);
   align-items: flex-start;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.kanban-board::-webkit-scrollbar {
+  height: 6px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
 }
 
 .kanban-column {
