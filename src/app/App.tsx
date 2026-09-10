@@ -120,6 +120,8 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
+        onOpenReminders={() => setRoute({ screen: "reminders" })}
+        remindersActive={route.screen === "reminders"}
         onOpenRoles={() => setRoute({ screen: "roles" })}
         rolesActive={route.screen === "roles"}
       />

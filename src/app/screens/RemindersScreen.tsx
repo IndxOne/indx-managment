@@ -85,6 +85,9 @@ export function RemindersScreen({
       </div>
       <MoreSubNav active="reminders" onNavigate={onNavigate} />
       <div className="app-main">
+        <p className="action-sub" style={{ marginBottom: "var(--space-4)" }}>
+          Les actions en attente avec une relance activée, tous espaces confondus.
+        </p>
         {entries.length === 0 ? (
           <EmptyState title="Aucune relance active" description="Les actions en attente avec une relance activée apparaîtront ici." />
         ) : (

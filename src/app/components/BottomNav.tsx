@@ -1,6 +1,6 @@
 import type { Workspace } from "../../domain/workspace";
 import { useIsDesktop } from "../hooks/useIsDesktop";
-import { IconCalendar, IconCompass, IconGrid, IconMore, IconPlus, IconSun } from "./Icons";
+import { IconBell, IconCalendar, IconCompass, IconGrid, IconMore, IconPlus, IconSun } from "./Icons";
 
 export type NavTab = "today" | "week" | "spaces" | "more";
 
@@ -18,6 +18,8 @@ export function BottomNav({
   activeWorkspaceId,
   onSelectWorkspace,
   onCreateWorkspace,
+  onOpenReminders = () => {},
+  remindersActive = false,
   onOpenRoles = () => {},
   rolesActive = false,
 }: {
@@ -28,9 +30,12 @@ export function BottomNav({
   activeWorkspaceId?: string;
   onSelectWorkspace: (workspaceId: string) => void;
   onCreateWorkspace: () => void;
-  /** Accès direct à "Approches métier" depuis la sidebar desktop, en plus de
-   * l'entrée existante dans "Plus" — provisoire, le temps de voir si ça
-   * mérite une place permanente hors du sous-menu. */
+  /** Accès direct à "Rappels" et "Approches métier" depuis la sidebar
+   * desktop, en plus des entrées existantes dans "Plus" — l'ordre y est
+   * imposé (Espaces, Aujourd'hui, Semaine, Rappels, Approches métier, Plus)
+   * façon prototype de référence, donc rendu à part plutôt que via TABS. */
+  onOpenReminders?: () => void;
+  remindersActive?: boolean;
   onOpenRoles?: () => void;
   rolesActive?: boolean;
 }) {
@@ -40,32 +45,72 @@ export function BottomNav({
   // tests). Même seuil que le passage sidebar en CSS (cf. useIsDesktop).
   const isDesktop = useIsDesktop();
 
+  const tabsById = Object.fromEntries(TABS.map((tab) => [tab.id, tab])) as Record<NavTab, (typeof TABS)[number]>;
+
   return (
     <nav className="bottom-nav" aria-label="Navigation principale">
-      {TABS.map(({ id, label, Icon }) => (
-        <button
-          key={id}
-          type="button"
-          className="bottom-nav-item tap-target"
-          aria-current={active === id ? "page" : undefined}
-          onClick={() => onChange(id)}
-        >
-          <Icon width={24} height={24} strokeWidth={1.6} />
-          <span>{label}</span>
-        </button>
-      ))}
-
-      {isDesktop && (
-        <div className="sidebar-workspaces">
+      {isDesktop ? (
+        <>
+          {(["spaces", "today", "week"] as const).map((id) => {
+            const { label, Icon } = tabsById[id];
+            return (
+              <button
+                key={id}
+                type="button"
+                className="bottom-nav-item tap-target"
+                aria-current={active === id ? "page" : undefined}
+                onClick={() => onChange(id)}
+              >
+                <Icon width={24} height={24} strokeWidth={1.6} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
           <button
             type="button"
-            className="sidebar-workspace-item tap-target"
+            className="bottom-nav-item tap-target"
+            aria-current={remindersActive ? "page" : undefined}
+            onClick={onOpenReminders}
+          >
+            <IconBell width={24} height={24} strokeWidth={1.6} />
+            <span>Rappels</span>
+          </button>
+          <button
+            type="button"
+            className="bottom-nav-item tap-target"
             aria-current={rolesActive ? "page" : undefined}
             onClick={onOpenRoles}
           >
-            <IconCompass width={16} height={16} strokeWidth={1.6} aria-hidden="true" />
+            <IconCompass width={24} height={24} strokeWidth={1.6} />
             <span>Approches métier</span>
           </button>
+          <button
+            type="button"
+            className="bottom-nav-item tap-target"
+            aria-current={active === "more" ? "page" : undefined}
+            onClick={() => onChange("more")}
+          >
+            <IconMore width={24} height={24} strokeWidth={1.6} />
+            <span>Plus</span>
+          </button>
+        </>
+      ) : (
+        TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className="bottom-nav-item tap-target"
+            aria-current={active === id ? "page" : undefined}
+            onClick={() => onChange(id)}
+          >
+            <Icon width={24} height={24} strokeWidth={1.6} />
+            <span>{label}</span>
+          </button>
+        ))
+      )}
+
+      {isDesktop && (
+        <div className="sidebar-workspaces">
           <span className="sidebar-workspaces-title">Mes espaces</span>
           <ul className="sidebar-workspace-list">
             {workspaces.map((workspace) => {
