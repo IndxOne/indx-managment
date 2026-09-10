@@ -1533,12 +1533,15 @@ a {
      retrouvait plaqué en haut à gauche d'un grand vide sur desktop large.
      Centré uniquement dans ce cas précis (:has cible EmptyState/NoResultsState,
      qui rendent toujours un .state-block seul) — les écrans avec du contenu
-     réel ne sont pas concernés. */
+     réel ne sont pas concernés. max-width retiré : sinon le centrage ne joue
+     qu'à l'intérieur de la boîte à 960px, qui elle-même reste collée à
+     gauche du reste de l'écran (le vide se déplace, mais ne disparaît pas). */
   .app-main:has(> .state-block:only-child) {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: calc(100vh - 96px);
+    max-width: none;
   }
 
   .bottom-nav {
