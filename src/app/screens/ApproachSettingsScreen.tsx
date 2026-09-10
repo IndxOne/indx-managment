@@ -15,11 +15,12 @@ const ALL_APPROACHES = Object.keys(PRESET_REGISTRY) as ProfessionalApproach[];
 const FREQUENCY_LABELS = { daily: "Quotidienne", weekly: "Hebdomadaire", monthly: "Mensuelle" } as const;
 
 export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Workspace; onDone: () => void }) {
-  const { state, changeApproach, deleteRecurringRule } = useStore();
+  const { state, changeApproach, editWorkspaceDescription, deleteRecurringRule } = useStore();
   const { announce } = useAnnouncer();
   const recurrenceRules = state.recurrenceRulesByWorkspace[workspace.id] ?? [];
   const [selected, setSelected] = useState<ProfessionalApproach>(workspace.approach);
   const [confirmed, setConfirmed] = useState(false);
+  const [description, setDescription] = useState(workspace.description ?? "");
 
   const currentPreset = PRESET_REGISTRY[workspace.approach];
   const hiddenFields = computeHiddenFieldsOnApproachChange(workspace.approach, selected, currentPreset.visibleFields);
@@ -27,10 +28,17 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
   const isChange = selected !== workspace.approach;
   const canConfirm = !isChange || hiddenFields.length === 0 || confirmed;
 
+  const descriptionChanged = description.trim() !== (workspace.description ?? "");
+
   function handleApply() {
     changeApproach(workspace.id, selected);
     announce(`Approche changée pour ${APPROACH_LABELS[selected]}. Aucune action n'a été modifiée.`);
     onDone();
+  }
+
+  function handleSaveDescription() {
+    editWorkspaceDescription(workspace.id, description);
+    announce("Notes du projet enregistrées.");
   }
 
   return (
@@ -42,6 +50,26 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
         <p className="action-sub">
           Espace actuel : <strong>{APPROACH_LABELS[workspace.approach]}</strong>
         </p>
+
+        <div className="field">
+          <label htmlFor="workspace-description">Notes du projet</label>
+          <textarea
+            id="workspace-description"
+            rows={4}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Contexte, objectifs, liens utiles…"
+          />
+          <button
+            type="button"
+            className="btn tap-target"
+            style={{ marginTop: 8 }}
+            disabled={!descriptionChanged}
+            onClick={handleSaveDescription}
+          >
+            Enregistrer les notes
+          </button>
+        </div>
 
         <fieldset className="field" style={{ border: "none", padding: 0 }}>
           <legend style={{ fontWeight: 600, marginBottom: 8 }}>Nouvelle approche</legend>

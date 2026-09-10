@@ -61,6 +61,7 @@ export interface StoreContextValue {
   state: AppState;
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
+  editWorkspaceDescription: (workspaceId: string, description: string) => void;
   createAction: (input: NewActionInput) => void;
   createRecurringRule: (input: NewRecurrenceRuleInput) => RecurrenceRule;
   deleteRecurringRule: (workspaceId: string, ruleId: string) => void;

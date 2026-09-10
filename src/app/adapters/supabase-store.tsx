@@ -181,6 +181,20 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      editWorkspaceDescription: (workspaceId, description) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "workspace/editDescription", workspaceId, description, now }, async () => {
+          const updated = appReducer(state, { type: "workspace/editDescription", workspaceId, description, now })
+            .workspaces.find((w) => w.id === workspaceId);
+          if (!updated) return;
+          const { error } = await client
+            .from("projets_workspaces")
+            .update({ description: updated.description ?? null, updated_at: updated.updatedAt })
+            .eq("id", workspaceId);
+          if (error) throw error;
+        });
+      },
+
       createAction: (input) => {
         const id = generateId();
         const now = new Date().toISOString();

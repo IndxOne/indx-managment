@@ -1,5 +1,11 @@
 import type { Action } from "../../domain/types";
-import { changeWorkspaceApproach, createWorkspace, type CreateWorkspaceInput, type Workspace } from "../../domain/workspace";
+import {
+  changeWorkspaceApproach,
+  createWorkspace,
+  editWorkspaceDescription,
+  type CreateWorkspaceInput,
+  type Workspace,
+} from "../../domain/workspace";
 import { moveAction, type MoveDestination } from "../../domain/move-action";
 import { editActionContent, type ActionContentEdit } from "../../domain/edit-action";
 import { addNote } from "../../domain/add-note";
@@ -19,6 +25,7 @@ export type AppEvent =
   | { type: "hydrate"; state: AppState }
   | { type: "workspace/create"; input: CreateWorkspaceInput }
   | { type: "workspace/changeApproach"; workspaceId: string; approach: Workspace["approach"] }
+  | { type: "workspace/editDescription"; workspaceId: string; description: string; now: string }
   | { type: "action/create"; input: NewActionInput; id: string; now: string }
   | { type: "action/move"; workspaceId: string; actionId: string; destination: MoveDestination }
   | { type: "action/restore"; workspaceId: string; action: Action }
@@ -57,6 +64,16 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         workspaces: state.workspaces.map((workspace) =>
           workspace.id === event.workspaceId
             ? changeWorkspaceApproach(workspace, event.approach)
+            : workspace
+        ),
+      };
+    }
+    case "workspace/editDescription": {
+      return {
+        ...state,
+        workspaces: state.workspaces.map((workspace) =>
+          workspace.id === event.workspaceId
+            ? editWorkspaceDescription(workspace, event.description, event.now)
             : workspace
         ),
       };
