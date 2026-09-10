@@ -9,12 +9,15 @@ import {
   actionToRow,
   carnetNoteFromRow,
   carnetNoteToRow,
+  hubSettingsFromRow,
+  hubSettingsToRow,
   recurrenceRuleFromRow,
   recurrenceRuleToRow,
   workspaceFromRow,
   workspaceToRow,
   type ActionRow,
   type CarnetNoteRow,
+  type HubSettingsRow,
   type RecurrenceRuleRow,
   type WorkspaceRow,
 } from "./supabase/mappers";
@@ -73,16 +76,19 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         { data: actionRows, error: actionsError },
         { data: recurrenceRuleRows, error: recurrenceRulesError },
         { data: carnetNoteRows, error: carnetNotesError },
+        { data: hubSettingsRow, error: hubSettingsError },
       ] = await Promise.all([
         client.from("projets_workspaces").select("*").order("created_at"),
         client.from("projets_actions").select("*").order("created_at"),
         client.from("projets_recurrence_rules").select("*").order("created_at"),
         client.from("projets_carnet_notes").select("*").order("created_at"),
+        client.from("projets_hub_settings").select("*").maybeSingle(),
       ]);
       if (workspacesError) throw workspacesError;
       if (actionsError) throw actionsError;
       if (recurrenceRulesError) throw recurrenceRulesError;
       if (carnetNotesError) throw carnetNotesError;
+      if (hubSettingsError) throw hubSettingsError;
 
       const workspaces = ((workspaceRows ?? []) as WorkspaceRow[]).map(workspaceFromRow);
       const actionsByWorkspace: AppState["actionsByWorkspace"] = {};
@@ -100,8 +106,12 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         (recurrenceRulesByWorkspace[rule.workspaceId] ??= []).push(rule);
       }
       const carnetNotes = ((carnetNoteRows ?? []) as CarnetNoteRow[]).map(carnetNoteFromRow);
+      const hubSettings = hubSettingsRow ? hubSettingsFromRow(hubSettingsRow as HubSettingsRow) : undefined;
 
-      dispatch({ type: "hydrate", state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes } });
+      dispatch({
+        type: "hydrate",
+        state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes, hubSettings },
+      });
       setStatus("ready");
     } catch (cause) {
       setSyncError(extractErrorMessage(cause, "Erreur de chargement Supabase"));
@@ -248,6 +258,20 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         dispatchAndPersist({ type: "carnet/delete", noteId }, async () => {
           const { error } = await client.from("projets_carnet_notes").delete().eq("id", noteId);
           if (error) throw error;
+        });
+      },
+
+      updateHubSettings: (settings) => {
+        dispatch({ type: "hub-settings/update", settings });
+        const now = new Date().toISOString();
+        return queuePersist("hub-settings", async () => {
+          const { error } = await client
+            .from("projets_hub_settings")
+            .upsert(hubSettingsToRow(settings, userHash, now), { onConflict: "user_hash" });
+          if (error) throw error;
+        }).catch((cause) => {
+          setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+          throw cause;
         });
       },
 

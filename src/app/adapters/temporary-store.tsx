@@ -92,6 +92,10 @@ export function TemporaryStoreProvider({
       deleteCarnetNote: (noteId) => dispatch({ type: "carnet/delete", noteId }),
       convertCarnetNote: (noteId, input) =>
         dispatch({ type: "carnet/convert", noteId, input, id: generateId(), now: new Date().toISOString() }),
+      updateHubSettings: (settings) => {
+        dispatch({ type: "hub-settings/update", settings });
+        return Promise.resolve();
+      },
     }),
     [state]
   );

@@ -17,15 +17,20 @@ export function WorkspaceListScreen({
 
   return (
     <div>
-      <div className="top-bar">
-        <div>
+      <div className="top-bar" style={{ flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
           <h1>Mes projets</h1>
           <p className="action-sub" style={{ marginTop: 2 }}>
             Un espace pour chaque projet ou activité.
           </p>
         </div>
         {state.workspaces.length > 0 && (
-          <button type="button" className="btn btn-primary tap-target" onClick={onCreate}>
+          <button
+            type="button"
+            className="btn btn-primary tap-target"
+            style={{ whiteSpace: "nowrap", flexShrink: 0 }}
+            onClick={onCreate}
+          >
             <IconPlus width={16} height={16} strokeWidth={2.4} />
             Nouveau projet
           </button>

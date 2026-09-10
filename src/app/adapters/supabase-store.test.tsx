@@ -78,6 +78,7 @@ function makeMockClient() {
             if (table === "projets_actions") return { data: [actionRow()], error: null };
             return { data: [], error: null };
           },
+          maybeSingle: async () => ({ data: null, error: null }),
         }),
         update: (patch: Record<string, unknown>) => ({
           eq: () =>

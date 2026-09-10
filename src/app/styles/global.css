@@ -1005,6 +1005,14 @@ a {
   background: var(--color-text-muted);
 }
 
+.more-icon[data-key="roles"] {
+  background: #6355ff;
+}
+
+.more-icon[data-key="search"] {
+  background: #14b8a6;
+}
+
 .card-title {
   font-weight: 700;
   font-size: 1.0625rem;
