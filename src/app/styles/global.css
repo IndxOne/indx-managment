@@ -158,6 +158,10 @@ a {
   padding-bottom: var(--bottom-nav-height);
 }
 
+.app-content {
+  flex: 1;
+}
+
 .app-main {
   flex: 1;
   padding: var(--space-4) var(--space-4) var(--space-5);
@@ -1297,6 +1301,27 @@ a {
   overflow-x: auto;
   padding-bottom: var(--space-4);
   align-items: flex-start;
+  scrollbar-width: thin;
+  /* --color-border (translucide) se fond dans le fond une fois mélangé : contraste ~1.6:1 (finding Codex PR #26).
+     --color-text-muted passe 3:1 dans les deux thèmes (4.54:1 clair, 5.22:1 sombre, cf. fix a11y PR #25). */
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.kanban-board::-webkit-scrollbar {
+  height: 6px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 999px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text);
 }
 
 .kanban-column {
@@ -1413,6 +1438,16 @@ a {
   .app-shell {
     flex-direction: row;
     padding-bottom: 0;
+    /* Coquille figée à la hauteur de l'écran : la sidebar reste fixe, seul
+       .app-content défile (comme columns.app), au lieu de faire défiler
+       toute la page avec une sidebar qui décroche. */
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app-content {
+    height: 100%;
+    overflow-y: auto;
   }
 
   .app-main {
@@ -1421,14 +1456,20 @@ a {
     flex: 1;
   }
 
+  /* Kanban PROJET : la limite de 960px force un défilement horizontal
+     inutile alors que l'écran a de la place — le tableau doit occuper
+     toute la largeur disponible, contrairement aux écrans de liste. */
+  .app-main--wide {
+    max-width: none;
+  }
+
   .bottom-nav {
-    position: sticky;
-    top: 0;
-    left: auto;
-    right: auto;
-    height: 100vh;
+    position: static;
+    height: 100%;
     width: 220px;
+    flex: none;
     flex-direction: column;
+    overflow-y: auto;
     padding-bottom: 0;
     border-top: none;
     border-right: 0.5px solid var(--color-border);
