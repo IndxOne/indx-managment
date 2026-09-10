@@ -1546,6 +1546,7 @@ a {
      laissait un vide systématique sur les écrans larges, corrigé au
      coup par coup avant de le retirer complètement ici). */
   .app-main {
+    max-width: none;
     margin: 0;
     flex: 1;
   }
