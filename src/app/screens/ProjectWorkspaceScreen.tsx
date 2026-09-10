@@ -23,6 +23,23 @@ import { EmptyState } from "../components/StateBlocks";
 
 type ProjectMode = "phase" | "week";
 
+// Les anciennes phases AMOA restent affichées dans la colonne équivalente
+// après le passage du tableau de six à quatre colonnes. Les données ne sont
+// jamais réécrites lors d'un changement de préréglage.
+const LEGACY_PHASE_COLUMNS: Record<string, string> = {
+  ateliers: "conception",
+  realisations: "realisation",
+  validations: "deploiement",
+  restitutions: "deploiement",
+  cloture: "deploiement",
+};
+
+function resolveActionColumn(action: Action, phases: string[]): string | undefined {
+  if (!action.phaseId) return phases[0];
+  if (phases.includes(action.phaseId)) return action.phaseId;
+  return LEGACY_PHASE_COLUMNS[action.phaseId] ?? phases[0];
+}
+
 export function ProjectWorkspaceScreen({
   workspace,
   timezone,
@@ -76,8 +93,8 @@ export function ProjectWorkspaceScreen({
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
   const phaseActions = useMemo(
-    () => allActions.filter((action) => action.phaseId === currentPhase),
-    [allActions, currentPhase]
+    () => allActions.filter((action) => resolveActionColumn(action, phases) === currentPhase),
+    [allActions, currentPhase, phases]
   );
   const milestones = phaseActions.filter((action) => action.itemType === "milestone");
   const decisions = phaseActions.filter((action) => action.itemType === "decision");
@@ -90,7 +107,8 @@ export function ProjectWorkspaceScreen({
     const grouped: Record<string, Action[]> = {};
     for (const phase of phases) grouped[phase] = [];
     for (const action of allActions) {
-      if (action.phaseId && grouped[action.phaseId]) grouped[action.phaseId]!.push(action);
+      const phase = resolveActionColumn(action, phases);
+      if (phase && grouped[phase]) grouped[phase]!.push(action);
     }
     return grouped;
   }, [allActions, phases]);

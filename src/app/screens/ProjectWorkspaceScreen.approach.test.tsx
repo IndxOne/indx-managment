@@ -26,8 +26,8 @@ function stateWithWorkspace(): AppState {
   };
 }
 
-describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
-  it("propose toujours d'ajouter une action (management n'a pas de phases)", async () => {
+describe("ProjectWorkspaceScreen — approche management", () => {
+  it("propose ses quatre colonnes métier et permet toujours d'ajouter une action", async () => {
     render(
       <AnnouncerProvider>
         <TemporaryStoreProvider initialState={stateWithWorkspace()}>
@@ -41,7 +41,8 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
       </AnnouncerProvider>
     );
 
-    expect(await screen.findByPlaceholderText("Ajouter une action…")).toBeInTheDocument();
+    expect(await screen.findByPlaceholderText("Ajouter à « Objectifs »…")).toBeInTheDocument();
+    expect(screen.getAllByRole("tab", { name: /Objectifs|Planification|Suivi|Bilan/ })).toHaveLength(4);
   });
 
   it("une action ajoutée sans échéance reste visible (finding Codex PR #28)", async () => {
@@ -59,12 +60,29 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
       </AnnouncerProvider>
     );
 
-    await user.type(await screen.findByPlaceholderText("Ajouter une action…"), "Cadrer le périmètre{Enter}");
+    await user.type(await screen.findByPlaceholderText("Ajouter à « Objectifs »…"), "Cadrer le périmètre{Enter}");
 
     expect(await screen.findByText("Cadrer le périmètre")).toBeInTheDocument();
   });
 
-  it("ne propose pas de bascule vers une vue Phases vide (source de confusion sinon)", async () => {
+  it("conserve les actions sans phase dans la première colonne", async () => {
+    const state = stateWithWorkspace();
+    state.actionsByWorkspace.w1 = [{
+      id: "a1", workspaceId: "w1", title: "Action historique", status: "todo", priority: "normal",
+      itemType: "task", assigneeIds: [], tags: [], createdAt: "2026-09-01T00:00:00.000Z", updatedAt: "2026-09-01T00:00:00.000Z",
+    }];
+    render(
+      <AnnouncerProvider>
+        <TemporaryStoreProvider initialState={state}>
+          <ProjectWorkspaceScreen workspace={state.workspaces[0]!} timezone="Europe/Paris" onOpenSettings={() => {}} onNavigateToWorkspace={() => {}} />
+        </TemporaryStoreProvider>
+      </AnnouncerProvider>
+    );
+
+    expect(await screen.findByText("Action historique")).toBeInTheDocument();
+  });
+
+  it("propose la bascule vers ses étapes métier", async () => {
     render(
       <AnnouncerProvider>
         <TemporaryStoreProvider initialState={stateWithWorkspace()}>
@@ -78,8 +96,8 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
       </AnnouncerProvider>
     );
 
-    await screen.findByPlaceholderText("Ajouter une action…");
-    expect(screen.queryByRole("tab", { name: "Par étapes" })).not.toBeInTheDocument();
+    await screen.findByPlaceholderText("Ajouter à « Objectifs »…");
+    expect(screen.getByRole("tab", { name: "Par étapes" })).toBeInTheDocument();
   });
 });
 
