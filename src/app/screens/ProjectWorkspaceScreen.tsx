@@ -120,11 +120,6 @@ export function ProjectWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>PROJET</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {phases.length > 0 && (
-            <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
-              {mode === "phase" ? "Vue semaine" : "Vue phases"}
-            </button>
-          )}
           <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
             <IconSettings width={17} height={17} />
           </button>
@@ -132,6 +127,35 @@ export function ProjectWorkspaceScreen({
       </div>
 
       <div className="app-main">
+        {phases.length > 0 && (
+          <div className="segmented" role="tablist" aria-label="Organisation">
+            <div
+              className="segmented-thumb"
+              aria-hidden="true"
+              style={{ width: "calc(50% - 2px)", left: 2, transform: `translateX(${mode === "phase" ? "0%" : "100%"})` }}
+            />
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "phase"}
+              aria-current={mode === "phase"}
+              className="segmented-item"
+              onClick={() => setMode("phase")}
+            >
+              Par étapes
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "week"}
+              aria-current={mode === "week"}
+              className="segmented-item"
+              onClick={() => setMode("week")}
+            >
+              Par semaine
+            </button>
+          </div>
+        )}
         {mode === "phase" ? (
           <>
             {isDesktop ? (

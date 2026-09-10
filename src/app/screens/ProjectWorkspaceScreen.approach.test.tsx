@@ -79,7 +79,7 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
     );
 
     await screen.findByPlaceholderText("Ajouter une action…");
-    expect(screen.queryByRole("button", { name: "Vue phases" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Par étapes" })).not.toBeInTheDocument();
   });
 });
 
@@ -119,11 +119,11 @@ describe("ProjectWorkspaceScreen — approche avec phases", () => {
       </AnnouncerProvider>
     );
 
-    await user.click(await screen.findByRole("button", { name: "Vue semaine" }));
+    await user.click(await screen.findByRole("tab", { name: "Par semaine" }));
     await user.type(await screen.findByPlaceholderText("Ajouter une action…"), "Lister les besoins{Enter}");
     expect(await screen.findByText("Lister les besoins")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Vue phases" }));
+    await user.click(screen.getByRole("tab", { name: "Par étapes" }));
     expect(await screen.findByText("Lister les besoins")).toBeInTheDocument();
   });
 });
