@@ -1066,6 +1066,18 @@ a {
   color: var(--color-accent);
   font-size: 0.875rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.sidebar-workspace-create:active {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-workspace-create {
+    transition: none;
+  }
 }
 
 .top-bar {
@@ -1264,6 +1276,61 @@ a {
 
 @media (min-width: 640px) and (prefers-reduced-motion: reduce) {
   .sheet {
+    animation: none;
+  }
+}
+
+/* Champs d'un formulaire en sheet (ajout d'action, création d'espace...) :
+   petit fondu en cascade au lieu d'un bloc figé, cohérent quelle que soit
+   la profondeur DOM (nth-child compte parmi les frères directs). */
+.sheet .field {
+  animation: field-fade-in 200ms ease-out backwards;
+}
+
+@keyframes field-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet .field:nth-child(1) {
+  animation-delay: 30ms;
+}
+.sheet .field:nth-child(2) {
+  animation-delay: 60ms;
+}
+.sheet .field:nth-child(3) {
+  animation-delay: 90ms;
+}
+.sheet .field:nth-child(4) {
+  animation-delay: 120ms;
+}
+.sheet .field:nth-child(5) {
+  animation-delay: 150ms;
+}
+.sheet .field:nth-child(6) {
+  animation-delay: 180ms;
+}
+.sheet .field:nth-child(7) {
+  animation-delay: 210ms;
+}
+.sheet .field:nth-child(8) {
+  animation-delay: 240ms;
+}
+.sheet .field:nth-child(9) {
+  animation-delay: 270ms;
+}
+.sheet .field:nth-child(10) {
+  animation-delay: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet .field {
     animation: none;
   }
 }
