@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "../push/push-subscription";
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
+import { useStore } from "../adapters/store-context";
+import { buildExportPayload, downloadExport } from "../utils/export-data";
 import { EmptyState } from "../components/StateBlocks";
 import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
@@ -13,6 +15,7 @@ import type { MoreDestination } from "../more-links";
  * navigateur/appareil (voir user-hash.ts).
  */
 export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
+  const { state } = useStore();
   const configured = isSupabaseConfigured();
   const currentCode = configured ? getOrCreateUserHash() : null;
   const [pastedCode, setPastedCode] = useState("");
@@ -47,6 +50,11 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
     await navigator.clipboard.writeText(currentCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleExport() {
+    if (!currentCode) return;
+    downloadExport(buildExportPayload(state, currentCode));
   }
 
   function handleUseCode() {
@@ -116,6 +124,14 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
             </div>
             <button type="button" className="btn btn-block tap-target" onClick={handleUseCode}>
               Utiliser ce code
+            </button>
+
+            <h2 className="section-title">Sauvegarde</h2>
+            <p className="action-sub">
+              Aucun mode hors ligne, pas de compte réel : exporte régulièrement un fichier JSON de secours.
+            </p>
+            <button type="button" className="btn btn-block tap-target" onClick={handleExport}>
+              Exporter mes données (JSON)
             </button>
 
             <h2 className="section-title">Notifications de relance</h2>
