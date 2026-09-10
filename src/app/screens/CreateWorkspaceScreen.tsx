@@ -4,6 +4,7 @@ import type { Workspace } from "../../domain/workspace";
 import { PRESET_REGISTRY } from "../../presets/preset-registry";
 import { APPROACH_DESCRIPTIONS, APPROACH_LABELS } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { BottomSheet } from "../components/BottomSheet";
 import { IconGrid, IconSun } from "../components/Icons";
 
 // Mirroir du cadrage §8 (valeurs proposées par défaut) — sert uniquement à
@@ -52,11 +53,9 @@ export function CreateWorkspaceScreen({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <div className="top-bar">
-        <h1>Nouvel espace</h1>
-      </div>
-      <div className="app-main" style={{ paddingTop: "var(--space-4)" }}>
+    <BottomSheet title="Nouvel espace" onClose={onCancel}>
+      <form onSubmit={handleSubmit} noValidate>
+        <p style={{ fontWeight: 600, fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Nouvel espace</p>
         <div className="field">
           <label htmlFor="workspace-name">Nom de l'espace</label>
           <input
@@ -132,7 +131,7 @@ export function CreateWorkspaceScreen({
         <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onCancel}>
           Annuler
         </button>
-      </div>
-    </form>
+      </form>
+    </BottomSheet>
   );
 }

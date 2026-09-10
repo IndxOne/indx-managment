@@ -1229,6 +1229,43 @@ a {
   margin: 0 auto var(--space-4);
 }
 
+/* À partir de la largeur tablette, assez de place autour pour un vrai
+   dialogue centré plutôt qu'une feuille bord à bord tirée sur toute la
+   largeur de l'écran. */
+@media (min-width: 640px) {
+  .sheet {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    width: 100%;
+    max-width: 480px;
+    transform: translate(-50%, -50%);
+    animation: sheet-in-desktop 180ms ease-out;
+  }
+
+  .sheet-handle {
+    display: none;
+  }
+}
+
+@keyframes sheet-in-desktop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (min-width: 640px) and (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+
 .action-sub {
   color: var(--color-text-muted);
   font-size: 0.875rem;
