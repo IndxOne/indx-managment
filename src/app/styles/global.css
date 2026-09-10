@@ -902,6 +902,77 @@ a {
   font-weight: 600;
 }
 
+/* Liste des espaces + création rapide : rendue uniquement à partir de
+   1024px (cf. useIsDesktop dans BottomNav.tsx, même seuil que la barre
+   latérale ci-dessous) — jamais montée sur mobile, où la même information
+   vit déjà dans l'onglet "Espaces". */
+.sidebar-workspaces {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding: 0 var(--space-5);
+  overflow-y: auto;
+}
+
+.sidebar-workspaces-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sidebar-workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-workspace-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.sidebar-workspace-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-workspace-item[aria-current="page"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.sidebar-workspace-create {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .top-bar {
   display: flex;
   align-items: center;
@@ -1362,6 +1433,7 @@ a {
   }
 
   .bottom-nav-item {
+    flex: none;
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--space-3);
