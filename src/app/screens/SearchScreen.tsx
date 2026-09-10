@@ -17,10 +17,18 @@ import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
 
 /**
- * Recherche transversale par titre, tous espaces confondus. Même wiring
- * interactif que Rappels/ActionsByStatus (pas de vue en lecture seule
- * dans l'app) : filtrage local pur, aucune donnée dupliquée.
+ * Recherche transversale (titre, description, tags, texte des notes),
+ * tous espaces confondus. Même wiring interactif que Rappels/ActionsByStatus
+ * (pas de vue en lecture seule dans l'app) : filtrage local pur, aucune
+ * donnée dupliquée.
  */
+function matchesQuery(action: Action, query: string): boolean {
+  if (action.title.toLowerCase().includes(query)) return true;
+  if (action.description?.toLowerCase().includes(query)) return true;
+  if (action.tags.some((tag) => tag.toLowerCase().includes(query))) return true;
+  if (action.notes?.some((note) => note.text.toLowerCase().includes(query))) return true;
+  return false;
+}
 export function SearchScreen({
   timezone,
   onNavigate,
@@ -47,7 +55,7 @@ export function SearchScreen({
     const result: Action[] = [];
     for (const workspace of state.workspaces) {
       for (const action of state.actionsByWorkspace[workspace.id] ?? []) {
-        if (action.title.toLowerCase().includes(trimmedQuery)) result.push(action);
+        if (matchesQuery(action, trimmedQuery)) result.push(action);
       }
     }
     return result;
@@ -92,12 +100,15 @@ export function SearchScreen({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Titre d'une action…"
+            placeholder="Titre, description, tag ou note…"
           />
         </div>
 
         {!trimmedQuery ? (
-          <EmptyState title="Rechercher une action" description="Tapez un titre pour retrouver une action dans tous vos espaces." />
+          <EmptyState
+            title="Rechercher une action"
+            description="Tapez un mot pour retrouver une action par titre, description, tag ou note, dans tous vos espaces."
+          />
         ) : entries.length === 0 ? (
           <EmptyState title="Aucun résultat" description={`Aucune action ne correspond à « ${query.trim()} ».`} />
         ) : (

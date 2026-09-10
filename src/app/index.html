@@ -5,7 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Gestion d'actions et de projets RUN/PROJET, mobile et desktop." />
-    <meta name="theme-color" content="#007aff" />
+    <meta name="theme-color" content="#0062cc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0068d1" media="(prefers-color-scheme: dark)" />
+    <!-- Applique le thème choisi (Réglages) avant le premier rendu React :
+         sans ça, une préférence "sombre" explicite flasherait en clair le
+         temps que l'app charge. -->
+    <script>
+      try {
+        var theme = localStorage.getItem("indxone-theme-preference");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch (error) {}
+    </script>
     <!-- Installation en app (Ajouter à l'écran d'accueil) sur iOS : Safari
          ignore le manifest web pour ce comportement, ces meta dédiées sont
          le seul moyen d'obtenir un lancement plein écran sans barre Safari. -->

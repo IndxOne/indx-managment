@@ -4,9 +4,16 @@ import { disablePush, enablePush, isPushEnabled, isPushSupported } from "../push
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
 import { useStore } from "../adapters/store-context";
 import { buildExportPayload, downloadExport } from "../utils/export-data";
+import { getStoredThemePreference, setThemePreference, type ThemePreference } from "../utils/theme";
 import { EmptyState } from "../components/StateBlocks";
 import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "Système" },
+  { value: "light", label: "Clair" },
+  { value: "dark", label: "Sombre" },
+];
 
 /**
  * Réglages globaux (pas de compte Supabase Auth — cf. supabase-store.tsx) :
@@ -24,6 +31,12 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<ThemePreference>(getStoredThemePreference());
+
+  function handleThemeChange(next: ThemePreference) {
+    setTheme(next);
+    setThemePreference(next);
+  }
 
   useEffect(() => {
     if (configured) void isPushEnabled().then(setPushEnabled);
@@ -81,6 +94,23 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
       </div>
       <MoreSubNav active="app-settings" onNavigate={onNavigate} />
       <div className="app-main">
+        <h2 className="section-title" style={{ marginTop: 0 }}>
+          Thème
+        </h2>
+        <div className="choice-group" role="radiogroup" aria-label="Thème">
+          {THEME_OPTIONS.map((option) => (
+            <label key={option.value} className="choice-option">
+              <input
+                type="radio"
+                name="theme"
+                checked={theme === option.value}
+                onChange={() => handleThemeChange(option.value)}
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+
         {!configured || !currentCode ? (
           <EmptyState
             title="Persistance locale uniquement"
