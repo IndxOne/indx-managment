@@ -63,4 +63,22 @@ describe("ProjectWorkspaceScreen — approche sans phaseTemplate", () => {
 
     expect(await screen.findByText("Cadrer le périmètre")).toBeInTheDocument();
   });
+
+  it("ne propose pas de bascule vers une vue Phases vide (source de confusion sinon)", async () => {
+    render(
+      <AnnouncerProvider>
+        <TemporaryStoreProvider initialState={stateWithWorkspace()}>
+          <ProjectWorkspaceScreen
+            workspace={stateWithWorkspace().workspaces[0]!}
+            timezone="Europe/Paris"
+            onOpenSettings={() => {}}
+            onNavigateToWorkspace={() => {}}
+          />
+        </TemporaryStoreProvider>
+      </AnnouncerProvider>
+    );
+
+    await screen.findByPlaceholderText("Ajouter une action…");
+    expect(screen.queryByRole("button", { name: "Vue phases" })).not.toBeInTheDocument();
+  });
 });

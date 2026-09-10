@@ -120,9 +120,11 @@ export function ProjectWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>PROJET</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
-            {mode === "phase" ? "Vue semaine" : "Vue phases"}
-          </button>
+          {phases.length > 0 && (
+            <button type="button" className="btn" onClick={() => setMode(mode === "phase" ? "week" : "phase")}>
+              {mode === "phase" ? "Vue semaine" : "Vue phases"}
+            </button>
+          )}
           <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
             <IconSettings width={17} height={17} />
           </button>
@@ -132,21 +134,7 @@ export function ProjectWorkspaceScreen({
       <div className="app-main">
         {mode === "phase" ? (
           <>
-            {phases.length === 0 ? (
-              <>
-                <QuickAddBar
-                  onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}
-                  onOpenFullForm={(draftTitle) => {
-                    setAddSheetDraftTitle(draftTitle);
-                    setAddSheetOpen(true);
-                  }}
-                />
-                <EmptyState
-                  title="Aucune phase configurée"
-                  description="Cet espace PROJET fonctionne sans découpage en phases pour l'instant."
-                />
-              </>
-            ) : isDesktop ? (
+            {isDesktop ? (
               <KanbanBoard
                 phases={phases}
                 actionsByPhase={actionsByPhase}
