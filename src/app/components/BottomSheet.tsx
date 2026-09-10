@@ -20,7 +20,51 @@ export function BottomSheet({
   const [previouslyFocused] = useState<HTMLElement | null>(() => document.activeElement as HTMLElement | null);
 
   useEffect(() => {
-    sheetRef.current?.focus();
+    const sheet = sheetRef.current;
+    sheet?.focus();
+
+    function revealInvalidField(field: Element) {
+      if (!(field instanceof HTMLElement)) return;
+      field.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      field.focus({ preventScroll: true });
+    }
+
+    function onInvalid(event: Event) {
+      revealInvalidField(event.target as Element);
+    }
+
+    // Les validations contrôlées signalent l'erreur avec aria-invalid après
+    // le clic. L'observer permet au conteneur de traiter aussi ce cas sans
+    // dupliquer la logique de scroll dans chaque formulaire.
+    const invalidObserver = new MutationObserver((mutations) => {
+      if (!mutations.some(({ target }) => target instanceof HTMLElement && target.getAttribute("aria-invalid") === "true")) {
+        return;
+      }
+      const firstInvalid = sheet?.querySelector('[aria-invalid="true"]');
+      if (firstInvalid) revealInvalidField(firstInvalid);
+    });
+    if (sheet) {
+      sheet.addEventListener("invalid", onInvalid, true);
+      invalidObserver.observe(sheet, { attributes: true, attributeFilter: ["aria-invalid"], subtree: true });
+    }
+
+    function fitToVisualViewport() {
+      if (!sheet || window.innerWidth >= 640) {
+        sheet?.style.removeProperty("bottom");
+        sheet?.style.removeProperty("max-height");
+        return;
+      }
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+      const keyboardInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      sheet.style.bottom = `${keyboardInset + 8}px`;
+      sheet.style.maxHeight = `${Math.max(0, viewport.height - 16)}px`;
+    }
+
+    fitToVisualViewport();
+    window.visualViewport?.addEventListener("resize", fitToVisualViewport);
+    window.visualViewport?.addEventListener("scroll", fitToVisualViewport);
+    window.addEventListener("resize", fitToVisualViewport);
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -30,6 +74,11 @@ export function BottomSheet({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      sheet?.removeEventListener("invalid", onInvalid, true);
+      invalidObserver.disconnect();
+      window.visualViewport?.removeEventListener("resize", fitToVisualViewport);
+      window.visualViewport?.removeEventListener("scroll", fitToVisualViewport);
+      window.removeEventListener("resize", fitToVisualViewport);
       previouslyFocused?.focus();
     };
   }, [onClose, previouslyFocused]);

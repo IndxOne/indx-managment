@@ -180,12 +180,14 @@ export function AddActionSheet({
         </>
       )}
 
-      <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>
-        Créer l'action
-      </button>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onCancel}>
-        Annuler
-      </button>
+      <div className="sheet-actions">
+        <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>
+          Créer l'action
+        </button>
+        <button type="button" className="btn btn-block tap-target" onClick={onCancel}>
+          Annuler
+        </button>
+      </div>
     </BottomSheet>
   );
 }
