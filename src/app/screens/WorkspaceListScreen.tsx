@@ -18,10 +18,16 @@ export function WorkspaceListScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Espaces</h1>
+        <div>
+          <h1>Mes projets</h1>
+          <p className="action-sub" style={{ marginTop: 2 }}>
+            Un espace pour chaque projet ou activité.
+          </p>
+        </div>
         {state.workspaces.length > 0 && (
-          <button type="button" className="btn btn-icon" onClick={onCreate} aria-label="Créer un espace">
-            <IconPlus width={18} height={18} strokeWidth={2} />
+          <button type="button" className="btn btn-primary tap-target" onClick={onCreate}>
+            <IconPlus width={16} height={16} strokeWidth={2.4} />
+            Nouveau projet
           </button>
         )}
       </div>

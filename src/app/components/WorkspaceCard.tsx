@@ -1,6 +1,5 @@
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
-import { KIND_LABELS } from "../labels";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { computeWorkspaceSummary } from "../utils/workspace-summary";
 
@@ -22,11 +21,8 @@ export function WorkspaceCard({
 
   return (
     <li>
-      <button type="button" className="workspace-card" data-kind={workspace.kind} onClick={onSelect}>
-        <div className="workspace-card-header">
-          <span className="card-title">{workspace.name}</span>
-          <span className={`badge badge-${workspace.kind}`}>{KIND_LABELS[workspace.kind]}</span>
-        </div>
+      <button type="button" className="workspace-card" onClick={onSelect}>
+        <span className="workspace-card-title">{workspace.name}</span>
         {description && <p className="workspace-card-desc">{description}</p>}
         <div className="workspace-card-footer">
           <span>
