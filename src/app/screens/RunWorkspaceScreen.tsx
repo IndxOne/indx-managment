@@ -12,6 +12,7 @@ import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
+import { QuickFilterChips } from "../components/QuickFilterChips";
 import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
@@ -142,6 +143,8 @@ export function RunWorkspaceScreen({
             Cette semaine
           </button>
         </div>
+
+        <QuickFilterChips quickFilterIds={preset.quickFilters} filters={filters} onChange={setFilters} />
 
         <QuickAddBar
           onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}

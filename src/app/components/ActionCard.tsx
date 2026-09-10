@@ -3,7 +3,7 @@ import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar
 import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
-import { KIND_LABELS, phaseLabel } from "../labels";
+import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
@@ -52,7 +52,7 @@ export function ActionCard({
   const statusLabel = statusLabels[action.status];
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
-  const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind);
+  const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind) || action.itemType !== "task";
 
   return (
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
@@ -69,6 +69,9 @@ export function ActionCard({
             <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
           )}
           {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
+          {action.itemType !== "task" && (
+            <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
+          )}
         </div>
       )}
       <div className="action-card-body">

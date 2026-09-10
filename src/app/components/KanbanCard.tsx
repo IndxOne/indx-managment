@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Action, ActionStatus } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
+import { ITEM_TYPE_LABELS } from "../labels";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconGripVertical, IconMore } from "./Icons";
@@ -60,6 +61,9 @@ export function KanbanCard({
           </span>
           {action.priority === "high" && (
             <span className="phase-chip phase-chip-red">Prioritaire</span>
+          )}
+          {action.itemType !== "task" && (
+            <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
           )}
         </div>
         <div className="action-sub">
