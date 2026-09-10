@@ -120,6 +120,8 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
+        onOpenRoles={() => setRoute({ screen: "roles" })}
+        rolesActive={route.screen === "roles"}
       />
       <main className="app-content">
         <div key={routeKey} className="route-transition">
