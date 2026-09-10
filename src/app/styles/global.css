@@ -12,9 +12,11 @@
   --color-fill: rgba(118, 118, 128, 0.12);
   --color-border: rgba(60, 60, 67, 0.29);
   --color-text: #000000;
-  --color-text-muted: #8e8e93;
+  /* #8e8e93 (gris système iOS) ne passe pas le contraste WCAG AA (3.26:1) sur fond blanc — assombri à 5.07:1. */
+  --color-text-muted: #6e6e73;
   --color-text-tertiary: #c7c7cc;
-  --color-accent: #007aff;
+  /* #007aff (bleu système iOS) ne passe pas le contraste WCAG AA (4.02:1) en texte blanc sur fond bleu — assombri à 5.80:1. */
+  --color-accent: #0062cc;
   --color-accent-soft: #eaf0ff;
   --color-accent-contrast: #ffffff;
   --color-danger: #ff3b30;
@@ -22,7 +24,7 @@
   --color-success: #34c759;
   --color-success-soft: #e8f8ed;
   --color-warning-soft: #fff3e0;
-  --focus-ring: 3px solid #007aff;
+  --focus-ring: 3px solid #0062cc;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -69,7 +71,8 @@
     --color-text: #ffffff;
     --color-text-muted: #8e8e93;
     --color-text-tertiary: #48484a;
-    --color-accent: #0a84ff;
+    /* #0a84ff ne passe pas le contraste WCAG AA (3.65:1) en texte blanc sur fond bleu — assombri à 5.38:1. */
+    --color-accent: #0068d1;
     --color-accent-soft: #152744;
     --color-accent-contrast: #ffffff;
     --color-danger: #ff453a;
