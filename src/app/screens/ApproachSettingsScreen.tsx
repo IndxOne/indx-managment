@@ -21,6 +21,13 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
   const [selected, setSelected] = useState<ProfessionalApproach>(workspace.approach);
   const [confirmed, setConfirmed] = useState(false);
   const [description, setDescription] = useState(workspace.description ?? "");
+  // Suivi séparé de `workspace.description` : ce dernier est mis à jour de façon
+  // optimiste dès l'appel (avant confirmation Supabase), donc s'y comparer
+  // masquerait un échec réseau (bouton désactivé alors que rien n'est
+  // persisté, notes reperdues au rechargement — cf. revue Codex PR#19).
+  const [savedDescription, setSavedDescription] = useState(workspace.description ?? "");
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [savingDescription, setSavingDescription] = useState(false);
 
   const currentPreset = PRESET_REGISTRY[workspace.approach];
   const hiddenFields = computeHiddenFieldsOnApproachChange(workspace.approach, selected, currentPreset.visibleFields);
@@ -28,7 +35,7 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
   const isChange = selected !== workspace.approach;
   const canConfirm = !isChange || hiddenFields.length === 0 || confirmed;
 
-  const descriptionChanged = description.trim() !== (workspace.description ?? "");
+  const descriptionChanged = description.trim() !== savedDescription;
 
   function handleApply() {
     changeApproach(workspace.id, selected);
@@ -36,9 +43,19 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
     onDone();
   }
 
-  function handleSaveDescription() {
-    editWorkspaceDescription(workspace.id, description);
-    announce("Notes du projet enregistrées.");
+  async function handleSaveDescription() {
+    const value = description;
+    setSavingDescription(true);
+    setDescriptionError(null);
+    try {
+      await editWorkspaceDescription(workspace.id, value);
+      setSavedDescription(value.trim());
+      announce("Notes du projet enregistrées.");
+    } catch {
+      setDescriptionError("Échec de l'enregistrement. Réessayez.");
+    } finally {
+      setSavingDescription(false);
+    }
   }
 
   return (
@@ -60,11 +77,16 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Contexte, objectifs, liens utiles…"
           />
+          {descriptionError && (
+            <p role="alert" style={{ color: "var(--color-danger)" }}>
+              {descriptionError}
+            </p>
+          )}
           <button
             type="button"
             className="btn tap-target"
             style={{ marginTop: 8 }}
-            disabled={!descriptionChanged}
+            disabled={!descriptionChanged || savingDescription}
             onClick={handleSaveDescription}
           >
             Enregistrer les notes

@@ -43,8 +43,10 @@ export function TemporaryStoreProvider({
       },
       changeApproach: (workspaceId, approach) =>
         dispatch({ type: "workspace/changeApproach", workspaceId, approach }),
-      editWorkspaceDescription: (workspaceId, description) =>
-        dispatch({ type: "workspace/editDescription", workspaceId, description, now: new Date().toISOString() }),
+      editWorkspaceDescription: (workspaceId, description) => {
+        dispatch({ type: "workspace/editDescription", workspaceId, description, now: new Date().toISOString() });
+        return Promise.resolve();
+      },
       createAction: (input) =>
         dispatch({ type: "action/create", input, id: generateId(), now: new Date().toISOString() }),
       createRecurringRule: (input) => {

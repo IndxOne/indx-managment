@@ -125,26 +125,35 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   );
 
   /**
-   * File d'attente par actionId : sans ça, deux mutations coup sur coup sur
-   * la même action (ex. MoveActionSheet qui passe une action en "En attente"
-   * PUIS active une relance dans la même confirmation) partent en parallèle
-   * vers Supabase, et l'ordre d'arrivée réseau n'est pas garanti. Si
-   * l'écriture du déplacement (qui réécrit la ligne entière, calculée AVANT
-   * l'activation de la relance) arrive après celle de la relance, elle
-   * efface silencieusement la relance en base — jamais visible dans l'UI
-   * locale, seulement au prochain rechargement. Sérialiser les écritures
-   * par actionId garantit qu'elles atteignent la base dans l'ordre où elles
-   * ont été déclenchées.
+   * File d'attente par clé (actionId, ou `workspace:<id>` pour les notes de
+   * projet) : sans ça, deux mutations coup sur coup sur la même ressource
+   * (ex. MoveActionSheet qui passe une action en "En attente" PUIS active
+   * une relance dans la même confirmation, ou deux sauvegardes rapprochées
+   * des notes d'un espace) partent en parallèle vers Supabase, et l'ordre
+   * d'arrivée réseau n'est pas garanti — une écriture plus récente peut être
+   * écrasée par une plus ancienne arrivée après. Sérialiser les écritures
+   * par clé garantit qu'elles atteignent la base dans l'ordre où elles ont
+   * été déclenchées. La chaîne stockée ne rejette jamais (sinon l'écriture
+   * suivante resterait bloquée derrière un échec) ; l'échec de CETTE
+   * tentative est propagé uniquement à l'appelant via la promesse retournée.
    */
-  const actionPersistQueues = useRef(new Map<string, Promise<void>>());
+  const persistQueues = useRef(new Map<string, Promise<void>>());
 
-  const queueActionPersist = useCallback((actionId: string, persist: () => Promise<void>) => {
-    const previous = actionPersistQueues.current.get(actionId) ?? Promise.resolve();
-    const next = previous.catch(() => {}).then(persist).catch((cause) => {
-      setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
-    });
-    actionPersistQueues.current.set(actionId, next);
+  const queuePersist = useCallback((key: string, persist: () => Promise<void>): Promise<void> => {
+    const previous = persistQueues.current.get(key) ?? Promise.resolve();
+    const attempt = previous.catch(() => {}).then(persist);
+    persistQueues.current.set(key, attempt.catch(() => {}));
+    return attempt;
   }, []);
+
+  const queueActionPersist = useCallback(
+    (actionId: string, persist: () => Promise<void>) => {
+      queuePersist(actionId, persist).catch((cause) => {
+        setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+      });
+    },
+    [queuePersist]
+  );
 
   const dispatchAndPersistAction = useCallback(
     (actionId: string, event: AppEvent, persist: () => Promise<void>) => {
@@ -183,7 +192,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
       editWorkspaceDescription: (workspaceId, description) => {
         const now = new Date().toISOString();
-        dispatchAndPersist({ type: "workspace/editDescription", workspaceId, description, now }, async () => {
+        dispatch({ type: "workspace/editDescription", workspaceId, description, now });
+        return queuePersist(`workspace:${workspaceId}`, async () => {
           const updated = appReducer(state, { type: "workspace/editDescription", workspaceId, description, now })
             .workspaces.find((w) => w.id === workspaceId);
           if (!updated) return;
@@ -192,6 +202,9 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
             .update({ description: updated.description ?? null, updated_at: updated.updatedAt })
             .eq("id", workspaceId);
           if (error) throw error;
+        }).catch((cause) => {
+          setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+          throw cause;
         });
       },
 
@@ -433,7 +446,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [state, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist]
+    [state, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist, queuePersist]
   );
 
   if (status === "loading") {

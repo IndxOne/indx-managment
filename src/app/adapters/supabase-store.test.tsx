@@ -119,6 +119,23 @@ function TestConsumer() {
   );
 }
 
+function DescriptionTestConsumer() {
+  const { state, editWorkspaceDescription } = useStore();
+  const workspace = state.workspaces[0];
+  if (!workspace) return <p>chargement…</p>;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        editWorkspaceDescription(WORKSPACE_ID, "Première version");
+        editWorkspaceDescription(WORKSPACE_ID, "Deuxième version");
+      }}
+    >
+      go
+    </button>
+  );
+}
+
 describe("SupabaseStoreProvider — course déplacement + relance", () => {
   beforeEach(() => {
     mockClientInstance = makeMockClient();
@@ -152,5 +169,40 @@ describe("SupabaseStoreProvider — course déplacement + relance", () => {
     // ...ce n'est qu'à ce moment que l'écriture de la relance part à son tour.
     expect(recordedUpdates).toHaveLength(2);
     expect(recordedUpdates[1]!.patch).toMatchObject({ waiting_reminder: { afterDays: 3, enabled: true } });
+  });
+});
+
+describe("SupabaseStoreProvider — course sur deux sauvegardes rapprochées des notes de projet", () => {
+  beforeEach(() => {
+    mockClientInstance = makeMockClient();
+  });
+
+  it("n'envoie la deuxième sauvegarde qu'une fois la première aboutie (jamais en parallèle)", async () => {
+    render(
+      <SupabaseStoreProvider>
+        <DescriptionTestConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "go" });
+    await act(async () => {
+      button.click();
+    });
+
+    // Les deux appels partent dans le même tick : seule la première écriture
+    // doit être en vol vers Supabase, sinon leur ordre d'arrivée réseau
+    // n'est plus garanti et la plus récente peut être écrasée par l'autre.
+    expect(recordedUpdates).toHaveLength(1);
+    const firstUpdate = recordedUpdates[0]!;
+    expect(firstUpdate.patch).toMatchObject({ description: "Première version" });
+
+    await act(async () => {
+      firstUpdate.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(recordedUpdates).toHaveLength(2);
+    expect(recordedUpdates[1]!.patch).toMatchObject({ description: "Deuxième version" });
   });
 });

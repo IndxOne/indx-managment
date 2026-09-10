@@ -61,7 +61,8 @@ export interface StoreContextValue {
   state: AppState;
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
-  editWorkspaceDescription: (workspaceId: string, description: string) => void;
+  /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */
+  editWorkspaceDescription: (workspaceId: string, description: string) => Promise<void>;
   createAction: (input: NewActionInput) => void;
   createRecurringRule: (input: NewRecurrenceRuleInput) => RecurrenceRule;
   deleteRecurringRule: (workspaceId: string, ruleId: string) => void;
