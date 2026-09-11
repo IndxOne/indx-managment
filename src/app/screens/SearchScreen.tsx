@@ -123,6 +123,7 @@ export function SearchScreen({
             onOpenWorkspace={(action) => onNavigateToWorkspace(action.workspaceId)}
             onMove={setMovingAction}
             onCycleStatus={(action) => move(action.workspaceId, action, { axis: "status", status: cycleStatus(action.status) })}
+            onComplete={(action) => move(action.workspaceId, action, { axis: "status", status: "done" })}
             onEdit={setEditingAction}
             onDelete={(action) => remove(action.workspaceId, action)}
             onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}

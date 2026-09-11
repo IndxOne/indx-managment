@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Action } from "../../domain/types";
@@ -68,6 +68,84 @@ describe("ActionCard — cycle de statut 1-clic", () => {
       <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
     );
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+});
+
+// jsdom n'implémente pas PointerEvent : on déclenche les mêmes types
+// d'événement via MouseEvent, qui porte bien clientX/clientY (seul
+// `pointerId`, absent des deux côtés, reste indéfini — sans effet puisque
+// le composant ne fait que comparer les deux occurrences entre elles).
+function swipe(element: Element, deltaX: number) {
+  fireEvent(element, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+  fireEvent(element, new MouseEvent("pointermove", { clientX: deltaX, clientY: 0, bubbles: true }));
+  fireEvent(element, new MouseEvent("pointerup", { clientX: deltaX, clientY: 0, bubbles: true }));
+}
+
+describe("ActionCard — swipe (terminer / replanifier)", () => {
+  it("swipe à droite au-delà du seuil déclenche onSwipeComplete", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    swipe(screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!, 120);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("swipe à gauche au-delà du seuil déclenche onMove (équivalent de \"Déplacer\")", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    swipe(screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!, -120);
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+  });
+
+  it("un déplacement sous le seuil ne déclenche rien", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    swipe(screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!, 40);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("une action déjà terminée ne propose pas le swipe de complétion", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    swipe(screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!, 120);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
   });
 });
 

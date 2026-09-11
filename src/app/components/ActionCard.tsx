@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
@@ -6,7 +6,12 @@ import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionMenuSheet } from "./ActionMenuSheet";
-import { IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
+import { IconCalendar, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
+
+// Seuil à partir duquel relâcher déclenche l'action ; au-delà, la carte
+// arrête de suivre le doigt pour ne pas la faire sortir de son conteneur.
+const SWIPE_THRESHOLD = 88;
+const SWIPE_MAX = 132;
 
 export function ActionCard({
   action,
@@ -18,6 +23,7 @@ export function ActionCard({
   onOpenWorkspace,
   onMove,
   onCycleStatus,
+  onSwipeComplete,
   onEdit,
   onDelete,
   onDisableReminder,
@@ -34,6 +40,8 @@ export function ActionCard({
   onMove: () => void;
   /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". */
   onCycleStatus?: () => void;
+  /** Swipe à droite : passe directement l'action à "Terminé" (équivalent geste de la checkbox/menu). */
+  onSwipeComplete?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onDisableReminder?: () => void;
@@ -41,6 +49,9 @@ export function ActionCard({
   onOpenLink?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean } | null>(null);
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
@@ -53,79 +64,144 @@ export function ActionCard({
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
   const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind) || action.itemType !== "task";
+  const swipeCompleteEnabled = Boolean(onSwipeComplete) && !isDone;
+  const swipeEnabled = swipeCompleteEnabled || Boolean(onMove);
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!swipeEnabled || menuOpen) return;
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false };
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (!drag.committed) {
+      // Zone morte + intention clairement horizontale, pour ne jamais gêner
+      // le défilement vertical de la liste ni un simple tap.
+      if (Math.abs(deltaX) < 10 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+      drag.committed = true;
+      setIsDragging(true);
+      // Absent en environnement de test (jsdom) : optionnel, sans impact
+      // fonctionnel puisque la capture ne fait que fiabiliser le suivi du
+      // pointeur au-delà des bords de l'élément.
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+    event.preventDefault();
+    const max = SWIPE_MAX;
+    const clamped = Math.max(-max, Math.min(max, deltaX));
+    setDragX(swipeCompleteEnabled ? clamped : Math.min(clamped, 0));
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    if (drag.committed) {
+      if (dragX >= SWIPE_THRESHOLD && swipeCompleteEnabled) {
+        onSwipeComplete!();
+      } else if (dragX <= -SWIPE_THRESHOLD) {
+        onMove();
+      }
+    }
+    setDragX(0);
+  }
 
   return (
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
-      {hasChips && (
-        <div className="action-card-chips">
-          {workspaceKind && onOpenWorkspace ? (
-            <button type="button" className={`badge badge-${workspaceKind} badge-button`} onClick={onOpenWorkspace}>
-              {KIND_LABELS[workspaceKind]}
-            </button>
-          ) : (
-            workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>
+      {swipeEnabled && (
+        <div className="action-card-swipe-bg" aria-hidden="true">
+          {swipeCompleteEnabled && (
+            <span className="action-card-swipe-bg-complete">
+              <StatusCheckIcon status="done" /> Terminer
+            </span>
           )}
-          {action.phaseId && (
-            <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
-          )}
-          {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
-          {action.itemType !== "task" && (
-            <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
-          )}
+          <span className="action-card-swipe-bg-reschedule">
+            Replanifier <IconCalendar width={18} height={18} />
+          </span>
         </div>
       )}
-      <div className="action-card-body">
-        {onCycleStatus && (
-          <button
-            type="button"
-            className="status-check"
-            role="checkbox"
-            aria-checked={ariaChecked}
-            aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
-            onClick={onCycleStatus}
-          >
-            <StatusCheckIcon status={action.status} />
-          </button>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span
-            className="action-title"
-            style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
-          >
-            {action.title}
-          </span>
-          <div className="action-sub">
-            <span>
-              {workspaceName ? `${workspaceName} · ` : ""}
-              {statusLabel}
-              {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
-              {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
-            </span>
-            {noteCount > 0 && (
-              <span className="meta-chip">
-                <IconMessage width={14} height={14} /> {noteCount}
-              </span>
+      <div
+        className={`action-card-swipe-content${isDragging ? " is-dragging" : ""}`}
+        style={dragX !== 0 ? { transform: `translateX(${dragX}px)` } : undefined}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        {hasChips && (
+          <div className="action-card-chips">
+            {workspaceKind && onOpenWorkspace ? (
+              <button type="button" className={`badge badge-${workspaceKind} badge-button`} onClick={onOpenWorkspace}>
+                {KIND_LABELS[workspaceKind]}
+              </button>
+            ) : (
+              workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>
             )}
-            {hasLink && (
-              <span className="meta-chip">
-                <IconLink width={14} height={14} />
-              </span>
+            {action.phaseId && (
+              <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
+            )}
+            {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
+            {action.itemType !== "task" && (
+              <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
             )}
           </div>
-          {reminderDue && (
-            <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
-              Relance due
-              {onDisableReminder && (
-                <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
-                  Désactiver la relance
-                </button>
+        )}
+        <div className="action-card-body">
+          {onCycleStatus && (
+            <button
+              type="button"
+              className="status-check"
+              role="checkbox"
+              aria-checked={ariaChecked}
+              aria-label={`Statut de "${action.title}" : ${statusLabel}. Appuyer pour passer à ${nextStatusLabel}.`}
+              onClick={onCycleStatus}
+            >
+              <StatusCheckIcon status={action.status} />
+            </button>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span
+              className="action-title"
+              style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
+            >
+              {action.title}
+            </span>
+            <div className="action-sub">
+              <span>
+                {workspaceName ? `${workspaceName} · ` : ""}
+                {statusLabel}
+                {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
+                {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
+              </span>
+              {noteCount > 0 && (
+                <span className="meta-chip">
+                  <IconMessage width={14} height={14} /> {noteCount}
+                </span>
+              )}
+              {hasLink && (
+                <span className="meta-chip">
+                  <IconLink width={14} height={14} />
+                </span>
               )}
             </div>
-          )}
+            {reminderDue && (
+              <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
+                Relance due
+                {onDisableReminder && (
+                  <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
+                    Désactiver la relance
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
+            <IconMore />
+          </button>
         </div>
-        <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
-          <IconMore />
-        </button>
       </div>
       {menuOpen && (
         <ActionMenuSheet

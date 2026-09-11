@@ -173,6 +173,7 @@ export function RunWorkspaceScreen({
               statusLabels={statusLabels}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
@@ -189,6 +190,7 @@ export function RunWorkspaceScreen({
               emptyMessage="Aucune action planifiée."
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
@@ -204,6 +206,7 @@ export function RunWorkspaceScreen({
               statusLabels={statusLabels}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
