@@ -14,8 +14,24 @@ export function EmptyState({ title, description, action }: { title: string; desc
 
 export function LoadingState({ label = "Chargement…" }: { label?: string }) {
   return (
-    <div className="state-block" role="status" aria-live="polite">
-      <p>{label}</p>
+    <div className="loading-skeleton" role="status" aria-live="polite" aria-busy="true">
+      <span className="sr-only">{label}</span>
+      <div className="loading-skeleton-header" aria-hidden="true">
+        <span className="skeleton-block skeleton-title" />
+        <span className="skeleton-block skeleton-subtitle" />
+      </div>
+      <div className="loading-skeleton-list" aria-hidden="true">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div className="skeleton-card" key={index}>
+            <span className="skeleton-block skeleton-card-icon" />
+            <span className="skeleton-card-lines">
+              <span className="skeleton-block skeleton-card-title" />
+              <span className="skeleton-block skeleton-card-detail" />
+              <span className="skeleton-block skeleton-card-meta" />
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -32,6 +32,7 @@ export function TemporaryStoreProvider({
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      isLoading: false,
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
           ...input,
