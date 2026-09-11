@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
+import type { Action } from "../../domain/types";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
 import { defaultMaterializationWindow, generateRecurringOccurrences } from "../../recurrence/recurrence-engine";
@@ -22,7 +23,16 @@ import {
   type WorkspaceRow,
 } from "./supabase/mappers";
 import { getOrCreateUserHash } from "./supabase/user-hash";
-import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue } from "./store-context";
+import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue, type SyncConflict } from "./store-context";
+
+/** Cherche une action tous espaces confondus (les mutations d'action ne connaissent que son id). */
+function findAction(state: AppState, actionId: string): Action | undefined {
+  for (const list of Object.values(state.actionsByWorkspace)) {
+    const found = list.find((action) => action.id === actionId);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 /**
  * ADAPTATEUR SUPABASE (Lot 5) — persistance réelle.
@@ -123,17 +133,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     load();
   }, [load]);
 
-  /** Applique localement puis réplique vers Supabase ; erreur affichée sans annuler l'UI locale. */
-  const dispatchAndPersist = useCallback(
-    (event: AppEvent, persist: () => Promise<void>) => {
-      dispatch(event);
-      persist().catch((cause) => {
-        setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
-      });
-    },
-    []
-  );
-
   /**
    * File d'attente par clé (actionId, ou `workspace:<id>` pour les notes de
    * projet) : sans ça, deux mutations coup sur coup sur la même ressource
@@ -156,26 +155,130 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     return attempt;
   }, []);
 
-  const queueActionPersist = useCallback(
-    (actionId: string, persist: () => Promise<void>) => {
-      queuePersist(actionId, persist).catch((cause) => {
-        setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
-      });
+  /**
+   * File des mutations pas encore confirmées synchronisées (créée à
+   * l'application optimiste, effacée à la confirmation Supabase). Une
+   * entrée qui échoue y reste : elle est rejouée à la reconnexion
+   * (`retryPending`) au lieu d'être perdue derrière un message d'erreur
+   * silencieux. `baselineUpdatedAt` (uniquement pour les actions) porte la
+   * valeur locale de `updatedAt` juste avant cette mutation — comparée à
+   * `updated_at` côté serveur au moment du retry, elle permet de détecter
+   * qu'une autre source a écrit une version plus récente entre-temps, pour
+   * ne jamais l'écraser silencieusement (cadrage Lot 3 §1).
+   */
+  interface PendingMutation {
+    key: string;
+    persist: () => Promise<void>;
+    actionId?: string;
+    baselineUpdatedAt?: string;
+  }
+  const pendingRef = useRef(new Map<string, PendingMutation>());
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [conflictEntries, setConflictEntries] = useState<PendingMutation[]>([]);
+
+  const trackPersist = useCallback(
+    (mutation: PendingMutation): Promise<void> => {
+      pendingRef.current.set(mutation.key, mutation);
+      setPendingSyncCount(pendingRef.current.size);
+      return queuePersist(mutation.key, mutation.persist)
+        .then(() => {
+          pendingRef.current.delete(mutation.key);
+          setPendingSyncCount(pendingRef.current.size);
+        })
+        .catch((cause) => {
+          // Reste dans pendingRef pour le prochain retry ; l'appelant décide
+          // s'il propage l'erreur (editWorkspaceDescription, updateHubSettings)
+          // ou l'avale (dispatchAndPersist*, déjà optimistes).
+          setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+          throw cause;
+        });
     },
     [queuePersist]
   );
 
+  /** Applique localement puis réplique vers Supabase ; erreur affichée sans annuler l'UI locale. */
+  const dispatchAndPersist = useCallback(
+    (event: AppEvent, persist: () => Promise<void>) => {
+      dispatch(event);
+      trackPersist({ key: `${event.type}:${generateId()}`, persist }).catch(() => {});
+    },
+    [trackPersist]
+  );
+
+  const queueActionPersist = useCallback(
+    (actionId: string, persist: () => Promise<void>, baselineUpdatedAt?: string) => {
+      trackPersist({ key: actionId, persist, actionId, baselineUpdatedAt }).catch(() => {});
+    },
+    [trackPersist]
+  );
+
   const dispatchAndPersistAction = useCallback(
     (actionId: string, event: AppEvent, persist: () => Promise<void>) => {
+      const baselineUpdatedAt = findAction(state, actionId)?.updatedAt;
       dispatch(event);
-      queueActionPersist(actionId, persist);
+      queueActionPersist(actionId, persist, baselineUpdatedAt);
     },
-    [queueActionPersist]
+    [queueActionPersist, state]
+  );
+
+  /**
+   * Rejoue les mutations en attente à la reconnexion. Pour une action, la
+   * version serveur est d'abord relue et comparée à `baselineUpdatedAt` :
+   * si elle a changé, la mutation part en conflit explicite plutôt que
+   * d'écraser une écriture plus récente arrivée pendant la coupure.
+   */
+  const retryPending = useCallback(async () => {
+    const entries = Array.from(pendingRef.current.values());
+    for (const entry of entries) {
+      if (entry.actionId && entry.baselineUpdatedAt) {
+        try {
+          const { data } = await client
+            .from("projets_actions")
+            .select("updated_at")
+            .eq("id", entry.actionId)
+            .maybeSingle();
+          if (data?.updated_at && data.updated_at !== entry.baselineUpdatedAt) {
+            pendingRef.current.delete(entry.key);
+            setPendingSyncCount(pendingRef.current.size);
+            setConflictEntries((prev) => (prev.some((c) => c.key === entry.key) ? prev : [...prev, entry]));
+            continue;
+          }
+        } catch {
+          continue; // Toujours pas de réseau : on retentera au prochain online.
+        }
+      }
+      trackPersist(entry).catch(() => {});
+    }
+  }, [client, trackPersist]);
+
+  useEffect(() => {
+    window.addEventListener("online", retryPending);
+    return () => window.removeEventListener("online", retryPending);
+  }, [retryPending]);
+
+  const conflicts = useMemo<SyncConflict[]>(
+    () =>
+      conflictEntries.map((entry) => ({
+        key: entry.key,
+        actionId: entry.actionId!,
+        actionTitle: findAction(state, entry.actionId!)?.title ?? "Action",
+        onKeepLocal: () => {
+          setConflictEntries((prev) => prev.filter((c) => c.key !== entry.key));
+          trackPersist(entry).catch(() => {});
+        },
+        onDiscardLocal: () => {
+          setConflictEntries((prev) => prev.filter((c) => c.key !== entry.key));
+          load();
+        },
+      })),
+    [conflictEntries, state, trackPersist, load]
   );
 
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      pendingSyncCount,
+      conflicts,
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
           ...input,
@@ -203,18 +306,18 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       editWorkspaceDescription: (workspaceId, description) => {
         const now = new Date().toISOString();
         dispatch({ type: "workspace/editDescription", workspaceId, description, now });
-        return queuePersist(`workspace:${workspaceId}`, async () => {
-          const updated = appReducer(state, { type: "workspace/editDescription", workspaceId, description, now })
-            .workspaces.find((w) => w.id === workspaceId);
-          if (!updated) return;
-          const { error } = await client
-            .from("projets_workspaces")
-            .update({ description: updated.description ?? null, updated_at: updated.updatedAt })
-            .eq("id", workspaceId);
-          if (error) throw error;
-        }).catch((cause) => {
-          setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
-          throw cause;
+        return trackPersist({
+          key: `workspace:${workspaceId}`,
+          persist: async () => {
+            const updated = appReducer(state, { type: "workspace/editDescription", workspaceId, description, now })
+              .workspaces.find((w) => w.id === workspaceId);
+            if (!updated) return;
+            const { error } = await client
+              .from("projets_workspaces")
+              .update({ description: updated.description ?? null, updated_at: updated.updatedAt })
+              .eq("id", workspaceId);
+            if (error) throw error;
+          },
         });
       },
 
@@ -264,14 +367,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       updateHubSettings: (settings) => {
         dispatch({ type: "hub-settings/update", settings });
         const now = new Date().toISOString();
-        return queuePersist("hub-settings", async () => {
-          const { error } = await client
-            .from("projets_hub_settings")
-            .upsert(hubSettingsToRow(settings, userHash, now), { onConflict: "user_hash" });
-          if (error) throw error;
-        }).catch((cause) => {
-          setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
-          throw cause;
+        return trackPersist({
+          key: "hub-settings",
+          persist: async () => {
+            const { error } = await client
+              .from("projets_hub_settings")
+              .upsert(hubSettingsToRow(settings, userHash, now), { onConflict: "user_hash" });
+            if (error) throw error;
+          },
         });
       },
 
@@ -396,13 +499,18 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         ] ?? [];
         const changed = after.filter((action, index) => action.waitingReminder !== before[index]?.waitingReminder);
         for (const action of changed) {
-          queueActionPersist(action.id, async () => {
-            const { error } = await client
-              .from("projets_actions")
-              .update({ waiting_reminder: action.waitingReminder })
-              .eq("id", action.id);
-            if (error) throw error;
-          });
+          const baselineUpdatedAt = before.find((candidate) => candidate.id === action.id)?.updatedAt;
+          queueActionPersist(
+            action.id,
+            async () => {
+              const { error } = await client
+                .from("projets_actions")
+                .update({ waiting_reminder: action.waitingReminder })
+                .eq("id", action.id);
+              if (error) throw error;
+            },
+            baselineUpdatedAt
+          );
         }
       },
 
@@ -470,7 +578,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [state, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist, queuePersist]
+    [
+      state,
+      pendingSyncCount,
+      conflicts,
+      client,
+      userHash,
+      dispatchAndPersist,
+      dispatchAndPersistAction,
+      queueActionPersist,
+      trackPersist,
+    ]
   );
 
   if (status === "loading") {
@@ -483,6 +601,9 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
   return (
     <StoreContext.Provider value={value}>
+      {conflicts.map((conflict) => (
+        <SyncConflictBanner key={conflict.key} conflict={conflict} />
+      ))}
       {syncError && <SupabaseSyncErrorBanner message={syncError} onDismiss={() => setSyncError(null)} />}
       {children}
     </StoreContext.Provider>
@@ -506,6 +627,20 @@ function SupabaseBootScreen({
           Réessayer
         </button>
       )}
+    </div>
+  );
+}
+
+function SyncConflictBanner({ conflict }: { conflict: SyncConflict }) {
+  return (
+    <div className="offline-banner" role="alert">
+      "{conflict.actionTitle}" a été modifiée ailleurs pendant la coupure réseau.{" "}
+      <button type="button" className="btn tap-target" style={{ marginLeft: 8 }} onClick={conflict.onKeepLocal}>
+        Garder ma version
+      </button>
+      <button type="button" className="btn tap-target" style={{ marginLeft: 8 }} onClick={conflict.onDiscardLocal}>
+        Garder celle du serveur
+      </button>
     </div>
   );
 }

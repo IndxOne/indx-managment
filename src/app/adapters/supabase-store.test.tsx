@@ -120,6 +120,166 @@ function TestConsumer() {
   );
 }
 
+function RetryTestConsumer() {
+  const { state, moveActionEvent, pendingSyncCount, conflicts } = useStore();
+  const action = state.actionsByWorkspace[WORKSPACE_ID]?.[0];
+  if (!action) return <p>chargement…</p>;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => moveActionEvent(WORKSPACE_ID, ACTION_ID, { axis: "status", status: "doing" })}
+      >
+        move
+      </button>
+      <p>en attente : {pendingSyncCount}</p>
+      {conflicts.map((conflict) => (
+        <div key={conflict.key}>
+          <p>conflit : {conflict.actionTitle}</p>
+          <button type="button" onClick={conflict.onKeepLocal}>
+            garder ma version
+          </button>
+          <button type="button" onClick={conflict.onDiscardLocal}>
+            garder celle du serveur
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface RetryMockClient {
+  client: unknown;
+  updateCallCount: () => number;
+  setUpdateShouldFail: (value: boolean) => void;
+  setRemoteUpdatedAt: (value: string) => void;
+}
+
+/**
+ * Contrairement à `makeMockClient` (écritures qui ne résolvent que sur
+ * commande, pour figer une course), ce mock résout immédiatement mais peut
+ * échouer sur commande — nécessaire pour simuler une coupure réseau suivie
+ * d'une reconnexion (`retryPending`), puis la vérification de conflit
+ * (`select("updated_at").eq(...).maybeSingle()`) qui la précède.
+ */
+function makeRetryMockClient(): RetryMockClient {
+  let updateShouldFail = true;
+  let remoteUpdatedAt = actionRow().updated_at;
+  let updateCallCount = 0;
+
+  const client = {
+    from(table: string) {
+      return {
+        select: () => ({
+          order: async () => {
+            if (table === "projets_workspaces") return { data: [workspaceRow()], error: null };
+            if (table === "projets_actions") return { data: [actionRow()], error: null };
+            return { data: [], error: null };
+          },
+          maybeSingle: async () => ({ data: null, error: null }),
+          eq: () => ({
+            maybeSingle: async () => ({ data: { updated_at: remoteUpdatedAt }, error: null }),
+          }),
+        }),
+        update: () => ({
+          eq: async () => {
+            updateCallCount += 1;
+            return { error: updateShouldFail ? new Error("réseau indisponible") : null };
+          },
+        }),
+      };
+    },
+  };
+
+  return {
+    client,
+    updateCallCount: () => updateCallCount,
+    setUpdateShouldFail: (value) => {
+      updateShouldFail = value;
+    },
+    setRemoteUpdatedAt: (value) => {
+      remoteUpdatedAt = value;
+    },
+  };
+}
+
+describe("SupabaseStoreProvider — file de retry et conflit à la reconnexion", () => {
+  it("retente une mutation échouée à la reconnexion et l'efface de la file une fois confirmée", async () => {
+    const retryClient = makeRetryMockClient();
+    mockClientInstance = retryClient.client;
+
+    render(
+      <SupabaseStoreProvider>
+        <RetryTestConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "move" });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(retryClient.updateCallCount()).toBe(1);
+    expect(screen.getByText("en attente : 1")).toBeInTheDocument();
+
+    retryClient.setUpdateShouldFail(false);
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(retryClient.updateCallCount()).toBe(2);
+    expect(screen.getByText("en attente : 0")).toBeInTheDocument();
+  });
+
+  it("n'écrase jamais silencieusement une version plus récente arrivée pendant la coupure", async () => {
+    const retryClient = makeRetryMockClient();
+    mockClientInstance = retryClient.client;
+
+    render(
+      <SupabaseStoreProvider>
+        <RetryTestConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "move" });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(retryClient.updateCallCount()).toBe(1);
+
+    // Pendant la coupure, une autre source a modifié l'action côté serveur.
+    retryClient.setRemoteUpdatedAt("2026-09-02T00:00:00.000Z");
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Pas de deuxième tentative d'écriture : le conflit bloque le retry aveugle.
+    expect(retryClient.updateCallCount()).toBe(1);
+    expect(screen.getByText("en attente : 0")).toBeInTheDocument();
+    expect(screen.getByText(/conflit : /)).toBeInTheDocument();
+
+    retryClient.setUpdateShouldFail(false);
+    await act(async () => {
+      screen.getByRole("button", { name: "garder ma version" }).click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(retryClient.updateCallCount()).toBe(2);
+    expect(screen.queryByText(/conflit : /)).not.toBeInTheDocument();
+  });
+});
+
 function DescriptionTestConsumer() {
   const { state, editWorkspaceDescription } = useStore();
   const workspace = state.workspaces[0];

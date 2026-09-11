@@ -32,6 +32,9 @@ export function TemporaryStoreProvider({
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      // Pas de réseau ici : rien n'est jamais "en attente" ni en conflit.
+      pendingSyncCount: 0,
+      conflicts: [],
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
           ...input,
