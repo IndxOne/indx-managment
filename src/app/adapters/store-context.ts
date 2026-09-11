@@ -70,9 +70,31 @@ export interface NewRecurrenceRuleInput {
 
 export type NewWorkspaceInput = Omit<CreateWorkspaceInput, "id">;
 
+/**
+ * Conflit détecté en retentant une mutation d'action après une coupure
+ * réseau : le serveur a une version plus récente que celle dont partait la
+ * mutation locale en attente. Jamais résolu automatiquement (pas de
+ * "dernière écriture gagne" silencieuse) — l'utilisateur choisit.
+ */
+export interface SyncConflict {
+  key: string;
+  actionId: string;
+  actionTitle: string;
+  /** Écrase la version serveur avec la mutation locale en attente. */
+  onKeepLocal: () => void;
+  /** Abandonne la mutation locale en attente et recharge depuis Supabase. */
+  onDiscardLocal: () => void;
+}
+
 export interface StoreContextValue {
   state: AppState;
   isLoading: boolean;
+  /** Nombre de mutations pas encore confirmées synchronisées (créé/modifié en attente d'écriture Supabase). */
+  pendingSyncCount: number;
+  /** Ids des actions dont au moins une mutation n'est pas encore confirmée synchronisée (badge de sync par carte). */
+  pendingActionIds: string[];
+  /** Conflits détectés au retry, en attente d'un choix explicite (cf. SyncConflict). */
+  conflicts: SyncConflict[];
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
   /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */

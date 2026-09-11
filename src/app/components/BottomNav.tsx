@@ -22,6 +22,7 @@ export function BottomNav({
   remindersActive = false,
   onOpenRoles = () => {},
   rolesActive = false,
+  secondTab = "week",
 }: {
   active: NavTab;
   onChange: (tab: NavTab) => void;
@@ -38,6 +39,10 @@ export function BottomNav({
   remindersActive?: boolean;
   onOpenRoles?: () => void;
   rolesActive?: boolean;
+  /** Personnalisation mobile (Réglages) : la 2e destination remplace
+   * "Semaine" par "Rappels" quand elle vaut "reminders". N'affecte pas la
+   * sidebar desktop, qui propose déjà les deux en permanence. */
+  secondTab?: "week" | "reminders";
 }) {
   // Rendu conditionnel (pas seulement masqué en CSS) : sur mobile, la liste
   // des espaces vit déjà dans l'onglet "Espaces" — la dupliquer dans le DOM
@@ -95,18 +100,34 @@ export function BottomNav({
           </button>
         </>
       ) : (
-        TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className="bottom-nav-item tap-target"
-            aria-current={active === id ? "page" : undefined}
-            onClick={() => onChange(id)}
-          >
-            <Icon width={24} height={24} strokeWidth={1.6} />
-            <span>{label}</span>
-          </button>
-        ))
+        TABS.map(({ id, label, Icon }) => {
+          if (id === "week" && secondTab === "reminders") {
+            return (
+              <button
+                key="reminders"
+                type="button"
+                className="bottom-nav-item tap-target"
+                aria-current={remindersActive ? "page" : undefined}
+                onClick={onOpenReminders}
+              >
+                <IconBell width={24} height={24} strokeWidth={1.6} />
+                <span>Rappels</span>
+              </button>
+            );
+          }
+          return (
+            <button
+              key={id}
+              type="button"
+              className="bottom-nav-item tap-target"
+              aria-current={active === id ? "page" : undefined}
+              onClick={() => onChange(id)}
+            >
+              <Icon width={24} height={24} strokeWidth={1.6} />
+              <span>{label}</span>
+            </button>
+          );
+        })
       )}
 
       {isDesktop && (

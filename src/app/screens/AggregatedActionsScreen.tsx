@@ -5,6 +5,7 @@ import type { Action } from "../../domain/types";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
@@ -50,6 +51,7 @@ export function AggregatedActionsScreen({
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
+  const resolveSyncStatus = useActionSyncStatus();
 
   const [movingAction, setMovingAction] = useState<Action | null>(null);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
@@ -126,6 +128,7 @@ export function AggregatedActionsScreen({
               onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              resolveSyncStatus={resolveSyncStatus}
             />
             <ActionListSection
               id="section-inview"
@@ -145,6 +148,7 @@ export function AggregatedActionsScreen({
               onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              resolveSyncStatus={resolveSyncStatus}
             />
           </>
         )}

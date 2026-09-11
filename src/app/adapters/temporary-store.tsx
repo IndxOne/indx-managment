@@ -33,6 +33,10 @@ export function TemporaryStoreProvider({
     () => ({
       state,
       isLoading: false,
+      // Pas de réseau ici : rien n'est jamais "en attente" ni en conflit.
+      pendingSyncCount: 0,
+      pendingActionIds: [],
+      conflicts: [],
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
           ...input,

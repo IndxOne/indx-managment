@@ -1606,6 +1606,23 @@ a {
   gap: 3px;
 }
 
+.sync-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.sync-chip-pending {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.sync-chip-conflict {
+  color: var(--color-danger);
+  background: var(--chip-red-bg);
+}
+
 .action-menu-item {
   display: flex;
   align-items: center;
