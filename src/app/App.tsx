@@ -6,7 +6,6 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
-import { useSecondTabPreference } from "./hooks/useSecondTabPreference";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
@@ -45,8 +44,9 @@ function routeToTab(route: Route): NavTab {
       return "today";
     case "week":
       return "week";
-    case "more":
     case "reminders":
+      return "reminders";
+    case "more":
     case "carnet":
     case "hub":
     case "roles":
@@ -76,10 +76,13 @@ function useOnlineStatus(): boolean {
 
 function AppShell() {
   const { state, isLoading } = useStore();
-  const [route, setRoute] = useState<Route>({ screen: "spaces-list" });
+  // Accueil (Home) est la route initiale : ouvrir l'app sur ce qui nécessite
+  // une action immédiate, pas sur la liste des projets (décision produit
+  // validée). Le contenu reste l'écran "Aujourd'hui" existant tant que le
+  // renforcement Home (retard/bloqué) du Lot 7 n'est pas livré.
+  const [route, setRoute] = useState<Route>({ screen: "today" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
-  const secondTab = useSecondTabPreference();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
@@ -118,11 +121,6 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
-        onOpenReminders={() => setRoute({ screen: "reminders" })}
-        remindersActive={route.screen === "reminders"}
-        onOpenRoles={() => setRoute({ screen: "roles" })}
-        rolesActive={route.screen === "roles"}
-        secondTab={secondTab}
       />
       <main className="app-content">
         {!booted || isLoading ? (

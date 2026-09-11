@@ -19,7 +19,7 @@ function workspace(overrides: Partial<Workspace> = {}): Workspace {
 }
 
 describe("BottomNav", () => {
-  it("affiche les 4 entrées recommandées par le cadrage §8", () => {
+  it("affiche les 4 destinations primaires + l'accès secondaire Plus (cadrage renouveau produit Lot 1)", () => {
     render(
       <BottomNav
         active="today"
@@ -29,10 +29,24 @@ describe("BottomNav", () => {
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getByRole("button", { name: /Aujourd'hui/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Semaine/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Espaces/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+  });
+
+  it("ne propose pas de 5e destination primaire au-delà de Plus", () => {
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.getAllByRole("button", { name: /Accueil|Projets|Cette semaine|Rappels|Plus/ })).toHaveLength(5);
   });
 
   it("marque l'onglet actif avec aria-current", () => {
@@ -45,8 +59,21 @@ describe("BottomNav", () => {
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getByRole("button", { name: /Espaces/ })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: /Aujourd'hui/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Projets/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /Accueil/ })).not.toHaveAttribute("aria-current");
+  });
+
+  it("marque Rappels actif quand la route courante est reminders", () => {
+    render(
+      <BottomNav
+        active="reminders"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Rappels/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("chaque cible tactile respecte le minimum 44px (classe tap-target)", () => {
@@ -77,48 +104,15 @@ describe("BottomNav", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Semaine/ }));
+    await user.click(screen.getByRole("button", { name: /Cette semaine/ }));
     expect(onChange).toHaveBeenCalledWith("week");
+
+    await user.click(screen.getByRole("button", { name: /Rappels/ }));
+    expect(onChange).toHaveBeenCalledWith("reminders");
 
     screen.getByRole("button", { name: /Plus/ }).focus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("more");
-  });
-
-  it("propose Semaine par défaut, sans secondTab", () => {
-    render(
-      <BottomNav
-        active="today"
-        onChange={() => {}}
-        workspaces={[]}
-        onSelectWorkspace={() => {}}
-        onCreateWorkspace={() => {}}
-      />
-    );
-    expect(screen.getByRole("button", { name: /Semaine/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
-  });
-
-  it("remplace Semaine par Rappels sur mobile quand secondTab vaut \"reminders\"", async () => {
-    const user = userEvent.setup();
-    const onOpenReminders = vi.fn();
-    render(
-      <BottomNav
-        active="today"
-        onChange={() => {}}
-        workspaces={[]}
-        onSelectWorkspace={() => {}}
-        onCreateWorkspace={() => {}}
-        onOpenReminders={onOpenReminders}
-        remindersActive
-        secondTab="reminders"
-      />
-    );
-    expect(screen.queryByRole("button", { name: /Semaine/ })).not.toBeInTheDocument();
-    const remindersButton = screen.getByRole("button", { name: /Rappels/ });
-    expect(remindersButton).toHaveAttribute("aria-current", "page");
-    await user.click(remindersButton);
-    expect(onOpenReminders).toHaveBeenCalledTimes(1);
   });
 
   it("liste les espaces dans la barre latérale, marque l'espace actif et permet d'en créer un", async () => {
