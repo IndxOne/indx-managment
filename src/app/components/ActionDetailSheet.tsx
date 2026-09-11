@@ -5,6 +5,7 @@ import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import type { Workspace } from "../../domain/workspace";
 import { ITEM_TYPE_LABELS, PRIORITY_LABELS } from "../labels";
 import { phaseLabel } from "../labels";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { EditActionSheet } from "./EditActionSheet";
 import { MoveActionSheet } from "./MoveActionSheet";
@@ -79,6 +80,7 @@ export function ActionDetailSheet({
 
   const noteCount = action.notes?.length ?? 0;
   const reminder = action.waitingReminder;
+  const displayPhaseId = resolveDisplayPhaseId(action.phaseId, phaseOptions);
   const reminderActive = action.status === "waiting" && reminder?.enabled;
 
   return (
@@ -136,7 +138,7 @@ export function ActionDetailSheet({
                 chipClass="phase-chip-gray"
                 icon={<IconLayers width={18} height={18} />}
                 label="Phase"
-                value={action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}
+                value={displayPhaseId ? phaseLabel(displayPhaseId) : "Aucune phase"}
                 onClick={() => setMoveAxis("phase")}
               />
             )}

@@ -9,6 +9,7 @@ import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
@@ -24,23 +25,6 @@ import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState } from "../components/StateBlocks";
 
 type ProjectMode = "phase" | "week";
-
-// Les anciennes phases AMOA restent affichées dans la colonne équivalente
-// après le passage du tableau de six à quatre colonnes. Les données ne sont
-// jamais réécrites lors d'un changement de préréglage.
-const LEGACY_PHASE_COLUMNS: Record<string, string> = {
-  ateliers: "conception",
-  realisations: "realisation",
-  validations: "deploiement",
-  restitutions: "deploiement",
-  cloture: "deploiement",
-};
-
-function resolveActionColumn(action: Action, phases: string[]): string | undefined {
-  if (!action.phaseId) return phases[0];
-  if (phases.includes(action.phaseId)) return action.phaseId;
-  return LEGACY_PHASE_COLUMNS[action.phaseId] ?? phases[0];
-}
 
 export function ProjectWorkspaceScreen({
   workspace,
@@ -100,7 +84,7 @@ export function ProjectWorkspaceScreen({
     const grouped: Record<string, Action[]> = {};
     for (const phase of phases) grouped[phase] = [];
     for (const action of allActions) {
-      const phase = resolveActionColumn(action, phases);
+      const phase = resolveDisplayPhaseId(action.phaseId, phases);
       if (phase && grouped[phase]) grouped[phase]!.push(action);
     }
     return grouped;

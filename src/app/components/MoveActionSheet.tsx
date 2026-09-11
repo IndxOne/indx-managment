@@ -5,6 +5,7 @@ import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { BottomSheet } from "./BottomSheet";
 import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
@@ -33,6 +34,7 @@ export function MoveActionSheet({
 }) {
   const [axis, setAxis] = useState<MoveAxis | null>(initialAxis ?? null);
   const currentWeek = formatIsoWeek(todayInTimeZone(timezone));
+  const displayPhaseId = resolveDisplayPhaseId(action.phaseId, phaseOptions);
 
   if (axis === null) {
     return (
@@ -57,7 +59,7 @@ export function MoveActionSheet({
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="move-axis-label">Phase</span>
-                <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
+                <span className="move-axis-sub">{displayPhaseId ? phaseLabel(displayPhaseId) : "Aucune phase"}</span>
               </span>
             </button>
           )}

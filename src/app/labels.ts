@@ -61,10 +61,8 @@ export const ITEM_TYPE_LABELS: Record<WorkItemType, string> = {
 // Slugs des phaseTemplate déclarés dans preset-registry.ts : accents corrigés
 // pour l'affichage, capitalisation générique en repli pour un slug inconnu.
 const PHASE_LABEL_OVERRIDES: Record<string, string> = {
-  a_traiter: "À traiter",
-  en_cours: "En cours",
-  en_attente: "En attente",
-  termine: "Terminé",
+  preparation: "Préparation",
+  verification: "Vérification",
   demandes: "Demandes",
   diagnostic: "Diagnostic",
   resolution: "Résolution",
