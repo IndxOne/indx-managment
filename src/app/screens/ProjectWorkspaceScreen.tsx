@@ -9,6 +9,7 @@ import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
+import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { ColumnsView } from "../components/ColumnsView";
@@ -87,6 +88,8 @@ export function ProjectWorkspaceScreen({
   const notesAction = allActions.find((action) => action.id === notesActionId) ?? null;
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
   const linkingAction = allActions.find((action) => action.id === linkingActionId) ?? null;
+  const [detailActionId, setDetailActionId] = useState<string | null>(null);
+  const detailAction = allActions.find((action) => action.id === detailActionId) ?? null;
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
@@ -188,6 +191,7 @@ export function ProjectWorkspaceScreen({
             onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
             onOpenNotes={(action) => setNotesActionId(action.id)}
             onOpenLink={(action) => setLinkingActionId(action.id)}
+            onOpenDetail={(action) => setDetailActionId(action.id)}
           />
         ) : (
           <>
@@ -226,6 +230,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  onOpenDetail={(action) => setDetailActionId(action.id)}
                   resolveSyncStatus={resolveSyncStatus}
                 />
                 <ActionListSection
@@ -242,6 +247,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  onOpenDetail={(action) => setDetailActionId(action.id)}
                   resolveSyncStatus={resolveSyncStatus}
                 />
               </>
@@ -313,6 +319,27 @@ export function ProjectWorkspaceScreen({
           }}
           onUnlink={() => unlinkAction(workspace.id, linkingAction.id)}
           onNavigate={onNavigateToWorkspace}
+        />
+      )}
+
+      {detailAction && (
+        <ActionDetailSheet
+          action={detailAction}
+          phaseOptions={phases}
+          statusLabels={statusLabels}
+          timezone={timezone}
+          workspaces={state.workspaces}
+          actionsByWorkspace={state.actionsByWorkspace}
+          onClose={() => setDetailActionId(null)}
+          onEdit={(edit) => editAction(workspace.id, detailAction.id, edit)}
+          onMove={(destination) => move(workspace.id, detailAction, destination)}
+          onSetReminder={(afterDays) => setReminder(workspace.id, detailAction.id, afterDays)}
+          onDisableReminder={() => disableReminder(workspace.id, detailAction.id)}
+          onAddNote={(text) => addNote(workspace.id, detailAction.id, text)}
+          onLink={(linkedId) => linkAction(workspace.id, detailAction.id, linkedId)}
+          onUnlink={() => unlinkAction(workspace.id, detailAction.id)}
+          onNavigate={onNavigateToWorkspace}
+          onDelete={() => remove(workspace.id, detailAction)}
         />
       )}
 

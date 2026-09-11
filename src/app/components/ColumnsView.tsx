@@ -54,6 +54,7 @@ export function ColumnsView({
   onDisableReminder,
   onOpenNotes,
   onOpenLink,
+  onOpenDetail,
 }: {
   phases: string[];
   actionsByPhase: Record<string, Action[]>;
@@ -72,6 +73,8 @@ export function ColumnsView({
   onDisableReminder: (action: Action) => void;
   onOpenNotes: (action: Action) => void;
   onOpenLink: (action: Action) => void;
+  /** Ouvre le détail unifié (Lot 5) au tap/clic sur le titre. Absent = comportement inchangé. */
+  onOpenDetail?: (action: Action) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverPhase, setDragOverPhase] = useState<string | null>(null);
@@ -137,6 +140,7 @@ export function ColumnsView({
                   onDisableReminder={() => onDisableReminder(action)}
                   onOpenNotes={() => onOpenNotes(action)}
                   onOpenLink={() => onOpenLink(action)}
+                  onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
                 />
               ))}
             </div>
