@@ -32,6 +32,7 @@ export function TemporaryStoreProvider({
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      isLoading: false,
       // Pas de réseau ici : rien n'est jamais "en attente" ni en conflit.
       pendingSyncCount: 0,
       pendingActionIds: [],

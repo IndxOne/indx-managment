@@ -75,7 +75,7 @@ function useOnlineStatus(): boolean {
 }
 
 function AppShell() {
-  const { state } = useStore();
+  const { state, isLoading } = useStore();
   const [route, setRoute] = useState<Route>({ screen: "spaces-list" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
@@ -99,10 +99,6 @@ function AppShell() {
   function handleNavChange(tab: NavTab) {
     if (tab === "spaces") setRoute({ screen: "spaces-list" });
     else setRoute({ screen: tab });
-  }
-
-  if (!booted) {
-    return <LoadingState label="Chargement d'INDXONE Projets…" />;
   }
 
   const workspace =
@@ -129,7 +125,10 @@ function AppShell() {
         secondTab={secondTab}
       />
       <main className="app-content">
-        <div key={routeKey} className="route-transition">
+        {!booted || isLoading ? (
+          <LoadingState label="Chargement des espaces…" />
+        ) : (
+          <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
           <AggregatedActionsScreen
             title="Aujourd'hui"
@@ -239,7 +238,8 @@ function AppShell() {
         {route.screen === "app-settings" && (
           <AppSettingsScreen onNavigate={(destination) => setRoute({ screen: destination })} />
         )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

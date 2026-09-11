@@ -15,6 +15,7 @@ export function ActionListSection({
   onOpenWorkspace,
   onMove,
   onCycleStatus,
+  onComplete,
   onEdit,
   onDelete,
   onDisableReminder,
@@ -38,6 +39,8 @@ export function ActionListSection({
   onOpenWorkspace?: (action: Action) => void;
   onMove: (action: Action) => void;
   onCycleStatus: (action: Action) => void;
+  /** Swipe à droite sur la carte : passe directement à "Terminé". Omis = swipe de complétion désactivé. */
+  onComplete?: (action: Action) => void;
   onEdit: (action: Action) => void;
   onDelete: (action: Action) => void;
   onDisableReminder: (action: Action) => void;
@@ -90,6 +93,7 @@ export function ActionListSection({
               onOpenWorkspace={workspace && onOpenWorkspace ? () => onOpenWorkspace(action) : undefined}
               onMove={() => onMove(action)}
               onCycleStatus={() => onCycleStatus(action)}
+              onSwipeComplete={onComplete ? () => onComplete(action) : undefined}
               onEdit={() => onEdit(action)}
               onDelete={() => onDelete(action)}
               onDisableReminder={() => onDisableReminder(action)}

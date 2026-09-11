@@ -1,5 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { App } from "../App";
 import { useStore } from "./store-context";
 import { SupabaseStoreProvider } from "./supabase-store";
 import type { ActionRow, WorkspaceRow } from "./supabase/mappers";
@@ -91,6 +93,33 @@ function makeMockClient() {
   };
 }
 
+function makePendingMockClient() {
+  let resolveLoad = () => {};
+  const loadGate = new Promise<void>((resolve) => {
+    resolveLoad = resolve;
+  });
+
+  return {
+    client: {
+      from() {
+        return {
+          select: () => ({
+            order: async () => {
+              await loadGate;
+              return { data: [], error: null };
+            },
+            maybeSingle: async () => {
+              await loadGate;
+              return { data: null, error: null };
+            },
+          }),
+        };
+      },
+    },
+    resolveLoad,
+  };
+}
+
 vi.mock("./supabase/client", () => ({
   getSupabaseClient: () => mockClientInstance,
   isSupabaseConfigured: () => true,
@@ -102,6 +131,29 @@ vi.mock("./supabase/user-hash", () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- réassigné avant chaque test par makeMockClient()
 let mockClientInstance: any;
+
+describe("App — chargement Supabase", () => {
+  it("garde la navigation basse interactive pendant l'affichage du skeleton", async () => {
+    const user = userEvent.setup();
+    const pendingClient = makePendingMockClient();
+    mockClientInstance = pendingClient.client;
+
+    render(<App />);
+
+    const loadingLabel = await screen.findByText("Chargement des espaces…");
+    expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
+    const weekTab = screen.getByRole("button", { name: "Semaine" });
+    await user.click(weekTab);
+    expect(weekTab).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();
+
+    await act(async () => {
+      pendingClient.resolveLoad();
+    });
+
+    expect(await screen.findByRole("heading", { name: "Cette semaine" })).toBeInTheDocument();
+  });
+});
 
 function TestConsumer() {
   const { state, moveActionEvent, setReminder } = useStore();

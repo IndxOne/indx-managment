@@ -13,7 +13,9 @@ describe("États obligatoires (cadrage §8)", () => {
     render(<LoadingState label="Chargement…" />);
     const el = screen.getByRole("status");
     expect(el).toHaveAttribute("aria-live", "polite");
+    expect(el).toHaveAttribute("aria-busy", "true");
     expect(el).toHaveTextContent("Chargement…");
+    expect(el.querySelectorAll(".skeleton-card")).toHaveLength(4);
   });
 
   it("ErrorState expose un rôle alert et un bouton réessayer optionnel", async () => {

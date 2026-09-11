@@ -286,6 +286,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      isLoading: status === "loading",
       pendingSyncCount,
       pendingActionIds,
       conflicts,
@@ -590,6 +591,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       state,
+      status,
       pendingSyncCount,
       pendingActionIds,
       conflicts,
@@ -601,10 +603,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       trackPersist,
     ]
   );
-
-  if (status === "loading") {
-    return <SupabaseBootScreen label="Chargement des espaces…" />;
-  }
 
   if (status === "error") {
     return <SupabaseBootScreen label={syncError ?? "Erreur de chargement"} isError onRetry={load} />;
