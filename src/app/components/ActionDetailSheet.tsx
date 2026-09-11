@@ -1,17 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import type { Action, ActionStatus } from "../../domain/types";
 import type { ActionContentEdit } from "../../domain/edit-action";
+import type { Member } from "../../domain/member";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import type { Workspace } from "../../domain/workspace";
 import { ITEM_TYPE_LABELS, PRIORITY_LABELS } from "../labels";
 import { phaseLabel } from "../labels";
+import { assigneesLabel } from "../utils/member-summary";
 import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { EditActionSheet } from "./EditActionSheet";
+import { MemberAssignSheet } from "./MemberAssignSheet";
 import { MoveActionSheet } from "./MoveActionSheet";
 import { NotesSheet } from "./NotesSheet";
 import { LinkActionSheet } from "./LinkActionSheet";
-import { IconArrowRight, IconBell, IconCalendar, IconLayers, IconLink, IconMessage, IconPencil, IconTrash, StatusCheckIcon } from "./Icons";
+import {
+  IconArrowRight,
+  IconBell,
+  IconCalendar,
+  IconLayers,
+  IconLink,
+  IconMessage,
+  IconPencil,
+  IconTrash,
+  IconUsers,
+  StatusCheckIcon,
+} from "./Icons";
+
+/**
+ * Regroupe les 4 props liées à l'assignation (Lot 8B §K) — évite d'ajouter
+ * 4 props individuelles de plus à un composant qui en a déjà beaucoup.
+ * Absent = pas de ligne "Responsable" (mode Solo ou espace non-équipe),
+ * comportement strictement inchangé.
+ */
+export interface ActionDetailCollaboration {
+  members: Member[];
+  assigneeIds: string[];
+  onChangeAssignees: (assigneeIds: string[]) => void;
+}
 
 /**
  * Point d'entrée unique pour consulter/éditer une action existante (Lot 5) :
@@ -36,6 +62,7 @@ export function ActionDetailSheet({
   onUnlink,
   onNavigate,
   onDelete,
+  collaboration,
 }: {
   action: Action;
   phaseOptions: string[];
@@ -51,6 +78,8 @@ export function ActionDetailSheet({
   onAddNote: (text: string) => void;
   onLink: (linkedId: string) => void;
   onUnlink: () => void;
+  /** Espace en mode Équipe (Lot 8B) : affiche la ligne "Responsable". Absent = pas de ligne, comportement inchangé (mode Solo). */
+  collaboration?: ActionDetailCollaboration;
   onNavigate: (workspaceId: string) => void;
   onDelete: () => void;
 }) {
@@ -60,7 +89,8 @@ export function ActionDetailSheet({
   const [notesOpen, setNotesOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [moveAxis, setMoveAxis] = useState<MoveAxis | "full" | null>(null);
-  const subSheetOpen = editing || notesOpen || linkOpen || moveAxis !== null;
+  const [assignOpen, setAssignOpen] = useState(false);
+  const subSheetOpen = editing || notesOpen || linkOpen || moveAxis !== null || assignOpen;
   const subSheetOpenRef = useRef(subSheetOpen);
   subSheetOpenRef.current = subSheetOpen;
 
@@ -140,6 +170,15 @@ export function ActionDetailSheet({
                 label="Phase"
                 value={displayPhaseId ? phaseLabel(displayPhaseId) : "Aucune phase"}
                 onClick={() => setMoveAxis("phase")}
+              />
+            )}
+            {collaboration && (
+              <DetailRow
+                chipClass="phase-chip-blue"
+                icon={<IconUsers width={18} height={18} />}
+                label="Responsable"
+                value={assigneesLabel(collaboration.members, collaboration.assigneeIds)}
+                onClick={() => setAssignOpen(true)}
               />
             )}
           </div>
@@ -245,6 +284,15 @@ export function ActionDetailSheet({
           }}
           onUnlink={onUnlink}
           onNavigate={onNavigate}
+        />
+      )}
+
+      {assignOpen && collaboration && (
+        <MemberAssignSheet
+          members={collaboration.members}
+          assigneeIds={collaboration.assigneeIds}
+          onClose={() => setAssignOpen(false)}
+          onChangeAssignees={collaboration.onChangeAssignees}
         />
       )}
     </>

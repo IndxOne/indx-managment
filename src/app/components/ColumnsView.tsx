@@ -1,8 +1,10 @@
 import { useState, type KeyboardEvent } from "react";
+import type { Member } from "../../domain/member";
 import type { Action, ActionStatus } from "../../domain/types";
 import { useAnnouncer } from "../a11y/announcer";
 import { useInlineCreate } from "../hooks/useInlineCreate";
 import { phaseLabel } from "../labels";
+import { resolveAssignees } from "../utils/member-summary";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionCard } from "./ActionCard";
 import { IconMore, IconPlus } from "./Icons";
@@ -55,6 +57,7 @@ export function ColumnsView({
   onOpenNotes,
   onOpenLink,
   onOpenDetail,
+  members,
 }: {
   phases: string[];
   actionsByPhase: Record<string, Action[]>;
@@ -75,6 +78,8 @@ export function ColumnsView({
   onOpenLink: (action: Action) => void;
   /** Ouvre le détail unifié (Lot 5) au tap/clic sur le titre. Absent = comportement inchangé. */
   onOpenDetail?: (action: Action) => void;
+  /** Membres de l'espace (Lot 8B) — résolus par action pour l'indicateur compact de la carte. Fourni uniquement en mode Équipe. */
+  members?: Member[];
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverPhase, setDragOverPhase] = useState<string | null>(null);
@@ -140,6 +145,7 @@ export function ColumnsView({
                   onDisableReminder={() => onDisableReminder(action)}
                   onOpenNotes={() => onOpenNotes(action)}
                   onOpenLink={() => onOpenLink(action)}
+                  assignedMembers={members ? resolveAssignees(members, action.assigneeIds) : undefined}
                   onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
                 />
               ))}

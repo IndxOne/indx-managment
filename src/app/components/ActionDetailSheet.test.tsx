@@ -205,3 +205,39 @@ describe("ActionDetailSheet — orchestration des sheets existantes", () => {
     expect(screen.queryByText("Relance")).not.toBeInTheDocument();
   });
 });
+
+describe("ActionDetailSheet — collaboration (Lot 8B)", () => {
+  const members = [
+    { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+    { id: "m2", workspaceId: "w1", displayName: "Alice", active: true, createdAt: "x", updatedAt: "x" },
+  ];
+
+  it("sans collaboration (mode Solo), aucune ligne Responsable", () => {
+    render(<ActionDetailSheet {...baseProps()} />);
+    expect(screen.queryByRole("button", { name: /^Responsable/ })).not.toBeInTheDocument();
+  });
+
+  it("avec collaboration, affiche « Non assigné » sans responsable", () => {
+    render(<ActionDetailSheet {...baseProps({ collaboration: { members, assigneeIds: [], onChangeAssignees: vi.fn() } })} />);
+    expect(screen.getByRole("button", { name: /^Responsable/ })).toHaveTextContent("Non assigné");
+  });
+
+  it("affiche le nom du responsable assigné", () => {
+    render(
+      <ActionDetailSheet {...baseProps({ collaboration: { members, assigneeIds: ["m1"], onChangeAssignees: vi.fn() } })} />
+    );
+    expect(screen.getByRole("button", { name: /^Responsable/ })).toHaveTextContent("Koffi");
+  });
+
+  it("tap sur Responsable ouvre le sélecteur, cocher un membre appelle onChangeAssignees", async () => {
+    const user = userEvent.setup();
+    const onChangeAssignees = vi.fn();
+    render(
+      <ActionDetailSheet {...baseProps({ collaboration: { members, assigneeIds: [], onChangeAssignees } })} />
+    );
+    await user.click(screen.getByRole("button", { name: /^Responsable/ }));
+    expect(screen.getByRole("dialog", { name: "Responsable" })).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Koffi" }));
+    expect(onChangeAssignees).toHaveBeenCalledWith(["m1"]);
+  });
+});

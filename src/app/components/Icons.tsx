@@ -308,3 +308,15 @@ export function IconCompass(props: IconProps) {
     </svg>
   );
 }
+
+/** Responsable(s) d'une action (Lot 8B) — deux silhouettes superposées. */
+export function IconUsers(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19 a5.5 5.5 0 0 1 11 0" />
+      <path d="M15.5 6.2 a2.6 2.6 0 0 1 0 5" />
+      <path d="M15 13.3 a5 5 0 0 1 5.5 5.7" />
+    </svg>
+  );
+}

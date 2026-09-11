@@ -1,8 +1,9 @@
 import type { ActionStatus, Priority } from "../../domain/types";
+import type { Member } from "../../domain/member";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 import { StatusCheckIcon } from "./Icons";
-import type { ActionFilters } from "../utils/filter-actions";
+import type { ActionFilters, AssigneeFilter } from "../utils/filter-actions";
 
 const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "blocked", "waiting", "done"];
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
@@ -10,11 +11,14 @@ const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
 export function FilterSheet({
   filters,
   statusLabels,
+  /** Membres de l'espace (Lot 8B) — section "Responsable" affichée uniquement si fourni (mode Équipe). */
+  members,
   onChange,
   onClose,
 }: {
   filters: ActionFilters;
   statusLabels: Record<ActionStatus, string>;
+  members?: Member[];
   onChange: (filters: ActionFilters) => void;
   onClose: () => void;
 }) {
@@ -23,6 +27,10 @@ export function FilterSheet({
     if (next.has(value)) next.delete(value);
     else next.add(value);
     return next;
+  }
+
+  function setAssignee(value: AssigneeFilter | undefined) {
+    onChange({ ...filters, assignee: value });
   }
 
   return (
@@ -75,6 +83,39 @@ export function FilterSheet({
           </label>
         ))}
       </div>
+
+      {members && members.length > 0 && (
+        <>
+          <p className="section-title">Responsable</p>
+          <div className="choice-group" role="radiogroup" aria-label="Filtrer par responsable">
+            <label className="choice-option">
+              <input type="radio" name="assignee-filter" checked={!filters.assignee} onChange={() => setAssignee(undefined)} />
+              Tous
+            </label>
+            {members.map((member) => (
+              <label key={member.id} className="choice-option">
+                <input
+                  type="radio"
+                  name="assignee-filter"
+                  checked={filters.assignee === member.id}
+                  onChange={() => setAssignee(member.id)}
+                />
+                {member.displayName}
+                {!member.active && <span className="action-sub"> · Inactif</span>}
+              </label>
+            ))}
+            <label className="choice-option">
+              <input
+                type="radio"
+                name="assignee-filter"
+                checked={filters.assignee === "unassigned"}
+                onChange={() => setAssignee("unassigned")}
+              />
+              Non assigné
+            </label>
+          </div>
+        </>
+      )}
 
       <div className="sheet-actions">
         <button type="button" className="btn btn-primary btn-block tap-target" onClick={onClose}>

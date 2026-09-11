@@ -327,6 +327,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      setCollaborationMode: (workspaceId, mode) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "workspace/setCollaborationMode", workspaceId, collaborationMode: mode, now }, async () => {
+          const { error } = await client
+            .from("projets_workspaces")
+            .update({ collaboration_mode: mode, updated_at: now })
+            .eq("id", workspaceId);
+          if (error) throw error;
+        });
+      },
+
       editWorkspaceDescription: (workspaceId, description) => {
         const now = new Date().toISOString();
         dispatch({ type: "workspace/editDescription", workspaceId, description, now });
@@ -578,6 +589,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const { error } = await client
             .from("projets_actions")
             .update({ linked_action_id: null, updated_at: now })
+            .eq("id", actionId);
+          if (error) throw error;
+        });
+      },
+
+      setAssignees: (workspaceId, actionId, assigneeIds) => {
+        const now = new Date().toISOString();
+        dispatchAndPersistAction(actionId, { type: "action/setAssignees", workspaceId, actionId, assigneeIds, now }, async () => {
+          const { error } = await client
+            .from("projets_actions")
+            .update({ assignee_ids: assigneeIds, updated_at: now })
             .eq("id", actionId);
           if (error) throw error;
         });

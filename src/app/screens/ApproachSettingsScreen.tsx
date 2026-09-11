@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProfessionalApproach } from "../../domain/types";
+import type { CollaborationMode, ProfessionalApproach } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import {
   computeHiddenFieldsOnApproachChange,
@@ -10,15 +10,27 @@ import { APPROACH_DESCRIPTIONS, APPROACH_LABELS, phaseLabel } from "../labels";
 import { useAnnouncer } from "../a11y/announcer";
 import { useStore } from "../adapters/temporary-store";
 import { resolveDisplayPhaseId } from "../utils/resolve-phase";
+import { MembersSheet } from "../components/MembersSheet";
 
 const ALL_APPROACHES = Object.keys(PRESET_REGISTRY) as ProfessionalApproach[];
 
 const FREQUENCY_LABELS = { daily: "Quotidienne", weekly: "Hebdomadaire", monthly: "Mensuelle" } as const;
 
 export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Workspace; onDone: () => void }) {
-  const { state, changeApproach, editWorkspaceDescription, deleteRecurringRule } = useStore();
+  const {
+    state,
+    changeApproach,
+    editWorkspaceDescription,
+    deleteRecurringRule,
+    setCollaborationMode,
+    createMember,
+    renameMember,
+    setMemberActive,
+  } = useStore();
   const { announce } = useAnnouncer();
   const recurrenceRules = state.recurrenceRulesByWorkspace[workspace.id] ?? [];
+  const members = state.membersByWorkspace?.[workspace.id] ?? [];
+  const [membersOpen, setMembersOpen] = useState(false);
   const [selected, setSelected] = useState<ProfessionalApproach>(workspace.approach);
   const [confirmed, setConfirmed] = useState(false);
   const [description, setDescription] = useState(workspace.description ?? "");
@@ -42,6 +54,15 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
     changeApproach(workspace.id, selected);
     announce(`Approche changée pour ${APPROACH_LABELS[selected]}. Aucune action n'a été modifiée.`);
     onDone();
+  }
+
+  function handleCollaborationModeChange(mode: CollaborationMode) {
+    setCollaborationMode(workspace.id, mode);
+    announce(
+      mode === "team"
+        ? "Mode Équipe activé. Vous pouvez maintenant définir des membres et assigner des actions."
+        : "Mode Solo activé. Les membres et assignations existants sont conservés, seuls les contrôles sont masqués."
+    );
   }
 
   async function handleSaveDescription() {
@@ -93,6 +114,44 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
             Enregistrer les notes
           </button>
         </div>
+
+        <fieldset className="field" style={{ border: "none", padding: 0 }}>
+          <legend style={{ fontWeight: 600, marginBottom: 8 }}>Mode de travail</legend>
+          <div className="choice-group">
+            <label className="choice-option">
+              <input
+                type="radio"
+                name="collaboration-mode"
+                checked={workspace.collaborationMode === "solo"}
+                onChange={() => handleCollaborationModeChange("solo")}
+              />
+              Solo
+            </label>
+            <label className="choice-option">
+              <input
+                type="radio"
+                name="collaboration-mode"
+                checked={workspace.collaborationMode === "team"}
+                onChange={() => handleCollaborationModeChange("team")}
+              />
+              Équipe
+            </label>
+          </div>
+        </fieldset>
+
+        {workspace.collaborationMode === "team" && (
+          <fieldset className="field" style={{ border: "none", padding: 0 }}>
+            <legend style={{ fontWeight: 600, marginBottom: 8 }}>Membres</legend>
+            <p className="action-sub" style={{ marginBottom: 8 }}>
+              {members.length === 0
+                ? "Aucun membre pour l'instant."
+                : `${members.filter((m) => m.active).length} membre(s) actif(s) sur ${members.length}.`}
+            </p>
+            <button type="button" className="btn tap-target" onClick={() => setMembersOpen(true)}>
+              Gérer les membres
+            </button>
+          </fieldset>
+        )}
 
         <fieldset className="field" style={{ border: "none", padding: 0 }}>
           <legend style={{ fontWeight: 600, marginBottom: 8 }}>Nouvelle approche</legend>
@@ -199,6 +258,16 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
           </fieldset>
         )}
       </div>
+
+      {membersOpen && (
+        <MembersSheet
+          members={members}
+          onClose={() => setMembersOpen(false)}
+          onAdd={(displayName) => createMember({ workspaceId: workspace.id, displayName })}
+          onRename={(memberId, displayName) => renameMember(workspace.id, memberId, displayName)}
+          onSetActive={(memberId, active) => setMemberActive(workspace.id, memberId, active)}
+        />
+      )}
     </div>
   );
 }

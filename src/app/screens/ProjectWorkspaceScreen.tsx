@@ -48,10 +48,13 @@ export function ProjectWorkspaceScreen({
     addNote,
     linkAction,
     unlinkAction,
+    setAssignees,
   } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
+  const isTeam = workspace.collaborationMode === "team";
+  const members = isTeam ? state.membersByWorkspace?.[workspace.id] ?? [] : undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- preset dérive uniquement de kind/approach, pas d'un objet stable
   const phases = useMemo(() => preset.phaseTemplate ?? [], [workspace.kind, workspace.approach]);
 
@@ -159,6 +162,7 @@ export function ProjectWorkspaceScreen({
             onOpenNotes={(action) => setNotesActionId(action.id)}
             onOpenLink={(action) => setLinkingActionId(action.id)}
             onOpenDetail={(action) => setDetailActionId(action.id)}
+            members={members}
           />
         ) : (
           <>
@@ -200,6 +204,7 @@ export function ProjectWorkspaceScreen({
                   onOpenDetail={(action) => setDetailActionId(action.id)}
                   phaseOptions={phases}
                   resolveSyncStatus={resolveSyncStatus}
+                  members={members}
                 />
                 <ActionListSection
                   id="section-unscheduled"
@@ -218,6 +223,7 @@ export function ProjectWorkspaceScreen({
                   onOpenDetail={(action) => setDetailActionId(action.id)}
                   phaseOptions={phases}
                   resolveSyncStatus={resolveSyncStatus}
+                  members={members}
                 />
               </>
             )}
@@ -309,6 +315,15 @@ export function ProjectWorkspaceScreen({
           onUnlink={() => unlinkAction(workspace.id, detailAction.id)}
           onNavigate={onNavigateToWorkspace}
           onDelete={() => remove(workspace.id, detailAction)}
+          collaboration={
+            members
+              ? {
+                  members,
+                  assigneeIds: detailAction.assigneeIds,
+                  onChangeAssignees: (assigneeIds) => setAssignees(workspace.id, detailAction.id, assigneeIds),
+                }
+              : undefined
+          }
         />
       )}
 

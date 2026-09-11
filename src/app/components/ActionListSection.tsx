@@ -1,5 +1,7 @@
 import { useState } from "react";
+import type { Member } from "../../domain/member";
 import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
+import { resolveAssignees } from "../utils/member-summary";
 import { ActionCard } from "./ActionCard";
 
 export function ActionListSection({
@@ -23,6 +25,7 @@ export function ActionListSection({
   onOpenLink,
   onOpenDetail,
   phaseOptions,
+  members,
 }: {
   id: string;
   title: string;
@@ -52,6 +55,8 @@ export function ActionListSection({
   onOpenDetail?: (action: Action) => void;
   /** Phases actuelles de l'espace, pour résoudre un phaseId legacy sur le chip de la carte (Lot 6). Fourni uniquement quand la section a un espace unique connu (ex. vue Semaine de ProjectWorkspaceScreen) — absent dans les vues transversales multi-espaces. */
   phaseOptions?: string[];
+  /** Membres de l'espace (Lot 8B) — résolus par action pour l'indicateur compact de la carte. Fourni uniquement en mode Équipe. */
+  members?: Member[];
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -107,6 +112,7 @@ export function ActionListSection({
               onOpenLink={() => onOpenLink(action)}
               onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
               phaseOptions={phaseOptions}
+              assignedMembers={members ? resolveAssignees(members, action.assigneeIds) : undefined}
             />
             );
           })}

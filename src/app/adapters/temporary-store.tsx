@@ -49,6 +49,8 @@ export function TemporaryStoreProvider({
       },
       changeApproach: (workspaceId, approach) =>
         dispatch({ type: "workspace/changeApproach", workspaceId, approach }),
+      setCollaborationMode: (workspaceId, mode) =>
+        dispatch({ type: "workspace/setCollaborationMode", workspaceId, collaborationMode: mode, now: new Date().toISOString() }),
       editWorkspaceDescription: (workspaceId, description) => {
         dispatch({ type: "workspace/editDescription", workspaceId, description, now: new Date().toISOString() });
         return Promise.resolve();
@@ -80,6 +82,8 @@ export function TemporaryStoreProvider({
         dispatch({ type: "action/link", workspaceId, actionId, linkedActionId, now: new Date().toISOString() }),
       unlinkAction: (workspaceId, actionId) =>
         dispatch({ type: "action/unlink", workspaceId, actionId, now: new Date().toISOString() }),
+      setAssignees: (workspaceId, actionId, assigneeIds) =>
+        dispatch({ type: "action/setAssignees", workspaceId, actionId, assigneeIds, now: new Date().toISOString() }),
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((action) => action.id === actionId);

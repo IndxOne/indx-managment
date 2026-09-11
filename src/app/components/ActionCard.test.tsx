@@ -594,3 +594,43 @@ describe("ActionCard — chip de phase et compatibilité legacy (Lot 6, finalisa
     expect(screen.queryByText("Préparation")).not.toBeInTheDocument();
   });
 });
+
+describe("ActionCard — indicateur responsable compact (Lot 8B)", () => {
+  it("sans assignedMembers, aucun indicateur (mode Solo)", () => {
+    render(<ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />);
+    expect(screen.queryByLabelText(/Responsable/)).not.toBeInTheDocument();
+  });
+
+  it("affiche les initiales d'un seul responsable", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        assignedMembers={[
+          { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+        ]}
+      />
+    );
+    expect(screen.getByLabelText("Responsable : Koffi")).toHaveTextContent("KO");
+  });
+
+  it("affiche au maximum 2 initiales puis +N", () => {
+    const members = [
+      { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+      { id: "m2", workspaceId: "w1", displayName: "Alice", active: true, createdAt: "x", updatedAt: "x" },
+      { id: "m3", workspaceId: "w1", displayName: "Bob", active: true, createdAt: "x", updatedAt: "x" },
+    ];
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        assignedMembers={members}
+      />
+    );
+    expect(screen.getByLabelText("Responsables : Koffi, Alice, Bob")).toHaveTextContent("KO AL +1");
+  });
+});

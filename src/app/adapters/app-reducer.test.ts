@@ -252,3 +252,34 @@ describe("appReducer — member/* (Lot 8A)", () => {
     expect(next.actionsByWorkspace.w1?.[0]?.assigneeIds).toEqual(["m1"]);
   });
 });
+
+describe("appReducer — workspace/setCollaborationMode (Lot 8B)", () => {
+  it("passe le mode à team sans toucher aux actions ni aux membres", () => {
+    const before: AppState = {
+      ...EMPTY_STATE,
+      workspaces: [
+        {
+          id: "w1",
+          name: "Test",
+          kind: "project",
+          approach: "project_amoa",
+          collaborationMode: "solo",
+          presetVersion: 1,
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-01T00:00:00.000Z",
+        },
+      ],
+      actionsByWorkspace: { w1: [] },
+      membersByWorkspace: { w1: [] },
+    };
+    const next = appReducer(before, {
+      type: "workspace/setCollaborationMode",
+      workspaceId: "w1",
+      collaborationMode: "team",
+      now: "2026-09-12T00:00:00.000Z",
+    });
+    expect(next.workspaces[0]?.collaborationMode).toBe("team");
+    expect(next.actionsByWorkspace.w1).toEqual([]);
+    expect(next.membersByWorkspace?.w1).toEqual([]);
+  });
+});

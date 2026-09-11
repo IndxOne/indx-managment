@@ -1,8 +1,9 @@
-import type { Action } from "../../domain/types";
+import type { Action, CollaborationMode } from "../../domain/types";
 import {
   changeWorkspaceApproach,
   createWorkspace,
   editWorkspaceDescription,
+  setWorkspaceCollaborationMode,
   type CreateWorkspaceInput,
   type Workspace,
 } from "../../domain/workspace";
@@ -11,6 +12,7 @@ import { moveAction, type MoveDestination } from "../../domain/move-action";
 import { editActionContent, type ActionContentEdit } from "../../domain/edit-action";
 import { addNote } from "../../domain/add-note";
 import { linkAction, unlinkAction } from "../../domain/link-action";
+import { setAssignees } from "../../domain/set-assignees";
 import { disableWaitingReminder, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 import { generateRecurringOccurrences, type GenerationWindow, type RecurrenceRule } from "../../recurrence/recurrence-engine";
 import type { AppState, CarnetNote, HubSettings, NewActionInput, NewRecurrenceRuleInput } from "./store-context";
@@ -27,6 +29,7 @@ export type AppEvent =
   | { type: "workspace/create"; input: CreateWorkspaceInput }
   | { type: "workspace/changeApproach"; workspaceId: string; approach: Workspace["approach"] }
   | { type: "workspace/editDescription"; workspaceId: string; description: string; now: string }
+  | { type: "workspace/setCollaborationMode"; workspaceId: string; collaborationMode: CollaborationMode; now: string }
   | { type: "action/create"; input: NewActionInput; id: string; now: string }
   | { type: "action/move"; workspaceId: string; actionId: string; destination: MoveDestination }
   | { type: "action/restore"; workspaceId: string; action: Action }
@@ -37,6 +40,7 @@ export type AppEvent =
   | { type: "action/addNote"; workspaceId: string; actionId: string; noteId: string; text: string; now: string }
   | { type: "action/link"; workspaceId: string; actionId: string; linkedActionId: string; now: string }
   | { type: "action/unlink"; workspaceId: string; actionId: string; now: string }
+  | { type: "action/setAssignees"; workspaceId: string; actionId: string; assigneeIds: string[]; now: string }
   | { type: "action/delete"; workspaceId: string; actionId: string }
   | { type: "action/undoDelete"; workspaceId: string; action: Action; index: number }
   | { type: "recurrence/create"; rule: RecurrenceRule; window: GenerationWindow }
@@ -80,6 +84,16 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         workspaces: state.workspaces.map((workspace) =>
           workspace.id === event.workspaceId
             ? editWorkspaceDescription(workspace, event.description, event.now)
+            : workspace
+        ),
+      };
+    }
+    case "workspace/setCollaborationMode": {
+      return {
+        ...state,
+        workspaces: state.workspaces.map((workspace) =>
+          workspace.id === event.workspaceId
+            ? setWorkspaceCollaborationMode(workspace, event.collaborationMode, event.now)
             : workspace
         ),
       };
@@ -204,6 +218,19 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         },
       };
     }
+    case "action/setAssignees": {
+      const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
+      return {
+        ...state,
+        actionsByWorkspace: {
+          ...state.actionsByWorkspace,
+          [event.workspaceId]: existing.map((action) =>
+            action.id === event.actionId ? setAssignees(action, event.assigneeIds, event.now) : action
+          ),
+        },
+      };
+    }
+
     case "action/unlink": {
       const existing = state.actionsByWorkspace[event.workspaceId] ?? [];
       return {

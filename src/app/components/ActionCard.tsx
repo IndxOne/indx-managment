@@ -1,9 +1,11 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
+import type { Member } from "../../domain/member";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
+import { memberInitials } from "../utils/member-summary";
 import { phaseChipClass } from "../utils/phase-color";
 import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { ActionMenuSheet } from "./ActionMenuSheet";
@@ -47,6 +49,7 @@ export function ActionCard({
   onDragStart,
   onDragEnd,
   phaseOptions,
+  assignedMembers,
 }: {
   action: Action;
   timezone: string;
@@ -76,6 +79,8 @@ export function ActionCard({
   onDragEnd?: () => void;
   /** Phases actuelles de l'espace (variant "list", pour le chip de phase) — résout un phaseId legacy vers son équivalent courant via resolveDisplayPhaseId (Lot 6). Absent = comportement inchangé (phaseId affiché brut, écran multi-espaces sans phases uniques à résoudre). */
   phaseOptions?: string[];
+  /** Responsables déjà résolus (Lot 8B) — initiales compactes, max 2 + "+N". Absent ou vide = rien affiché (mode Solo, ou action non assignée). */
+  assignedMembers?: Member[];
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -217,6 +222,18 @@ export function ActionCard({
 
   const noteAndLinkChips = (
     <>
+      {assignedMembers && assignedMembers.length > 0 && (
+        <span
+          className="meta-chip"
+          aria-label={`Responsable${assignedMembers.length > 1 ? "s" : ""} : ${assignedMembers.map((m) => m.displayName).join(", ")}`}
+        >
+          {assignedMembers
+            .slice(0, 2)
+            .map((m) => memberInitials(m.displayName))
+            .join(" ")}
+          {assignedMembers.length > 2 ? ` +${assignedMembers.length - 2}` : ""}
+        </span>
+      )}
       {noteCount > 0 && (
         <span className="meta-chip">
           <IconMessage width={14} height={14} /> {noteCount}
