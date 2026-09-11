@@ -21,6 +21,7 @@ export function ActionListSection({
   onDisableReminder,
   onOpenNotes,
   onOpenLink,
+  onOpenDetail,
 }: {
   id: string;
   title: string;
@@ -46,6 +47,8 @@ export function ActionListSection({
   onDisableReminder: (action: Action) => void;
   onOpenNotes: (action: Action) => void;
   onOpenLink: (action: Action) => void;
+  /** Ouvre le détail unifié (Lot 5) au tap/clic sur le titre. Absent = comportement inchangé (écran pas encore migré). */
+  onOpenDetail?: (action: Action) => void;
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -99,6 +102,7 @@ export function ActionListSection({
               onDisableReminder={() => onDisableReminder(action)}
               onOpenNotes={() => onOpenNotes(action)}
               onOpenLink={() => onOpenLink(action)}
+              onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
             />
             );
           })}
