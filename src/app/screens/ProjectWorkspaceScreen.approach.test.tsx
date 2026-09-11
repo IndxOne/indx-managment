@@ -65,9 +65,9 @@ describe("ProjectWorkspaceScreen — approche management", () => {
       </AnnouncerProvider>
     );
 
+    // Création rapide inline (Lot 4) : CTA -> champ -> Entrée, sans ouvrir de sheet.
     await user.click((await screen.findAllByRole("button", { name: /Ajouter une action/ }))[0]!);
-    await user.type(screen.getByLabelText("Titre"), "Cadrer le périmètre");
-    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+    await user.type(screen.getByLabelText("Nouvelle action dans Objectifs"), "Cadrer le périmètre{Enter}");
 
     expect(await screen.findByText("Cadrer le périmètre")).toBeInTheDocument();
   });

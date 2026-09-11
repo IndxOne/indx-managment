@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { Action, ActionStatus } from "../../domain/types";
+import { useAnnouncer } from "../a11y/announcer";
+import { useInlineCreate } from "../hooks/useInlineCreate";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionCard } from "./ActionCard";
+import { IconMore, IconPlus } from "./Icons";
 import { EmptyState } from "./StateBlocks";
 
 /**
@@ -24,6 +27,13 @@ import { EmptyState } from "./StateBlocks";
  * disponible ailleurs dans l'app via ActionCard variant="list", RUN et
  * vues transversales, inchangées).
  *
+ * Création rapide (Lot 4) : le CTA "+ Ajouter une action" se transforme en
+ * champ inline au clic (même règle de validation que QuickAddBar, cf.
+ * `useInlineCreate` partagé) — Entrée crée directement dans la phase de la
+ * colonne, Échap annule, le champ reste ouvert après création pour
+ * enchaîner. Le bouton "…" ouvre toujours `AddActionSheet` (formulaire
+ * complet) via `onAddToPhase`, inchangé.
+ *
  * Aucune logique de persistance, de filtre ou de résolution de statut ici :
  * cette responsabilité reste entièrement à l'écran appelant
  * (`ProjectWorkspaceScreen`), qui fournit `actionsByPhase` déjà regroupé et
@@ -36,6 +46,7 @@ export function ColumnsView({
   timezone,
   resolveSyncStatus,
   onAddToPhase,
+  onQuickCreate,
   onDropOnPhase,
   onMove,
   onEdit,
@@ -50,7 +61,10 @@ export function ColumnsView({
   timezone: string;
   /** Badge de sync par carte (parité avec les vues liste) — absent = aucune carte "en attente"/"conflit". */
   resolveSyncStatus?: (action: Action) => "pending" | "conflict" | undefined;
-  onAddToPhase: (phaseId: string) => void;
+  /** Ouvre le formulaire complet (AddActionSheet) pour la phase donnée — type, priorité, récurrence. `draftTitle` reprend le texte déjà tapé dans le champ inline, comme QuickAddBar. */
+  onAddToPhase: (phaseId: string, draftTitle?: string) => void;
+  /** Création rapide (titre seul, type "task", priorité normale) directement dans la phase donnée. */
+  onQuickCreate: (phaseId: string, title: string) => void;
   onDropOnPhase: (actionId: string, phaseId: string) => void;
   onMove: (action: Action) => void;
   onEdit: (action: Action) => void;
@@ -61,6 +75,7 @@ export function ColumnsView({
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverPhase, setDragOverPhase] = useState<string | null>(null);
+  const [addingPhase, setAddingPhase] = useState<string | null>(null);
 
   if (phases.length === 0) {
     return <EmptyState title="Aucune phase" description="Cette approche métier n'a pas d'étapes à afficher." />;
@@ -125,12 +140,98 @@ export function ColumnsView({
                 />
               ))}
             </div>
-            <button type="button" className="btn btn-block tap-target" onClick={() => onAddToPhase(phase)}>
-              + Ajouter une action
-            </button>
+            {addingPhase === phase ? (
+              <ColumnQuickAdd
+                phase={phase}
+                onCreate={(title) => onQuickCreate(phase, title)}
+                onOpenFullForm={(draftTitle) => {
+                  setAddingPhase(null);
+                  onAddToPhase(phase, draftTitle);
+                }}
+                onCancel={() => setAddingPhase(null)}
+              />
+            ) : (
+              <button type="button" className="btn btn-block tap-target" onClick={() => setAddingPhase(phase)}>
+                + Ajouter une action
+              </button>
+            )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Champ de création inline d'une colonne — mêmes règles que QuickAddBar
+ * (`useInlineCreate` partagé) avec en plus le cycle CTA <-> champ propre à
+ * la représentation "colonne" (Phase D : deux représentations, une seule
+ * logique de validation).
+ */
+function ColumnQuickAdd({
+  phase,
+  onCreate,
+  onOpenFullForm,
+  onCancel,
+}: {
+  phase: string;
+  onCreate: (title: string) => void;
+  onOpenFullForm: (draftTitle: string) => void;
+  onCancel: () => void;
+}) {
+  const { announce } = useAnnouncer();
+  const { title, setTitle, submit, inputRef } = useInlineCreate((created) => {
+    onCreate(created);
+    announce(`Action "${created}" créée dans ${phaseLabel(phase)}.`);
+  });
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      // Garder le champ ouvert et focus pour enchaîner (titre vide -> no-op).
+      if (submit()) inputRef.current?.focus();
+    }
+  }
+
+  return (
+    <div className="quick-add columns-column-quickadd">
+      <button
+        type="button"
+        className="quick-add-plus"
+        disabled={!title.trim()}
+        aria-label="Ajouter"
+        onClick={() => {
+          if (submit()) inputRef.current?.focus();
+        }}
+      >
+        <IconPlus width={20} height={20} strokeWidth={2.4} />
+      </button>
+      <input
+        ref={inputRef}
+        type="text"
+        className="quick-add-input"
+        placeholder={`Ajouter à « ${phaseLabel(phase)} »…`}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onKeyDown={handleKeyDown}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- champ révélé par un clic explicite sur le CTA, focus attendu (comme QuickAddBar/AddActionSheet)
+        autoFocus
+        aria-label={`Nouvelle action dans ${phaseLabel(phase)}`}
+      />
+      <button
+        type="button"
+        className="icon-btn"
+        onClick={() => onOpenFullForm(title.trim())}
+        aria-label="Options avancées (type, priorité, récurrence)"
+        style={{ flexShrink: 0 }}
+      >
+        <IconMore />
+      </button>
     </div>
   );
 }

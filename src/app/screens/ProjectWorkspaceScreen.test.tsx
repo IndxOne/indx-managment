@@ -28,13 +28,17 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
 
     await screen.findByRole("heading", { name: "Migration ERP" });
 
+    // Le CTA de colonne ouvre désormais un champ inline (Lot 4) : "Options
+    // avancées" reste le chemin vers le formulaire complet (type, priorité).
     await user.click(screen.getAllByRole("button", { name: /Ajouter une action/ })[0]!);
+    await user.click(screen.getByRole("button", { name: /Options avancées/ }));
     await user.type(screen.getByLabelText("Titre"), "Arbitrer le prestataire");
     await user.selectOptions(screen.getByLabelText("Type"), "Décision");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
     await screen.findByText("Arbitrer le prestataire");
 
     await user.click(screen.getAllByRole("button", { name: /Ajouter une action/ })[0]!);
+    await user.click(screen.getByRole("button", { name: /Options avancées/ }));
     await user.type(screen.getByLabelText("Titre"), "Dépendance fournisseur unique");
     await user.selectOptions(screen.getByLabelText("Type"), "Risque");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));

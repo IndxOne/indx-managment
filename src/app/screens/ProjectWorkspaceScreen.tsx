@@ -170,11 +170,14 @@ export function ProjectWorkspaceScreen({
             statusLabels={statusLabels}
             timezone={timezone}
             resolveSyncStatus={resolveSyncStatus}
-            onAddToPhase={(phaseId) => {
+            onAddToPhase={(phaseId, draftTitle) => {
               setCurrentPhase(phaseId);
-              setAddSheetDraftTitle("");
+              setAddSheetDraftTitle(draftTitle ?? "");
               setAddSheetOpen(true);
             }}
+            onQuickCreate={(phaseId, title) =>
+              createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId })
+            }
             onDropOnPhase={(actionId, phaseId) => {
               const action = allActions.find((candidate) => candidate.id === actionId);
               if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });

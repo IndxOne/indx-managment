@@ -1884,6 +1884,14 @@ a {
   min-height: 8px;
 }
 
+/* Création rapide inline (Lot 4) : réutilise .quick-add tel quel (même
+   pattern que QuickAddBar), seul le margin-bottom est neutralisé — la
+   colonne (.columns-column, flex-direction: column, gap déjà présent) gère
+   déjà l'espacement, un 2e espacement cumulerait un vide en bas de colonne. */
+.columns-column-quickadd {
+  margin-bottom: 0;
+}
+
 .kanban-card {
   display: flex;
   align-items: flex-start;
