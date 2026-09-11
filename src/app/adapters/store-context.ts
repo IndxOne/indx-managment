@@ -72,6 +72,7 @@ export type NewWorkspaceInput = Omit<CreateWorkspaceInput, "id">;
 
 export interface StoreContextValue {
   state: AppState;
+  isLoading: boolean;
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
   /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */

@@ -176,6 +176,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreContextValue>(
     () => ({
       state,
+      isLoading: status === "loading",
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
           ...input,
@@ -470,12 +471,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [state, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist, queuePersist]
+    [state, status, client, userHash, dispatchAndPersist, dispatchAndPersistAction, queueActionPersist, queuePersist]
   );
-
-  if (status === "loading") {
-    return <SupabaseBootScreen label="Chargement des espaces…" />;
-  }
 
   if (status === "error") {
     return <SupabaseBootScreen label={syncError ?? "Erreur de chargement"} isError onRetry={load} />;

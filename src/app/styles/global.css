@@ -1315,6 +1315,113 @@ a {
   color: var(--color-danger);
 }
 
+.loading-skeleton {
+  min-height: calc(100dvh - var(--bottom-nav-height));
+}
+
+.loading-skeleton-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 91px;
+  padding: calc(var(--space-5) + env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right)) 10px
+    max(20px, env(safe-area-inset-left));
+}
+
+.loading-skeleton-list {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-5);
+}
+
+.skeleton-block,
+.skeleton-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-fill);
+}
+
+.skeleton-block::after,
+.skeleton-card::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: min(210px, 62vw);
+  height: 41px;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-subtitle {
+  width: min(280px, 76vw);
+  height: 17px;
+  border-radius: 6px;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: var(--space-3);
+  height: 112px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.skeleton-card-icon {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: var(--radius);
+}
+
+.skeleton-card-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.skeleton-card-title {
+  width: 68%;
+  height: 20px;
+  border-radius: 6px;
+}
+
+.skeleton-card-detail {
+  width: 92%;
+  height: 15px;
+  border-radius: 5px;
+}
+
+.skeleton-card-meta {
+  width: 42%;
+  height: 13px;
+  border-radius: 5px;
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block::after,
+  .skeleton-card::after {
+    animation: none;
+  }
+}
+
 .sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -1788,6 +1895,10 @@ a {
   .app-content {
     height: 100%;
     overflow-y: auto;
+  }
+
+  .loading-skeleton {
+    min-height: 100dvh;
   }
 
   /* Pas de plafond de largeur : le contenu doit occuper naturellement
