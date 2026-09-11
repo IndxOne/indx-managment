@@ -5,6 +5,7 @@ import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconCalendar, IconGripVertical, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
@@ -45,6 +46,7 @@ export function ActionCard({
   draggable,
   onDragStart,
   onDragEnd,
+  phaseOptions,
 }: {
   action: Action;
   timezone: string;
@@ -72,6 +74,8 @@ export function ActionCard({
   draggable?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  /** Phases actuelles de l'espace (variant "list", pour le chip de phase) — résout un phaseId legacy vers son équivalent courant via resolveDisplayPhaseId (Lot 6). Absent = comportement inchangé (phaseId affiché brut, écran multi-espaces sans phases uniques à résoudre). */
+  phaseOptions?: string[];
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -95,6 +99,14 @@ export function ActionCard({
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
   const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind) || action.itemType !== "task";
+  // resolveDisplayPhaseId retombe sur la première phase du template quand
+  // phaseId est absent (comportement voulu pour le regroupement en colonnes)
+  // — mais ici, "pas de phase" doit rester "pas de chip", jamais la 1ère phase.
+  const displayPhaseId = action.phaseId
+    ? phaseOptions
+      ? resolveDisplayPhaseId(action.phaseId, phaseOptions)
+      : action.phaseId
+    : undefined;
   // Le variant kanban n'a jamais de swipe : le geste tactile entrerait en
   // conflit avec le drag & drop HTML5 natif (mêmes événements pointeur).
   const swipeCompleteEnabled = !isKanban && Boolean(onSwipeComplete) && !isDone;
@@ -328,8 +340,8 @@ export function ActionCard({
             ) : (
               workspaceKind && <span className={`badge badge-${workspaceKind}`}>{KIND_LABELS[workspaceKind]}</span>
             )}
-            {action.phaseId && (
-              <span className={`phase-chip ${phaseChipClass(action.phaseId)}`}>{phaseLabel(action.phaseId)}</span>
+            {displayPhaseId && (
+              <span className={`phase-chip ${phaseChipClass(displayPhaseId)}`}>{phaseLabel(displayPhaseId)}</span>
             )}
             {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
             {action.itemType !== "task" && (

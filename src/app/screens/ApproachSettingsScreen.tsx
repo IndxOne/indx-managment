@@ -9,6 +9,7 @@ import {
 import { APPROACH_DESCRIPTIONS, APPROACH_LABELS, phaseLabel } from "../labels";
 import { useAnnouncer } from "../a11y/announcer";
 import { useStore } from "../adapters/temporary-store";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 
 const ALL_APPROACHES = Object.keys(PRESET_REGISTRY) as ProfessionalApproach[];
 
@@ -164,31 +165,36 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
           <fieldset className="field" style={{ border: "none", padding: 0 }}>
             <legend style={{ fontWeight: 600, marginBottom: 8 }}>Récurrences actives</legend>
             <div className="action-card-list">
-              {recurrenceRules.map((rule) => (
-                <div className="action-card" key={rule.id}>
-                  <div className="action-card-body">
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span className="action-title">{rule.template.title}</span>
-                      <div className="action-sub">
-                        {FREQUENCY_LABELS[rule.frequency]}
-                        {rule.interval > 1 ? ` (tous les ${rule.interval})` : ""}
-                        {rule.template.phaseId ? ` · ${phaseLabel(rule.template.phaseId)}` : ""}
-                        {rule.endDate ? ` · jusqu'au ${rule.endDate}` : ""}
+              {recurrenceRules.map((rule) => {
+                const displayPhaseId = rule.template.phaseId
+                  ? resolveDisplayPhaseId(rule.template.phaseId, currentPreset.phaseTemplate ?? [])
+                  : undefined;
+                return (
+                  <div className="action-card" key={rule.id}>
+                    <div className="action-card-body">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span className="action-title">{rule.template.title}</span>
+                        <div className="action-sub">
+                          {FREQUENCY_LABELS[rule.frequency]}
+                          {rule.interval > 1 ? ` (tous les ${rule.interval})` : ""}
+                          {displayPhaseId ? ` · ${phaseLabel(displayPhaseId)}` : ""}
+                          {rule.endDate ? ` · jusqu'au ${rule.endDate}` : ""}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        className="btn-danger-text"
+                        onClick={() => {
+                          deleteRecurringRule(workspace.id, rule.id);
+                          announce(`Récurrence « ${rule.template.title} » arrêtée.`);
+                        }}
+                      >
+                        Arrêter
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-danger-text"
-                      onClick={() => {
-                        deleteRecurringRule(workspace.id, rule.id);
-                        announce(`Récurrence « ${rule.template.title} » arrêtée.`);
-                      }}
-                    >
-                      Arrêter
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </fieldset>
         )}

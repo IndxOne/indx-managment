@@ -22,6 +22,7 @@ export function ActionListSection({
   onOpenNotes,
   onOpenLink,
   onOpenDetail,
+  phaseOptions,
 }: {
   id: string;
   title: string;
@@ -49,6 +50,8 @@ export function ActionListSection({
   onOpenLink: (action: Action) => void;
   /** Ouvre le détail unifié (Lot 5) au tap/clic sur le titre. Absent = comportement inchangé (écran pas encore migré). */
   onOpenDetail?: (action: Action) => void;
+  /** Phases actuelles de l'espace, pour résoudre un phaseId legacy sur le chip de la carte (Lot 6). Fourni uniquement quand la section a un espace unique connu (ex. vue Semaine de ProjectWorkspaceScreen) — absent dans les vues transversales multi-espaces. */
+  phaseOptions?: string[];
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -103,6 +106,7 @@ export function ActionListSection({
               onOpenNotes={() => onOpenNotes(action)}
               onOpenLink={() => onOpenLink(action)}
               onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
+              phaseOptions={phaseOptions}
             />
             );
           })}

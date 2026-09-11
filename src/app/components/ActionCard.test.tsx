@@ -553,3 +553,44 @@ describe("ActionCard — variant kanban (Lot 2 : fusion avec l'ancienne KanbanCa
     expect(screen.getByText("Relance active")).toBeInTheDocument();
   });
 });
+
+describe("ActionCard — chip de phase et compatibilité legacy (Lot 6, finalisation)", () => {
+  it("sans phaseOptions, affiche le phaseId tel quel (comportement inchangé)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: "conception" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Conception")).toBeInTheDocument();
+  });
+
+  it("avec phaseOptions, résout un phaseId legacy vers son équivalent courant au lieu de l'afficher brut", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: "en_cours" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        phaseOptions={["preparation", "realisation", "verification", "cloture"]}
+      />
+    );
+    expect(screen.getByText("Réalisation")).toBeInTheDocument();
+    expect(screen.queryByText("En cours")).not.toBeInTheDocument();
+  });
+
+  it("sans phaseId, n'affiche aucun chip de phase même avec phaseOptions fourni", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: undefined })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        phaseOptions={["preparation", "realisation", "verification", "cloture"]}
+      />
+    );
+    expect(screen.queryByText("Préparation")).not.toBeInTheDocument();
+  });
+});

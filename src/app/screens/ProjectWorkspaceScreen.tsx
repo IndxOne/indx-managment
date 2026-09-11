@@ -198,6 +198,7 @@ export function ProjectWorkspaceScreen({
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
                   onOpenDetail={(action) => setDetailActionId(action.id)}
+                  phaseOptions={phases}
                   resolveSyncStatus={resolveSyncStatus}
                 />
                 <ActionListSection
@@ -215,6 +216,7 @@ export function ProjectWorkspaceScreen({
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
                   onOpenDetail={(action) => setDetailActionId(action.id)}
+                  phaseOptions={phases}
                   resolveSyncStatus={resolveSyncStatus}
                 />
               </>
