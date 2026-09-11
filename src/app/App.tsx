@@ -6,8 +6,9 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
-import { useSecondTabPreference } from "./hooks/useSecondTabPreference";
+import { IconMore } from "./components/Icons";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
+import { useIsDesktop } from "./hooks/useIsDesktop";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
@@ -15,6 +16,7 @@ import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
+import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
@@ -45,8 +47,9 @@ function routeToTab(route: Route): NavTab {
       return "today";
     case "week":
       return "week";
-    case "more":
     case "reminders":
+      return "reminders";
+    case "more":
     case "carnet":
     case "hub":
     case "roles":
@@ -76,10 +79,19 @@ function useOnlineStatus(): boolean {
 
 function AppShell() {
   const { state, isLoading } = useStore();
-  const [route, setRoute] = useState<Route>({ screen: "spaces-list" });
+  // Accueil (Home) est la route initiale : ouvrir l'app sur ce qui nécessite
+  // une action immédiate, pas sur la liste des projets (décision produit
+  // validée). HomeScreen (Lot 7) : Aujourd'hui / En retard / Bloqué / Cette
+  // semaine (aperçu), au lieu de l'ancien AggregatedActionsScreen générique
+  // (toujours utilisé pour la route "week", vue temporelle complète).
+  const [route, setRoute] = useState<Route>({ screen: "today" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
-  const secondTab = useSecondTabPreference();
+  // Sur desktop, l'accès au menu secondaire vit dans la sidebar de BottomNav
+  // (bouton "Plus" existant) : le bouton d'en-tête ci-dessous est réservé au
+  // mobile, où la barre basse est strictement limitée à 4 destinations
+  // (cadrage renouveau produit, Lot 1.1).
+  const isDesktop = useIsDesktop();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
@@ -111,6 +123,17 @@ function AppShell() {
   return (
     <div className="app-shell">
       {!online && <OfflineBanner />}
+      {!isDesktop && (
+        <button
+          type="button"
+          className="app-more-trigger tap-target"
+          aria-label="Menu secondaire : Carnet, Hub, Approches métier, Recherche, Réglages"
+          aria-current={routeToTab(route) === "more" ? "page" : undefined}
+          onClick={() => setRoute({ screen: "more" })}
+        >
+          <IconMore width={20} height={20} strokeWidth={1.8} />
+        </button>
+      )}
       <BottomNav
         active={routeToTab(route)}
         onChange={handleNavChange}
@@ -118,11 +141,6 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
         onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
-        onOpenReminders={() => setRoute({ screen: "reminders" })}
-        remindersActive={route.screen === "reminders"}
-        onOpenRoles={() => setRoute({ screen: "roles" })}
-        rolesActive={route.screen === "roles"}
-        secondTab={secondTab}
       />
       <main className="app-content">
         {!booted || isLoading ? (
@@ -130,12 +148,10 @@ function AppShell() {
         ) : (
           <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
-          <AggregatedActionsScreen
-            title="Aujourd'hui"
-            includeLabels={["today"]}
-            emptyDescription="Aucune action prévue aujourd'hui, ni en attente."
+          <HomeScreen
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
+            onOpenWeek={() => setRoute({ screen: "week" })}
           />
         )}
 

@@ -75,6 +75,22 @@ export function changeWorkspaceApproach(
 }
 
 /**
+ * Change uniquement `collaborationMode` (+ `updatedAt`) — jamais les
+ * membres ni les assigneeIds des actions (Lot 8B §A) : Équipe -> Solo ne
+ * supprime rien, se contente de masquer l'UI collaborative côté écran.
+ */
+export function setWorkspaceCollaborationMode(
+  workspace: Workspace,
+  collaborationMode: CollaborationMode,
+  now?: string
+): Workspace {
+  if (collaborationMode === workspace.collaborationMode) {
+    return workspace;
+  }
+  return { ...workspace, collaborationMode, updatedAt: now ?? new Date().toISOString() };
+}
+
+/**
  * Change uniquement `description` (+ `updatedAt`), sans toucher aux actions
  * ni au preset — mêmes garanties que changeWorkspaceApproach.
  */

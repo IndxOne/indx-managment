@@ -25,9 +25,11 @@ const STATUS_CYCLE: Record<ActionStatus, ActionStatus> = {
   todo: "doing",
   doing: "done",
   done: "todo",
-  // "waiting" ne fait pas partie du cycle rapide (elle exige la relance
-  // du MoveActionSheet) : un clic en sort simplement vers "todo".
+  // "waiting" et "blocked" ne font pas partie du cycle rapide (l'une exige
+  // la relance du MoveActionSheet, l'autre une résolution explicite) : un
+  // clic en sort simplement vers "todo".
   waiting: "todo",
+  blocked: "todo",
 };
 
 /** Prochain statut dans le cycle rapide 1-clic (todo → doing → done → todo). */

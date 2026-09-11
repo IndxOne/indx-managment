@@ -9,14 +9,16 @@ describe("MoreScreen", () => {
     const onSelect = vi.fn();
     render(<MoreScreen onSelect={onSelect} />);
 
-    await user.click(screen.getByRole("button", { name: "Rappels" }));
-    expect(onSelect).toHaveBeenCalledWith("reminders");
-
+    // Rappels est désormais un onglet primaire de BottomNav (Lot 1 du
+    // renouveau produit), plus dans le menu secondaire "Plus".
     await user.click(screen.getByRole("button", { name: "Carnet" }));
     expect(onSelect).toHaveBeenCalledWith("carnet");
 
     await user.click(screen.getByRole("button", { name: "Hub" }));
     expect(onSelect).toHaveBeenCalledWith("hub");
+
+    await user.click(screen.getByRole("button", { name: "Approches métier" }));
+    expect(onSelect).toHaveBeenCalledWith("roles");
 
     await user.click(screen.getByRole("button", { name: "Recherche" }));
     expect(onSelect).toHaveBeenCalledWith("search");

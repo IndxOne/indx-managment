@@ -17,10 +17,14 @@ function toggleSet<T>(set: ReadonlySet<T>, value: T): Set<T> {
 /**
  * Sous-ensemble de PRESET_REGISTRY[...].quickFilters qui a un champ réel
  * derrière (statut/priorité/type d'action). Ignorés ici faute de donnée :
- * "technicalDebt", "byAssignee", "blocked" (pas d'assigné ni de flag dette
- * dans le modèle — cf. cadrage §5). Ignorés aussi car redondants avec un
- * sélecteur de vue déjà affiché : "today"/"thisWeek" (Aujourd'hui/Semaine),
+ * "technicalDebt", "byAssignee" (pas d'assigné ni de flag dette dans le
+ * modèle — cf. cadrage §5). Ignorés aussi car redondants avec un sélecteur
+ * de vue déjà affiché : "today"/"thisWeek" (Aujourd'hui/Semaine),
  * "currentPhase" (onglets de phase du Kanban PROJET).
+ *
+ * "blocked" (préréglage management) était ignoré faute de statut réel
+ * derrière — `ActionStatus` porte désormais "blocked" (Lot 6 §F), donc
+ * câblé sur le vrai statut plutôt que de rester un filtre fantôme.
  */
 const QUICK_FILTERS: Record<string, QuickFilter> = {
   done: {
@@ -34,6 +38,12 @@ const QUICK_FILTERS: Record<string, QuickFilter> = {
     label: "En attente",
     isActive: (f) => f.statuses.has("waiting"),
     apply: (f) => ({ ...f, statuses: toggleSet(f.statuses, "waiting") }),
+  },
+  blocked: {
+    id: "blocked",
+    label: "Bloquées",
+    isActive: (f) => f.statuses.has("blocked"),
+    apply: (f) => ({ ...f, statuses: toggleSet(f.statuses, "blocked") }),
   },
   highPriority: {
     id: "highPriority",

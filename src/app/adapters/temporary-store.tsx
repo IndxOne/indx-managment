@@ -1,6 +1,7 @@
 import { useMemo, useReducer, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
+import { createMember } from "../../domain/member";
 import { defaultMaterializationWindow } from "../../recurrence/recurrence-engine";
 import { appReducer, buildRecurrenceRule, generateId } from "./app-reducer";
 import {
@@ -48,6 +49,8 @@ export function TemporaryStoreProvider({
       },
       changeApproach: (workspaceId, approach) =>
         dispatch({ type: "workspace/changeApproach", workspaceId, approach }),
+      setCollaborationMode: (workspaceId, mode) =>
+        dispatch({ type: "workspace/setCollaborationMode", workspaceId, collaborationMode: mode, now: new Date().toISOString() }),
       editWorkspaceDescription: (workspaceId, description) => {
         dispatch({ type: "workspace/editDescription", workspaceId, description, now: new Date().toISOString() });
         return Promise.resolve();
@@ -79,6 +82,8 @@ export function TemporaryStoreProvider({
         dispatch({ type: "action/link", workspaceId, actionId, linkedActionId, now: new Date().toISOString() }),
       unlinkAction: (workspaceId, actionId) =>
         dispatch({ type: "action/unlink", workspaceId, actionId, now: new Date().toISOString() }),
+      setAssignees: (workspaceId, actionId, assigneeIds) =>
+        dispatch({ type: "action/setAssignees", workspaceId, actionId, assigneeIds, now: new Date().toISOString() }),
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((action) => action.id === actionId);
@@ -101,6 +106,15 @@ export function TemporaryStoreProvider({
         dispatch({ type: "hub-settings/update", settings });
         return Promise.resolve();
       },
+      createMember: (input) => {
+        const member = createMember({ ...input, id: generateId() });
+        dispatch({ type: "member/create", member });
+        return member;
+      },
+      renameMember: (workspaceId, memberId, displayName) =>
+        dispatch({ type: "member/rename", workspaceId, memberId, displayName, now: new Date().toISOString() }),
+      setMemberActive: (workspaceId, memberId, active) =>
+        dispatch({ type: "member/setActive", workspaceId, memberId, active, now: new Date().toISOString() }),
     }),
     [state]
   );
