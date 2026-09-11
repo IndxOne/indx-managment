@@ -183,6 +183,8 @@ export function ProjectWorkspaceScreen({
                 phases={phases}
                 actionsByPhase={actionsByPhase}
                 statusLabels={statusLabels}
+                timezone={timezone}
+                resolveSyncStatus={resolveSyncStatus}
                 onAddToPhase={(phaseId) => {
                   setCurrentPhase(phaseId);
                   setAddSheetDraftTitle("");

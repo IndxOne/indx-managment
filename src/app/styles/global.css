@@ -1884,12 +1884,9 @@ a {
   margin-top: 2px;
 }
 
-.kanban-card-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0;
-}
+/* .kanban-card-chips supprimée (Lot 2) : dupliquait .action-card-chips pour
+   le même rôle (rangée de chips sous le titre) — la carte kanban unifiée
+   réutilise désormais .action-card-chips. */
 
 .status-chip {
   display: inline-flex;

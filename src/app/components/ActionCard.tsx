@@ -6,18 +6,28 @@ import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionMenuSheet } from "./ActionMenuSheet";
-import { IconCalendar, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
+import { IconCalendar, IconGripVertical, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
 // Seuil à partir duquel relâcher déclenche l'action ; au-delà, la carte
 // arrête de suivre le doigt pour ne pas la faire sortir de son conteneur.
 const SWIPE_THRESHOLD = 88;
 const SWIPE_MAX = 132;
 
+/**
+ * Carte d'action unique (Lot 2 du renouveau produit) : fusionne l'ancienne
+ * `ActionCard` (listes mobile/desktop, swipe) et l'ancienne `KanbanCard`
+ * (tableau Kanban desktop, drag & drop HTML5) derrière un seul composant.
+ * `variant` ne pilote QUE la mise en page et les interactions réellement
+ * spécifiques à chaque représentation (swipe vs drag, checkbox vs chip de
+ * statut) — la résolution des badges, le menu d'actions et le statut de
+ * synchronisation restent une seule logique partagée, jamais dupliquée.
+ */
 export function ActionCard({
   action,
   timezone,
   statusLabels,
-  /** Fourni uniquement dans les vues transversales (plusieurs espaces mélangés). */
+  variant = "list",
+  /** Fourni uniquement dans les vues transversales (plusieurs espaces mélangés) ; sans objet en variant "kanban" (toujours mono-espace). */
   workspaceName,
   workspaceKind,
   syncStatus,
@@ -30,10 +40,16 @@ export function ActionCard({
   onDisableReminder,
   onOpenNotes,
   onOpenLink,
+  /** Drag & drop HTML5 (variant "kanban" uniquement) — ignorés en variant "list". */
+  draggable,
+  onDragStart,
+  onDragEnd,
 }: {
   action: Action;
   timezone: string;
   statusLabels: Record<ActionStatus, string>;
+  /** "list" (défaut) : cartes listes mobile/desktop, swipe terminer/replanifier. "kanban" : carte compacte du tableau Kanban desktop, drag & drop HTML5. */
+  variant?: "list" | "kanban";
   workspaceName?: string;
   workspaceKind?: WorkspaceKind;
   /** "pending" : mutation pas encore confirmée synchronisée. "conflict" : bloquée par une version serveur plus récente (cf. SyncConflict). Absent = synchronisée. */
@@ -41,20 +57,24 @@ export function ActionCard({
   /** Navigue vers l'espace d'origine de l'action ; fourni avec workspaceKind dans les vues transversales. */
   onOpenWorkspace?: () => void;
   onMove: () => void;
-  /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". */
+  /** Cycle rapide 1-clic todo → doing → done (→ todo), sans passer par "Déplacer". Réservé au variant "list" (le variant "kanban" affiche le statut en chip, changé via drag & drop ou le menu). */
   onCycleStatus?: () => void;
-  /** Swipe à droite : passe directement l'action à "Terminé" (équivalent geste de la checkbox/menu). */
+  /** Swipe à droite : passe directement l'action à "Terminé" (équivalent geste de la checkbox/menu). Sans effet en variant "kanban" (jamais de swipe sur desktop, pour ne pas interférer avec le drag & drop natif). */
   onSwipeComplete?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onDisableReminder?: () => void;
   onOpenNotes?: () => void;
   onOpenLink?: () => void;
+  draggable?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean } | null>(null);
+  const isKanban = variant === "kanban";
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
@@ -67,8 +87,10 @@ export function ActionCard({
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
   const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind) || action.itemType !== "task";
-  const swipeCompleteEnabled = Boolean(onSwipeComplete) && !isDone;
-  const swipeEnabled = swipeCompleteEnabled || Boolean(onMove);
+  // Le variant kanban n'a jamais de swipe : le geste tactile entrerait en
+  // conflit avec le drag & drop HTML5 natif (mêmes événements pointeur).
+  const swipeCompleteEnabled = !isKanban && Boolean(onSwipeComplete) && !isDone;
+  const swipeEnabled = !isKanban && (swipeCompleteEnabled || Boolean(onMove));
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!swipeEnabled || menuOpen) return;
@@ -133,6 +155,91 @@ export function ActionCard({
     cancelDrag(event);
   }
 
+  const menu = menuOpen && (
+    <ActionMenuSheet
+      action={action}
+      noteCount={noteCount}
+      hasLink={hasLink}
+      onClose={() => setMenuOpen(false)}
+      onEdit={onEdit}
+      onMove={onMove}
+      onDelete={onDelete}
+      onOpenNotes={onOpenNotes}
+      onOpenLink={onOpenLink}
+    />
+  );
+
+  const menuButton = (
+    <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
+      <IconMore />
+    </button>
+  );
+
+  const title = (
+    <span
+      className="action-title"
+      style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
+    >
+      {action.title}
+    </span>
+  );
+
+  const noteAndLinkChips = (
+    <>
+      {noteCount > 0 && (
+        <span className="meta-chip">
+          <IconMessage width={14} height={14} /> {noteCount}
+        </span>
+      )}
+      {hasLink && (
+        <span className="meta-chip">
+          <IconLink width={14} height={14} />
+        </span>
+      )}
+      {syncStatus && (
+        <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
+          {syncStatus === "conflict" ? "Conflit" : "En attente"}
+        </span>
+      )}
+    </>
+  );
+
+  if (isKanban) {
+    return (
+      <div className="kanban-card" draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+        <span className="kanban-card-handle" aria-hidden="true">
+          <IconGripVertical width={16} height={16} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+          {title}
+          <div className="action-card-chips">
+            <span className="status-chip" data-status={action.status}>
+              {statusLabel}
+            </span>
+            {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
+            {action.itemType !== "task" && (
+              <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
+            )}
+          </div>
+          <div className="action-sub">
+            <span>{scheduleLabel || "Aucune échéance"}</span>
+            {noteAndLinkChips}
+          </div>
+        </div>
+        {menuButton}
+        {onDisableReminder && reminderActive && (
+          <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
+            {reminderDue ? "Relance due" : "Relance active"}
+            <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
+              Désactiver
+            </button>
+          </div>
+        )}
+        {menu}
+      </div>
+    );
+  }
+
   return (
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
       {swipeEnabled && (
@@ -188,12 +295,7 @@ export function ActionCard({
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <span
-              className="action-title"
-              style={isDone ? { textDecoration: "line-through", textDecorationColor: "var(--color-text-tertiary)" } : undefined}
-            >
-              {action.title}
-            </span>
+            {title}
             <div className="action-sub">
               <span>
                 {workspaceName ? `${workspaceName} · ` : ""}
@@ -201,21 +303,7 @@ export function ActionCard({
                 {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
                 {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
               </span>
-              {noteCount > 0 && (
-                <span className="meta-chip">
-                  <IconMessage width={14} height={14} /> {noteCount}
-                </span>
-              )}
-              {hasLink && (
-                <span className="meta-chip">
-                  <IconLink width={14} height={14} />
-                </span>
-              )}
-              {syncStatus && (
-                <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
-                  {syncStatus === "conflict" ? "Conflit" : "En attente"}
-                </span>
-              )}
+              {noteAndLinkChips}
             </div>
             {reminderDue && (
               <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
@@ -228,24 +316,10 @@ export function ActionCard({
               </div>
             )}
           </div>
-          <button type="button" className="icon-btn" onClick={() => setMenuOpen(true)} aria-label={`Actions pour "${action.title}"`}>
-            <IconMore />
-          </button>
+          {menuButton}
         </div>
       </div>
-      {menuOpen && (
-        <ActionMenuSheet
-          action={action}
-          noteCount={noteCount}
-          hasLink={hasLink}
-          onClose={() => setMenuOpen(false)}
-          onEdit={onEdit}
-          onMove={onMove}
-          onDelete={onDelete}
-          onOpenNotes={onOpenNotes}
-          onOpenLink={onOpenLink}
-        />
-      )}
+      {menu}
     </div>
   );
 }

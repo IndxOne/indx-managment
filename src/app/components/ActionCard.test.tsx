@@ -335,3 +335,113 @@ describe("ActionCard — badge de synchronisation (Lot 3 §2)", () => {
     expect(screen.getByText("Conflit")).toBeInTheDocument();
   });
 });
+
+describe("ActionCard — variant kanban (Lot 2 : fusion avec l'ancienne KanbanCard)", () => {
+  it("affiche un chip de statut coloré plutôt qu'une checkbox", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    // Même si onCycleStatus est fourni, le variant kanban n'affiche jamais de checkbox.
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText("À faire")).toHaveClass("status-chip");
+  });
+
+  it("est draggable et déclenche onDragStart/onDragEnd", () => {
+    const onDragStart = vi.fn();
+    const onDragEnd = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      />
+    );
+    const card = screen.getByText("Relancer le prestataire").closest(".kanban-card")!;
+    expect(card).toHaveAttribute("draggable", "true");
+    fireEvent.dragStart(card);
+    expect(onDragStart).toHaveBeenCalledTimes(1);
+    fireEvent.dragEnd(card);
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("le swipe est désactivé en variant kanban même si onSwipeComplete est fourni", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const card = screen.getByText("Relancer le prestataire").closest(".kanban-card")!;
+    expect(card.querySelector(".action-card-swipe-bg")).not.toBeInTheDocument();
+    swipe(card, 120);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("réutilise le même menu d'actions (Notes/Lien/Déplacer/Éditer/Supprimer) que le variant list", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={onMove}
+      />
+    );
+    await openMenu(user);
+    await user.click(screen.getByRole("button", { name: /Déplacer/ }));
+    expect(onMove).toHaveBeenCalledTimes(1);
+  });
+
+  it("affiche le badge de synchronisation, comme le variant list (parité desktop/mobile)", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        syncStatus="pending"
+      />
+    );
+    expect(screen.getByText("En attente")).toBeInTheDocument();
+  });
+
+  it("affiche une bannière de relance active même avant échéance (comportement propre au variant kanban, conservé)", () => {
+    render(
+      <ActionCard
+        action={baseAction({
+          status: "waiting",
+          waitingSince: new Date().toISOString(),
+          waitingReminder: { afterDays: 3, enabled: true, history: [] },
+        })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onDisableReminder={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Relance active")).toBeInTheDocument();
+  });
+});

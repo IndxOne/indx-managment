@@ -2,17 +2,21 @@ import { useState } from "react";
 import type { Action, ActionStatus } from "../../domain/types";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
-import { KanbanCard } from "./KanbanCard";
+import { ActionCard } from "./ActionCard";
 
 /**
  * Vue desktop d'un espace PROJET : une colonne par phase, glisser-déposer
  * une carte entre colonnes pour changer sa phase (raccourci du menu
  * "..." → "Déplacer" → "Phase", qui reste le chemin accessible/clavier).
+ * Cartes rendues par `ActionCard` variant="kanban" (Lot 2 du renouveau
+ * produit) — plus de composant `KanbanCard` séparé.
  */
 export function KanbanBoard({
   phases,
   actionsByPhase,
   statusLabels,
+  timezone,
+  resolveSyncStatus,
   onAddToPhase,
   onDropOnPhase,
   onMove,
@@ -25,6 +29,9 @@ export function KanbanBoard({
   phases: string[];
   actionsByPhase: Record<string, Action[]>;
   statusLabels: Record<ActionStatus, string>;
+  timezone: string;
+  /** Badge de sync par carte (parité avec les vues liste, Lot 2) — absent = aucune carte "en attente"/"conflit". */
+  resolveSyncStatus?: (action: Action) => "pending" | "conflict" | undefined;
   onAddToPhase: (phaseId: string) => void;
   onDropOnPhase: (actionId: string, phaseId: string) => void;
   onMove: (action: Action) => void;
@@ -69,10 +76,13 @@ export function KanbanBoard({
             </div>
             <div className="kanban-column-cards">
               {actions.map((action) => (
-                <KanbanCard
+                <ActionCard
                   key={action.id}
+                  variant="kanban"
                   action={action}
+                  timezone={timezone}
                   statusLabels={statusLabels}
+                  syncStatus={resolveSyncStatus?.(action)}
                   draggable
                   onDragStart={() => setDraggingId(action.id)}
                   onDragEnd={() => {
