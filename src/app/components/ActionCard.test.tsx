@@ -336,6 +336,114 @@ describe("ActionCard — badge de synchronisation (Lot 3 §2)", () => {
   });
 });
 
+describe("ActionCard — ouverture du détail (Lot 5)", () => {
+  it("sans onOpenDetail, le titre n'est pas un bouton (comportement inchangé)", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: /^Relancer le prestataire/ })).not.toBeInTheDocument();
+  });
+
+  it("le clic sur le titre appelle onOpenDetail (variant list)", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /^Relancer le prestataire/ }));
+    expect(onOpenDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it("le clic sur la checkbox de statut n'ouvre pas le détail", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={onCycleStatus}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await user.click(screen.getByRole("checkbox"));
+    expect(onCycleStatus).toHaveBeenCalledTimes(1);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("le clic sur le menu n'ouvre pas le détail", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await openMenu(user);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("un swipe committed n'ouvre pas le détail ensuite", () => {
+    const onOpenDetail = vi.fn();
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    swipe(content, 120);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    // Le clic natif éventuellement synthétisé par le navigateur après le
+    // swipe ne doit pas rouvrir le détail.
+    fireEvent.click(screen.getByRole("button", { name: /^Relancer le prestataire/ }));
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("en variant kanban, le clic sur le titre appelle onOpenDetail et un dragstart le neutralise", () => {
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+        draggable
+        onDragStart={vi.fn()}
+        onDragEnd={vi.fn()}
+      />
+    );
+    const button = screen.getByRole("button", { name: /^Relancer le prestataire/ });
+    fireEvent.click(button);
+    expect(onOpenDetail).toHaveBeenCalledTimes(1);
+
+    onOpenDetail.mockClear();
+    const card = button.closest(".kanban-card")!;
+    fireEvent.dragStart(card);
+    fireEvent.click(button);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+});
+
 describe("ActionCard — variant kanban (Lot 2 : fusion avec l'ancienne KanbanCard)", () => {
   it("affiche un chip de statut coloré plutôt qu'une checkbox", () => {
     render(

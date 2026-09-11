@@ -40,6 +40,7 @@ export function ActionCard({
   onDisableReminder,
   onOpenNotes,
   onOpenLink,
+  onOpenDetail,
   /** Drag & drop HTML5 (variant "kanban" uniquement) — ignorés en variant "list". */
   draggable,
   onDragStart,
@@ -66,6 +67,8 @@ export function ActionCard({
   onDisableReminder?: () => void;
   onOpenNotes?: () => void;
   onOpenLink?: () => void;
+  /** Ouvre le détail unifié de l'action (Lot 5) au tap/clic sur le titre — jamais sur checkbox/menu/drag/swipe. Absent = comportement inchangé (écran pas encore migré). */
+  onOpenDetail?: () => void;
   draggable?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
@@ -74,6 +77,11 @@ export function ActionCard({
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean } | null>(null);
+  // Un swipe committed (list) ou un drag HTML5 (kanban) synthétise parfois
+  // quand même un "click" natif au relâchement — sans ce garde-fou, ouvrir
+  // le détail au clic sur le titre ouvrirait aussi le détail après un
+  // simple swipe/déplacement, ce que Phase E interdit explicitement.
+  const suppressClickRef = useRef(false);
   const isKanban = variant === "kanban";
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
@@ -107,6 +115,7 @@ export function ActionCard({
       // le défilement vertical de la liste ni un simple tap.
       if (Math.abs(deltaX) < 10 || Math.abs(deltaX) < Math.abs(deltaY)) return;
       drag.committed = true;
+      suppressClickRef.current = true;
       setIsDragging(true);
       // Absent en environnement de test (jsdom) : optionnel, sans impact
       // fonctionnel puisque la capture ne fait que fiabiliser le suivi du
@@ -153,6 +162,16 @@ export function ActionCard({
   function handlePointerLeave(event: ReactPointerEvent<HTMLDivElement>) {
     if (dragRef.current?.committed) return;
     cancelDrag(event);
+  }
+
+  function handleOpenDetailClick() {
+    if (suppressClickRef.current) {
+      // Le clic qui suit un swipe/drag committed ne doit jamais ouvrir le
+      // détail (Phase E) — consommé une seule fois, pas un verrou permanent.
+      suppressClickRef.current = false;
+      return;
+    }
+    onOpenDetail?.();
   }
 
   const menu = menuOpen && (
@@ -205,27 +224,49 @@ export function ActionCard({
   );
 
   if (isKanban) {
+    const kanbanInfo = (
+      <>
+        {title}
+        <div className="action-card-chips">
+          <span className="status-chip" data-status={action.status}>
+            {statusLabel}
+          </span>
+          {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
+          {action.itemType !== "task" && (
+            <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
+          )}
+        </div>
+        <div className="action-sub">
+          <span>{scheduleLabel || "Aucune échéance"}</span>
+          {noteAndLinkChips}
+        </div>
+      </>
+    );
     return (
-      <div className="kanban-card" draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <div
+        className="kanban-card"
+        draggable={draggable}
+        onDragStart={() => {
+          suppressClickRef.current = true;
+          onDragStart?.();
+        }}
+        onDragEnd={onDragEnd}
+      >
         <span className="kanban-card-handle" aria-hidden="true">
           <IconGripVertical width={16} height={16} />
         </span>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-          {title}
-          <div className="action-card-chips">
-            <span className="status-chip" data-status={action.status}>
-              {statusLabel}
-            </span>
-            {action.priority === "high" && <span className="phase-chip phase-chip-red">Prioritaire</span>}
-            {action.itemType !== "task" && (
-              <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
-            )}
-          </div>
-          <div className="action-sub">
-            <span>{scheduleLabel || "Aucune échéance"}</span>
-            {noteAndLinkChips}
-          </div>
-        </div>
+        {onOpenDetail ? (
+          <button
+            type="button"
+            className="action-card-open-detail"
+            style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}
+            onClick={handleOpenDetailClick}
+          >
+            {kanbanInfo}
+          </button>
+        ) : (
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>{kanbanInfo}</div>
+        )}
         {menuButton}
         {onDisableReminder && reminderActive && (
           <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
@@ -239,6 +280,21 @@ export function ActionCard({
       </div>
     );
   }
+
+  const listInfo = (
+    <>
+      {title}
+      <div className="action-sub">
+        <span>
+          {workspaceName ? `${workspaceName} · ` : ""}
+          {statusLabel}
+          {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
+          {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
+        </span>
+        {noteAndLinkChips}
+      </div>
+    </>
+  );
 
   return (
     <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
@@ -295,16 +351,13 @@ export function ActionCard({
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {title}
-            <div className="action-sub">
-              <span>
-                {workspaceName ? `${workspaceName} · ` : ""}
-                {statusLabel}
-                {scheduleLabel ? ` · ${scheduleLabel}` : " · Aucune échéance"}
-                {reminderActive && !reminderDue ? ` · Relance après ${action.waitingReminder!.afterDays} j` : ""}
-              </span>
-              {noteAndLinkChips}
-            </div>
+            {onOpenDetail ? (
+              <button type="button" className="action-card-open-detail" onClick={handleOpenDetailClick}>
+                {listInfo}
+              </button>
+            ) : (
+              listInfo
+            )}
             {reminderDue && (
               <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
                 Relance due
