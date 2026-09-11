@@ -76,9 +76,11 @@ export function FilterSheet({
         ))}
       </div>
 
-      <button type="button" className="btn btn-primary btn-block tap-target" style={{ marginTop: 16 }} onClick={onClose}>
-        Appliquer
-      </button>
+      <div className="sheet-actions">
+        <button type="button" className="btn btn-primary btn-block tap-target" onClick={onClose}>
+          Appliquer
+        </button>
+      </div>
     </BottomSheet>
   );
 }

@@ -61,17 +61,19 @@ export function NotesSheet({
         />
       </div>
 
-      <button
-        type="button"
-        className="btn btn-primary btn-block tap-target"
-        disabled={!text.trim()}
-        onClick={handleSubmit}
-      >
-        Ajouter la note
-      </button>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onClose}>
-        Fermer
-      </button>
+      <div className="sheet-actions">
+        <button
+          type="button"
+          className="btn btn-primary btn-block tap-target"
+          disabled={!text.trim()}
+          onClick={handleSubmit}
+        >
+          Ajouter la note
+        </button>
+        <button type="button" className="btn btn-block tap-target" onClick={onClose}>
+          Fermer
+        </button>
+      </div>
     </BottomSheet>
   );
 }

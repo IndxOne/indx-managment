@@ -82,12 +82,14 @@ export function EditActionSheet({
         </select>
       </div>
 
-      <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>
-        Enregistrer
-      </button>
-      <button type="button" className="btn btn-block tap-target" style={{ marginTop: 8 }} onClick={onCancel}>
-        Annuler
-      </button>
+      <div className="sheet-actions">
+        <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleSubmit}>
+          Enregistrer
+        </button>
+        <button type="button" className="btn btn-block tap-target" onClick={onCancel}>
+          Annuler
+        </button>
+      </div>
     </BottomSheet>
   );
 }
