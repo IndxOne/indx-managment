@@ -16,6 +16,7 @@ import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
+import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
@@ -80,8 +81,9 @@ function AppShell() {
   const { state, isLoading } = useStore();
   // Accueil (Home) est la route initiale : ouvrir l'app sur ce qui nécessite
   // une action immédiate, pas sur la liste des projets (décision produit
-  // validée). Le contenu reste l'écran "Aujourd'hui" existant tant que le
-  // renforcement Home (retard/bloqué) du Lot 7 n'est pas livré.
+  // validée). HomeScreen (Lot 7) : Aujourd'hui / En retard / Bloqué / Cette
+  // semaine (aperçu), au lieu de l'ancien AggregatedActionsScreen générique
+  // (toujours utilisé pour la route "week", vue temporelle complète).
   const [route, setRoute] = useState<Route>({ screen: "today" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
@@ -146,12 +148,10 @@ function AppShell() {
         ) : (
           <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
-          <AggregatedActionsScreen
-            title="Aujourd'hui"
-            includeLabels={["today"]}
-            emptyDescription="Aucune action prévue aujourd'hui, ni en attente."
+          <HomeScreen
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
+            onOpenWeek={() => setRoute({ screen: "week" })}
           />
         )}
 
