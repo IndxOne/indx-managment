@@ -4,17 +4,16 @@ import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
-import { phaseLabel, STATUS_LABELS_DEFAULT } from "../labels";
+import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
-import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
+import { ColumnsView } from "../components/ColumnsView";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { IconSettings } from "../components/Icons";
-import { KanbanBoard } from "../components/KanbanBoard";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -75,7 +74,6 @@ export function ProjectWorkspaceScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id, allActions.length]);
 
-  const isDesktop = useIsDesktop();
   // Les approches sans phaseTemplate (ex. "management") n'ont aucune phase à
   // afficher : partir en vue "phase" par défaut serait un cul-de-sac sans
   // aucun moyen d'ajouter une action (cf. bug remonté au changement d'approche).
@@ -93,17 +91,6 @@ export function ProjectWorkspaceScreen({
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
-
-  const phaseActions = useMemo(
-    () => allActions.filter((action) => resolveActionColumn(action, phases) === currentPhase),
-    [allActions, currentPhase, phases]
-  );
-  const milestones = phaseActions.filter((action) => action.itemType === "milestone");
-  const decisions = phaseActions.filter((action) => action.itemType === "decision");
-  const risks = phaseActions.filter((action) => action.itemType === "risk");
-  const deliverables = phaseActions.filter(
-    (action) => !["milestone", "decision", "risk"].includes(action.itemType)
-  );
 
   const actionsByPhase = useMemo(() => {
     const grouped: Record<string, Action[]> = {};
@@ -177,138 +164,28 @@ export function ProjectWorkspaceScreen({
           </div>
         )}
         {mode === "phase" ? (
-          <>
-            {isDesktop ? (
-              <KanbanBoard
-                phases={phases}
-                actionsByPhase={actionsByPhase}
-                statusLabels={statusLabels}
-                timezone={timezone}
-                resolveSyncStatus={resolveSyncStatus}
-                onAddToPhase={(phaseId) => {
-                  setCurrentPhase(phaseId);
-                  setAddSheetDraftTitle("");
-                  setAddSheetOpen(true);
-                }}
-                onDropOnPhase={(actionId, phaseId) => {
-                  const action = allActions.find((candidate) => candidate.id === actionId);
-                  if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });
-                }}
-                onMove={setMovingAction}
-                onEdit={setEditingAction}
-                onDelete={(action) => remove(workspace.id, action)}
-                onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                onOpenNotes={(action) => setNotesActionId(action.id)}
-                onOpenLink={(action) => setLinkingActionId(action.id)}
-              />
-            ) : (
-              <>
-                <div className="segmented-scroll" role="tablist" aria-label="Sélecteur de phases">
-                  {phases.map((phase) => (
-                    <button
-                      key={phase}
-                      type="button"
-                      role="tab"
-                      aria-selected={currentPhase === phase}
-                      aria-current={currentPhase === phase}
-                      className="segmented-chip"
-                      onClick={() => setCurrentPhase(phase)}
-                    >
-                      {phaseLabel(phase)}
-                    </button>
-                  ))}
-                </div>
-
-                <QuickAddBar
-                  onQuickAdd={(title) =>
-                    createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId: currentPhase })
-                  }
-                  onOpenFullForm={(draftTitle) => {
-                    setAddSheetDraftTitle(draftTitle);
-                    setAddSheetOpen(true);
-                  }}
-                  placeholder={`Ajouter à « ${phaseLabel(currentPhase ?? "")} »…`}
-                />
-
-                <ActionListSection
-                  id="section-milestones"
-                  title="Jalons"
-                  actions={milestones}
-                  timezone={timezone}
-                  statusLabels={statusLabels}
-                  onMove={setMovingAction}
-                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-                  onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
-                  onEdit={setEditingAction}
-                  onDelete={(action) => remove(workspace.id, action)}
-                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                  onOpenNotes={(action) => setNotesActionId(action.id)}
-                  onOpenLink={(action) => setLinkingActionId(action.id)}
-                  resolveSyncStatus={resolveSyncStatus}
-                />
-
-                <ActionListSection
-                  id="section-decisions"
-                  title="Décisions"
-                  actions={decisions}
-                  timezone={timezone}
-                  statusLabels={statusLabels}
-                  onMove={setMovingAction}
-                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-                  onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
-                  onEdit={setEditingAction}
-                  onDelete={(action) => remove(workspace.id, action)}
-                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                  onOpenNotes={(action) => setNotesActionId(action.id)}
-                  onOpenLink={(action) => setLinkingActionId(action.id)}
-                  resolveSyncStatus={resolveSyncStatus}
-                />
-
-                <ActionListSection
-                  id="section-risks"
-                  title="Risques"
-                  actions={risks}
-                  timezone={timezone}
-                  statusLabels={statusLabels}
-                  onMove={setMovingAction}
-                  onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-                  onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
-                  onEdit={setEditingAction}
-                  onDelete={(action) => remove(workspace.id, action)}
-                  onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                  onOpenNotes={(action) => setNotesActionId(action.id)}
-                  onOpenLink={(action) => setLinkingActionId(action.id)}
-                  resolveSyncStatus={resolveSyncStatus}
-                />
-
-                {deliverables.length === 0 ? (
-                  <section aria-labelledby="section-deliverables">
-                    <h2 id="section-deliverables" className="section-title">
-                      Actions et livrables
-                    </h2>
-                    <EmptyState title="Aucune action dans cette phase" description="Ajoutez une action ou un livrable." />
-                  </section>
-                ) : (
-                  <ActionListSection
-                    id="section-deliverables"
-                    title="Actions et livrables"
-                    actions={deliverables}
-                    timezone={timezone}
-                    statusLabels={statusLabels}
-                    onMove={setMovingAction}
-                    onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-                    onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
-                    onEdit={setEditingAction}
-                    onDelete={(action) => remove(workspace.id, action)}
-                    onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-                    onOpenNotes={(action) => setNotesActionId(action.id)}
-                    onOpenLink={(action) => setLinkingActionId(action.id)}
-                    resolveSyncStatus={resolveSyncStatus}
-                  />
-                )}
-              </>
-            )}
-          </>
+          <ColumnsView
+            phases={phases}
+            actionsByPhase={actionsByPhase}
+            statusLabels={statusLabels}
+            timezone={timezone}
+            resolveSyncStatus={resolveSyncStatus}
+            onAddToPhase={(phaseId) => {
+              setCurrentPhase(phaseId);
+              setAddSheetDraftTitle("");
+              setAddSheetOpen(true);
+            }}
+            onDropOnPhase={(actionId, phaseId) => {
+              const action = allActions.find((candidate) => candidate.id === actionId);
+              if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });
+            }}
+            onMove={setMovingAction}
+            onEdit={setEditingAction}
+            onDelete={(action) => remove(workspace.id, action)}
+            onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+            onOpenNotes={(action) => setNotesActionId(action.id)}
+            onOpenLink={(action) => setLinkingActionId(action.id)}
+          />
         ) : (
           <>
             <QuickAddBar

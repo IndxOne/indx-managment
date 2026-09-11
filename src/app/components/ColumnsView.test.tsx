@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Action } from "../../domain/types";
 import { STATUS_LABELS_DEFAULT } from "../labels";
-import { KanbanBoard } from "./KanbanBoard";
+import { ColumnsView } from "./ColumnsView";
 
 function baseAction(overrides: Partial<Action> = {}): Action {
   return {
@@ -23,16 +23,19 @@ function baseAction(overrides: Partial<Action> = {}): Action {
 }
 
 /**
- * Vérifie la migration du Lot 2 (fusion ActionCard/KanbanCard) : KanbanBoard
- * rend désormais ActionCard variant="kanban" et non plus un composant
- * KanbanCard séparé — ce fichier n'existait pas avant le Lot 2, comblant un
- * vrai trou de couverture (aucun test n'exerçait avant le rendu desktop).
+ * ColumnsView (Lot 3 du renouveau produit) : implémentation unique du
+ * concept "colonnes par phase", utilisée aussi bien desktop (colonnes côte
+ * à côte) que mobile (scroll horizontal + scroll-snap, cf. global.css) —
+ * la bascule est purement CSS, ce composant ne change jamais de
+ * comportement selon le viewport. Remplace `KanbanBoard` (desktop
+ * uniquement) et l'ancien rendu mobile "par étapes" de
+ * `ProjectWorkspaceScreen`.
  */
-describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", () => {
+describe("ColumnsView", () => {
   it("affiche une colonne par phase avec son compteur, et les cartes de la phase", () => {
     const action = baseAction();
     render(
-      <KanbanBoard
+      <ColumnsView
         phases={["conception", "realisation"]}
         actionsByPhase={{ conception: [action], realisation: [] }}
         statusLabels={STATUS_LABELS_DEFAULT}
@@ -51,11 +54,54 @@ describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", (
     expect(screen.getByText("Arbitrer le prestataire").closest(".kanban-card")).toBeInTheDocument();
   });
 
-  it("la carte est draggable et le drop sur une autre colonne appelle onDropOnPhase", () => {
+  it("chaque colonne est une région nommée d'après la phase (Phase F : accessibilité)", () => {
+    render(
+      <ColumnsView
+        phases={["conception", "realisation"]}
+        actionsByPhase={{ conception: [], realisation: [] }}
+        statusLabels={STATUS_LABELS_DEFAULT}
+        timezone="Europe/Paris"
+        onAddToPhase={vi.fn()}
+        onDropOnPhase={vi.fn()}
+        onMove={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onDisableReminder={vi.fn()}
+        onOpenNotes={vi.fn()}
+        onOpenLink={vi.fn()}
+      />
+    );
+    const regions = screen.getAllByRole("region");
+    expect(regions).toHaveLength(2);
+    expect(regions.map((region) => region.getAttribute("aria-labelledby")).every(Boolean)).toBe(true);
+  });
+
+  it("affiche un état vide explicite quand la liste de phases est vide", () => {
+    render(
+      <ColumnsView
+        phases={[]}
+        actionsByPhase={{}}
+        statusLabels={STATUS_LABELS_DEFAULT}
+        timezone="Europe/Paris"
+        onAddToPhase={vi.fn()}
+        onDropOnPhase={vi.fn()}
+        onMove={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onDisableReminder={vi.fn()}
+        onOpenNotes={vi.fn()}
+        onOpenLink={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Aucune phase")).toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
+  it("la carte est draggable et le drop sur une autre colonne appelle onDropOnPhase (DnD HTML5 inchangé)", () => {
     const action = baseAction();
     const onDropOnPhase = vi.fn();
     render(
-      <KanbanBoard
+      <ColumnsView
         phases={["conception", "realisation"]}
         actionsByPhase={{ conception: [action], realisation: [] }}
         statusLabels={STATUS_LABELS_DEFAULT}
@@ -72,7 +118,7 @@ describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", (
     );
 
     const card = screen.getByText("Arbitrer le prestataire").closest(".kanban-card")!;
-    const columns = document.querySelectorAll(".kanban-column");
+    const columns = document.querySelectorAll(".columns-column");
     expect(columns).toHaveLength(2);
 
     fireEvent.dragStart(card);
@@ -85,7 +131,7 @@ describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", (
     const user = userEvent.setup();
     const onAddToPhase = vi.fn();
     render(
-      <KanbanBoard
+      <ColumnsView
         phases={["conception"]}
         actionsByPhase={{ conception: [] }}
         statusLabels={STATUS_LABELS_DEFAULT}
@@ -107,7 +153,7 @@ describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", (
   it("affiche le badge de synchronisation via resolveSyncStatus (parité avec les vues liste)", () => {
     const action = baseAction();
     render(
-      <KanbanBoard
+      <ColumnsView
         phases={["conception"]}
         actionsByPhase={{ conception: [action] }}
         statusLabels={STATUS_LABELS_DEFAULT}
@@ -126,12 +172,12 @@ describe("KanbanBoard (Lot 2 : cartes rendues par ActionCard variant kanban)", (
     expect(screen.getByText("En attente")).toBeInTheDocument();
   });
 
-  it("le menu de la carte kanban déclenche bien onMove/onEdit/onDelete", async () => {
+  it("le menu de la carte déclenche bien onMove/onEdit/onDelete (alternative non gestuelle au DnD)", async () => {
     const user = userEvent.setup();
     const onMove = vi.fn();
     const action = baseAction();
     render(
-      <KanbanBoard
+      <ColumnsView
         phases={["conception"]}
         actionsByPhase={{ conception: [action] }}
         statusLabels={STATUS_LABELS_DEFAULT}

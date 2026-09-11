@@ -3,15 +3,33 @@ import type { Action, ActionStatus } from "../../domain/types";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
 import { ActionCard } from "./ActionCard";
+import { EmptyState } from "./StateBlocks";
 
 /**
- * Vue desktop d'un espace PROJET : une colonne par phase, glisser-déposer
- * une carte entre colonnes pour changer sa phase (raccourci du menu
- * "..." → "Déplacer" → "Phase", qui reste le chemin accessible/clavier).
- * Cartes rendues par `ActionCard` variant="kanban" (Lot 2 du renouveau
- * produit) — plus de composant `KanbanCard` séparé.
+ * Vue Colonnes canonique (Lot 3 du renouveau produit) : une seule
+ * implémentation du concept "colonnes par phase", utilisée aussi bien sur
+ * desktop (colonnes côte à côte, `overflow-x: auto`) que sur mobile (scroll
+ * horizontal natif + `scroll-snap`, une colonne principalement visible à la
+ * fois) — la bascule entre les deux est purement CSS (`.columns-view`,
+ * cf. global.css), aucune branche JS séparée par device. Remplace
+ * l'ancien `KanbanBoard` (desktop uniquement) ET l'ancienne vue mobile
+ * "par étapes" de `ProjectWorkspaceScreen`, qui dupliquaient chacune leur
+ * propre rendu du concept phase.
+ *
+ * Cartes rendues par `ActionCard` variant="kanban" (Lot 2), y compris sur
+ * mobile : ce variant n'active jamais le swipe tactile
+ * (terminer/replanifier), ce qui évite tout conflit avec le scroll
+ * horizontal natif de la colonne courante — aucune logique de geste
+ * personnalisée n'est nécessaire (cf. audit Lot 3 : le swipe reste
+ * disponible ailleurs dans l'app via ActionCard variant="list", RUN et
+ * vues transversales, inchangées).
+ *
+ * Aucune logique de persistance, de filtre ou de résolution de statut ici :
+ * cette responsabilité reste entièrement à l'écran appelant
+ * (`ProjectWorkspaceScreen`), qui fournit `actionsByPhase` déjà regroupé et
+ * `resolveSyncStatus` déjà résolu.
  */
-export function KanbanBoard({
+export function ColumnsView({
   phases,
   actionsByPhase,
   statusLabels,
@@ -30,7 +48,7 @@ export function KanbanBoard({
   actionsByPhase: Record<string, Action[]>;
   statusLabels: Record<ActionStatus, string>;
   timezone: string;
-  /** Badge de sync par carte (parité avec les vues liste, Lot 2) — absent = aucune carte "en attente"/"conflit". */
+  /** Badge de sync par carte (parité avec les vues liste) — absent = aucune carte "en attente"/"conflit". */
   resolveSyncStatus?: (action: Action) => "pending" | "conflict" | undefined;
   onAddToPhase: (phaseId: string) => void;
   onDropOnPhase: (actionId: string, phaseId: string) => void;
@@ -44,14 +62,21 @@ export function KanbanBoard({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverPhase, setDragOverPhase] = useState<string | null>(null);
 
+  if (phases.length === 0) {
+    return <EmptyState title="Aucune phase" description="Cette approche métier n'a pas d'étapes à afficher." />;
+  }
+
   return (
-    <div className="kanban-board">
+    <div className="columns-view">
       {phases.map((phase) => {
         const actions = actionsByPhase[phase] ?? [];
+        const columnTitleId = `columns-column-title-${phase}`;
         return (
           <div
             key={phase}
-            className={`kanban-column ${phaseChipClass(phase)}`}
+            className={`columns-column ${phaseChipClass(phase)}`}
+            role="region"
+            aria-labelledby={columnTitleId}
             data-drag-over={dragOverPhase === phase ? "true" : undefined}
             onDragOver={(event) => {
               if (!draggingId) return;
@@ -70,11 +95,13 @@ export function KanbanBoard({
               setDraggingId(null);
             }}
           >
-            <div className="kanban-column-header">
-              <span className="kanban-column-title">{phaseLabel(phase)}</span>
-              <span className="kanban-column-count">{actions.length}</span>
+            <div className="columns-column-header">
+              <span className="columns-column-title" id={columnTitleId}>
+                {phaseLabel(phase)}
+              </span>
+              <span className="columns-column-count">{actions.length}</span>
             </div>
-            <div className="kanban-column-cards">
+            <div className="columns-column-cards">
               {actions.map((action) => (
                 <ActionCard
                   key={action.id}

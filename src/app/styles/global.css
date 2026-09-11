@@ -1782,38 +1782,48 @@ a {
   }
 }
 
-/* Tableau Kanban (espaces PROJET, desktop uniquement — cf. useIsDesktop). */
-.kanban-board {
+/* Vue Colonnes canonique (Lot 3 — ColumnsView.tsx), espaces PROJET.
+   Mobile-first : une colonne quasi pleine largeur par défaut, alignée en
+   scroll-snap ("une colonne principalement visible à la fois", cf. brief
+   Lot 3). Le bloc @media (min-width: 1024px) plus bas bascule vers des
+   colonnes fixes côte à côte sans snap, seuil identique à celui déjà
+   utilisé par .bottom-nav/.sidebar-workspaces (cf. useIsDesktop). Remplace
+   les anciennes .kanban-board/.kanban-column* (desktop uniquement) et
+   l'ancien rendu mobile "par étapes" à base de chips + ActionListSection —
+   une seule implémentation CSS-responsive, aucune branche JS par device. */
+.columns-view {
   display: flex;
   gap: var(--space-4);
   overflow-x: auto;
   padding-bottom: var(--space-4);
   align-items: flex-start;
+  scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   /* --color-border (translucide) se fond dans le fond une fois mélangé : contraste ~1.6:1 (finding Codex PR #26).
      --color-text-muted passe 3:1 dans les deux thèmes (4.54:1 clair, 5.22:1 sombre, cf. fix a11y PR #25). */
   scrollbar-color: var(--color-text-muted) transparent;
 }
 
-.kanban-board::-webkit-scrollbar {
+.columns-view::-webkit-scrollbar {
   height: 6px;
 }
 
-.kanban-board::-webkit-scrollbar-track {
+.columns-view::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.kanban-board::-webkit-scrollbar-thumb {
+.columns-view::-webkit-scrollbar-thumb {
   background: var(--color-text-muted);
   border-radius: 999px;
 }
 
-.kanban-board::-webkit-scrollbar-thumb:hover {
+.columns-view::-webkit-scrollbar-thumb:hover {
   background: var(--color-text);
 }
 
-.kanban-column {
-  flex: 0 0 280px;
+.columns-column {
+  flex: 0 0 calc(100% - var(--space-5));
+  scroll-snap-align: start;
   background: var(--color-page);
   border-radius: var(--radius-lg);
   border-top: 3px solid var(--color-border);
@@ -1823,32 +1833,43 @@ a {
   gap: var(--space-2);
 }
 
-.kanban-column[data-drag-over="true"] {
+@media (min-width: 1024px) {
+  .columns-view {
+    scroll-snap-type: none;
+  }
+
+  .columns-column {
+    flex: 0 0 280px;
+    scroll-snap-align: none;
+  }
+}
+
+.columns-column[data-drag-over="true"] {
   background: var(--color-fill);
 }
 
-.kanban-column.phase-chip-blue { border-top-color: var(--chip-blue-text); }
-.kanban-column.phase-chip-purple { border-top-color: var(--chip-purple-text); }
-.kanban-column.phase-chip-orange { border-top-color: var(--chip-orange-text); }
-.kanban-column.phase-chip-green { border-top-color: var(--chip-green-text); }
-.kanban-column.phase-chip-red { border-top-color: var(--chip-red-text); }
-.kanban-column.phase-chip-teal { border-top-color: var(--chip-teal-text); }
-.kanban-column.phase-chip-pink { border-top-color: var(--chip-pink-text); }
-.kanban-column.phase-chip-gray { border-top-color: var(--chip-gray-text); }
+.columns-column.phase-chip-blue { border-top-color: var(--chip-blue-text); }
+.columns-column.phase-chip-purple { border-top-color: var(--chip-purple-text); }
+.columns-column.phase-chip-orange { border-top-color: var(--chip-orange-text); }
+.columns-column.phase-chip-green { border-top-color: var(--chip-green-text); }
+.columns-column.phase-chip-red { border-top-color: var(--chip-red-text); }
+.columns-column.phase-chip-teal { border-top-color: var(--chip-teal-text); }
+.columns-column.phase-chip-pink { border-top-color: var(--chip-pink-text); }
+.columns-column.phase-chip-gray { border-top-color: var(--chip-gray-text); }
 
-.kanban-column-header {
+.columns-column-header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
 }
 
-.kanban-column-title {
+.columns-column-title {
   font-weight: 700;
   flex: 1;
 }
 
-.kanban-column-count {
+.columns-column-count {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   background: var(--color-fill);
@@ -1856,7 +1877,7 @@ a {
   padding: 1px 8px;
 }
 
-.kanban-column-cards {
+.columns-column-cards {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
