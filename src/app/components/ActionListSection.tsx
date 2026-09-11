@@ -11,6 +11,7 @@ export function ActionListSection({
   emptyMessage,
   resolveWorkspace,
   resolveStatusLabels,
+  resolveSyncStatus,
   onOpenWorkspace,
   onMove,
   onCycleStatus,
@@ -31,6 +32,8 @@ export function ActionListSection({
   resolveWorkspace?: (action: Action) => { name: string; kind: WorkspaceKind } | undefined;
   /** Certains préréglages redéfinissent les libellés de statut ; à défaut, `statusLabels`. */
   resolveStatusLabels?: (action: Action) => Record<ActionStatus, string>;
+  /** Badge de sync par carte (Lot 3 §2) — calculé par l'écran appelant à partir de `useStore().pendingActionIds`/`conflicts`, pour garder ce composant testable sans StoreProvider. */
+  resolveSyncStatus?: (action: Action) => "pending" | "conflict" | undefined;
   /** Fourni avec resolveWorkspace : navigue vers l'espace d'origine depuis le badge. */
   onOpenWorkspace?: (action: Action) => void;
   onMove: (action: Action) => void;
@@ -83,6 +86,7 @@ export function ActionListSection({
               statusLabels={resolveStatusLabels?.(action) ?? statusLabels}
               workspaceName={workspace?.name}
               workspaceKind={workspace?.kind}
+              syncStatus={resolveSyncStatus?.(action)}
               onOpenWorkspace={workspace && onOpenWorkspace ? () => onOpenWorkspace(action) : undefined}
               onMove={() => onMove(action)}
               onCycleStatus={() => onCycleStatus(action)}

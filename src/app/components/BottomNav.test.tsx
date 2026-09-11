@@ -85,6 +85,42 @@ describe("BottomNav", () => {
     expect(onChange).toHaveBeenCalledWith("more");
   });
 
+  it("propose Semaine par défaut, sans secondTab", () => {
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Semaine/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
+  });
+
+  it("remplace Semaine par Rappels sur mobile quand secondTab vaut \"reminders\"", async () => {
+    const user = userEvent.setup();
+    const onOpenReminders = vi.fn();
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+        onOpenReminders={onOpenReminders}
+        remindersActive
+        secondTab="reminders"
+      />
+    );
+    expect(screen.queryByRole("button", { name: /Semaine/ })).not.toBeInTheDocument();
+    const remindersButton = screen.getByRole("button", { name: /Rappels/ });
+    expect(remindersButton).toHaveAttribute("aria-current", "page");
+    await user.click(remindersButton);
+    expect(onOpenReminders).toHaveBeenCalledTimes(1);
+  });
+
   it("liste les espaces dans la barre latérale, marque l'espace actif et permet d'en créer un", async () => {
     // La liste n'est rendue qu'à partir de 1024px (useIsDesktop) : simule le
     // passage en desktop, sinon jsdom (sans matchMedia) reste en mobile.

@@ -90,6 +90,8 @@ export interface StoreContextValue {
   state: AppState;
   /** Nombre de mutations pas encore confirmées synchronisées (créé/modifié en attente d'écriture Supabase). */
   pendingSyncCount: number;
+  /** Ids des actions dont au moins une mutation n'est pas encore confirmée synchronisée (badge de sync par carte). */
+  pendingActionIds: string[];
   /** Conflits détectés au retry, en attente d'un choix explicite (cf. SyncConflict). */
   conflicts: SyncConflict[];
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;

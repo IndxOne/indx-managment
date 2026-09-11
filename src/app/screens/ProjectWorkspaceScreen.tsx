@@ -9,6 +9,7 @@ import { useStore } from "../adapters/temporary-store";
 import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
+import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
@@ -91,6 +92,7 @@ export function ProjectWorkspaceScreen({
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
+  const resolveSyncStatus = useActionSyncStatus();
 
   const phaseActions = useMemo(
     () => allActions.filter((action) => resolveActionColumn(action, phases) === currentPhase),
@@ -239,6 +241,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  resolveSyncStatus={resolveSyncStatus}
                 />
 
                 <ActionListSection
@@ -254,6 +257,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  resolveSyncStatus={resolveSyncStatus}
                 />
 
                 <ActionListSection
@@ -269,6 +273,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  resolveSyncStatus={resolveSyncStatus}
                 />
 
                 {deliverables.length === 0 ? (
@@ -292,6 +297,7 @@ export function ProjectWorkspaceScreen({
                     onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                     onOpenNotes={(action) => setNotesActionId(action.id)}
                     onOpenLink={(action) => setLinkingActionId(action.id)}
+                    resolveSyncStatus={resolveSyncStatus}
                   />
                 )}
               </>
@@ -333,6 +339,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  resolveSyncStatus={resolveSyncStatus}
                 />
                 <ActionListSection
                   id="section-unscheduled"
@@ -347,6 +354,7 @@ export function ProjectWorkspaceScreen({
                   onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
                   onOpenNotes={(action) => setNotesActionId(action.id)}
                   onOpenLink={(action) => setLinkingActionId(action.id)}
+                  resolveSyncStatus={resolveSyncStatus}
                 />
               </>
             )}

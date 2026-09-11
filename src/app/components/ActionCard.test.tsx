@@ -177,3 +177,39 @@ describe("ActionCard — menu d'actions unique", () => {
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });
+
+describe("ActionCard — badge de synchronisation (Lot 3 §2)", () => {
+  it("n'affiche aucun badge par défaut (action synchronisée)", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByText("En attente")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conflit")).not.toBeInTheDocument();
+  });
+
+  it('affiche "En attente" quand syncStatus vaut "pending"', () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        syncStatus="pending"
+      />
+    );
+    expect(screen.getByText("En attente")).toBeInTheDocument();
+  });
+
+  it('affiche "Conflit" quand syncStatus vaut "conflict"', () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        syncStatus="conflict"
+      />
+    );
+    expect(screen.getByText("Conflit")).toBeInTheDocument();
+  });
+});

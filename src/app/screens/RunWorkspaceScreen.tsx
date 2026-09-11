@@ -9,6 +9,7 @@ import { useStore } from "../adapters/temporary-store";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
+import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
@@ -71,6 +72,7 @@ export function RunWorkspaceScreen({
   const linkingAction = allActions.find((action) => action.id === linkingActionId) ?? null;
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
+  const resolveSyncStatus = useActionSyncStatus();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
   const filtered = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
@@ -171,6 +173,7 @@ export function RunWorkspaceScreen({
               actions={buckets.waiting}
               timezone={timezone}
               statusLabels={statusLabels}
+              resolveSyncStatus={resolveSyncStatus}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
               onEdit={setEditingAction}
@@ -186,6 +189,7 @@ export function RunWorkspaceScreen({
               actions={buckets.inView}
               timezone={timezone}
               statusLabels={statusLabels}
+              resolveSyncStatus={resolveSyncStatus}
               emptyMessage="Aucune action planifiée."
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
@@ -202,6 +206,7 @@ export function RunWorkspaceScreen({
               actions={buckets.unscheduled}
               timezone={timezone}
               statusLabels={statusLabels}
+              resolveSyncStatus={resolveSyncStatus}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
               onEdit={setEditingAction}

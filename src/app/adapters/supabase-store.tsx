@@ -256,6 +256,15 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("online", retryPending);
   }, [retryPending]);
 
+  const pendingActionIds = useMemo(
+    () =>
+      Array.from(pendingRef.current.values()).flatMap((entry) => (entry.actionId ? [entry.actionId] : [])),
+    // pendingRef.current est muté en place ; pendingSyncCount change à chaque
+    // fois (voir trackPersist), donc sert de déclencheur de recalcul fiable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pendingSyncCount]
+  );
+
   const conflicts = useMemo<SyncConflict[]>(
     () =>
       conflictEntries.map((entry) => ({
@@ -278,6 +287,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     () => ({
       state,
       pendingSyncCount,
+      pendingActionIds,
       conflicts,
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
@@ -581,6 +591,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     [
       state,
       pendingSyncCount,
+      pendingActionIds,
       conflicts,
       client,
       userHash,

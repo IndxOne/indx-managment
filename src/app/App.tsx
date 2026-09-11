@@ -6,6 +6,7 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
+import { useSecondTabPreference } from "./hooks/useSecondTabPreference";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
@@ -78,6 +79,7 @@ function AppShell() {
   const [route, setRoute] = useState<Route>({ screen: "spaces-list" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
+  const secondTab = useSecondTabPreference();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
@@ -124,6 +126,7 @@ function AppShell() {
         remindersActive={route.screen === "reminders"}
         onOpenRoles={() => setRoute({ screen: "roles" })}
         rolesActive={route.screen === "roles"}
+        secondTab={secondTab}
       />
       <main className="app-content">
         <div key={routeKey} className="route-transition">

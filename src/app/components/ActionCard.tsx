@@ -15,6 +15,7 @@ export function ActionCard({
   /** Fourni uniquement dans les vues transversales (plusieurs espaces mélangés). */
   workspaceName,
   workspaceKind,
+  syncStatus,
   onOpenWorkspace,
   onMove,
   onCycleStatus,
@@ -29,6 +30,8 @@ export function ActionCard({
   statusLabels: Record<ActionStatus, string>;
   workspaceName?: string;
   workspaceKind?: WorkspaceKind;
+  /** "pending" : mutation pas encore confirmée synchronisée. "conflict" : bloquée par une version serveur plus récente (cf. SyncConflict). Absent = synchronisée. */
+  syncStatus?: "pending" | "conflict";
   /** Navigue vers l'espace d'origine de l'action ; fourni avec workspaceKind dans les vues transversales. */
   onOpenWorkspace?: () => void;
   onMove: () => void;
@@ -109,6 +112,11 @@ export function ActionCard({
             {hasLink && (
               <span className="meta-chip">
                 <IconLink width={14} height={14} />
+              </span>
+            )}
+            {syncStatus && (
+              <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
+                {syncStatus === "conflict" ? "Conflit" : "En attente"}
               </span>
             )}
           </div>

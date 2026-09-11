@@ -4,6 +4,7 @@ import type { Action, ActionStatus } from "../../domain/types";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
@@ -34,6 +35,7 @@ export function ActionsByStatusScreen({
 }) {
   const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
+  const resolveSyncStatus = useActionSyncStatus();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
 
   const [movingAction, setMovingAction] = useState<Action | null>(null);
@@ -106,6 +108,7 @@ export function ActionsByStatusScreen({
             onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
             onOpenNotes={(action) => setNotesActionId(action.id)}
             onOpenLink={(action) => setLinkingActionId(action.id)}
+            resolveSyncStatus={resolveSyncStatus}
           />
         )}
       </div>

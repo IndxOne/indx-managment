@@ -34,6 +34,7 @@ export function TemporaryStoreProvider({
       state,
       // Pas de réseau ici : rien n'est jamais "en attente" ni en conflit.
       pendingSyncCount: 0,
+      pendingActionIds: [],
       conflicts: [],
       createWorkspaceAction: (input) => {
         const withId: CreateWorkspaceInput = {
