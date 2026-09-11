@@ -4,7 +4,7 @@ import { BottomSheet } from "./BottomSheet";
 import { StatusCheckIcon } from "./Icons";
 import type { ActionFilters } from "../utils/filter-actions";
 
-const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "waiting", "done"];
+const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "blocked", "waiting", "done"];
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
 
 export function FilterSheet({

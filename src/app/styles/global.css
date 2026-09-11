@@ -2024,6 +2024,11 @@ a {
   color: var(--color-accent);
 }
 
+.status-chip[data-status="blocked"] {
+  background: var(--chip-red-bg);
+  color: var(--chip-red-text);
+}
+
 .status-chip[data-status="waiting"] {
   background: var(--color-warning-soft);
   color: var(--color-warning);

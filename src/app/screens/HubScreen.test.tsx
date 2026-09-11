@@ -82,6 +82,28 @@ describe("HubScreen", () => {
     expect(onOpenStatus).toHaveBeenCalledWith("todo");
   });
 
+  it("compte et affiche une tuile « Bloqué » distincte des autres statuts (Lot 6)", async () => {
+    const user = userEvent.setup();
+    const onOpenStatus = vi.fn();
+    const state: AppState = {
+      workspaces: [workspace()],
+      actionsByWorkspace: { w1: [action({ id: "a1", status: "blocked" }), action({ id: "a2", status: "todo" })] },
+      recurrenceRulesByWorkspace: { w1: [] },
+      carnetNotes: [],
+    };
+
+    render(
+      <StoreProvider initialState={state}>
+        <HubScreen onNavigate={() => {}} onOpenSpaces={() => {}} onOpenStatus={onOpenStatus} />
+      </StoreProvider>
+    );
+
+    const blockedTile = screen.getByRole("button", { name: /Bloqué/ });
+    expect(blockedTile).toBeInTheDocument();
+    await user.click(blockedTile);
+    expect(onOpenStatus).toHaveBeenCalledWith("blocked");
+  });
+
   it("cliquer une tuile d'espaces navigue vers la liste des espaces", async () => {
     const user = userEvent.setup();
     const onOpenSpaces = vi.fn();

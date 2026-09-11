@@ -26,6 +26,7 @@ export const KIND_LABELS: Record<WorkspaceKind, string> = {
 export const STATUS_LABELS_DEFAULT: Record<ActionStatus, string> = {
   todo: "À faire",
   doing: "En cours",
+  blocked: "Bloqué",
   waiting: "En attente",
   done: "Terminé",
 };

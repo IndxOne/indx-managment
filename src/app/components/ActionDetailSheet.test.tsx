@@ -8,6 +8,7 @@ import { ActionDetailSheet } from "./ActionDetailSheet";
 const STATUS_LABELS: Record<ActionStatus, string> = {
   todo: "À faire",
   doing: "En cours",
+  blocked: "Bloqué",
   waiting: "En attente",
   done: "Terminé",
 };

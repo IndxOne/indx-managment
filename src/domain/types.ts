@@ -10,7 +10,7 @@ export type ProfessionalApproach =
 
 export type CollaborationMode = "solo" | "team";
 
-export type ActionStatus = "todo" | "doing" | "waiting" | "done";
+export type ActionStatus = "todo" | "doing" | "blocked" | "waiting" | "done";
 
 export type Priority = "high" | "normal" | "low";
 

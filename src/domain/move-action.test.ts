@@ -93,6 +93,7 @@ describe("cycleStatus — cycle rapide 1-clic", () => {
     ["doing", "done"],
     ["done", "todo"],
     ["waiting", "todo"],
+    ["blocked", "todo"],
   ])("%s → %s", (current, expected) => {
     expect(cycleStatus(current)).toBe(expected);
   });
