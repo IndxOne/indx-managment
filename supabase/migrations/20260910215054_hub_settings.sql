@@ -1,6 +1,3 @@
--- Repères business déclaratifs du Hub (objectif mensuel, TJM, trésorerie
--- prévue) : une ligne par utilisateur (isolation par x-user-hash, même
--- mécanisme que les autres tables projets_*), jamais calculés.
 create table if not exists public.projets_hub_settings (
   user_hash text primary key,
   monthly_objective numeric,
