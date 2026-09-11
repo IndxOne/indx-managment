@@ -24,7 +24,7 @@ const RELATIVE_LABELS_FR: Record<RelativeLabelKey, string> = {
   this_week: "Cette semaine",
   next_week: "Semaine prochaine",
   this_month: "Ce mois-ci",
-  unscheduled: "Non planifié",
+  unscheduled: "Non planifiée",
   other: "",
 };
 

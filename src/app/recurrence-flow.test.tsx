@@ -8,6 +8,8 @@ describe("Récurrence — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     await screen.findByText("Aucun espace pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un espace" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Suivi quotidien");

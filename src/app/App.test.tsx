@@ -9,6 +9,10 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     render(<App />);
 
     // Porte de démarrage : le contenu réel apparaît après le premier effet.
+    // L'app s'ouvre désormais sur Accueil (Home) — on rejoint Projets pour
+    // créer un espace (décision produit validée, Lot 1 du renouveau produit).
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     expect(await screen.findByText("Aucun espace pour l'instant")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Créer un espace" }));
@@ -26,7 +30,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
 
     // Retour à la liste : la carte reflète le nombre d'actions.
-    await user.click(screen.getByRole("button", { name: /Espaces/ }));
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     expect(await screen.findByText(/1 action/)).toBeInTheDocument();
   });
 
@@ -34,6 +38,8 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     await screen.findByText("Aucun espace pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un espace" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Espace test");

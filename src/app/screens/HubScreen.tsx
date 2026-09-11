@@ -25,7 +25,7 @@ export function HubScreen({
   const { state, updateHubSettings } = useStore();
 
   const stats = useMemo(() => {
-    const byStatus: Record<ActionStatus, number> = { todo: 0, doing: 0, waiting: 0, done: 0 };
+    const byStatus: Record<ActionStatus, number> = { todo: 0, doing: 0, blocked: 0, waiting: 0, done: 0 };
     let totalActions = 0;
     let activeReminders = 0;
     let dueReminders = 0;
@@ -101,6 +101,7 @@ export function HubScreen({
 const STATUS_COLORS: Record<ActionStatus, string> = {
   todo: "var(--color-text-tertiary)",
   doing: "var(--color-accent)",
+  blocked: "var(--color-danger)",
   waiting: "var(--color-warning)",
   done: "var(--color-success)",
 };

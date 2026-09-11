@@ -12,6 +12,15 @@ describe("resolveQuickFilters", () => {
     expect(chips.map((chip) => chip.id)).toEqual(["waiting", "highPriority"]);
   });
 
+  it("« blocked » (préréglage management) est câblé sur le vrai statut ActionStatus (Lot 6)", () => {
+    const [blocked] = resolveQuickFilters(["blocked"]);
+    if (!blocked) throw new Error("quick filter 'blocked' introuvable");
+    expect(blocked.isActive(EMPTY_FILTERS)).toBe(false);
+    const withBlocked = blocked.apply(EMPTY_FILTERS);
+    expect(withBlocked.statuses.has("blocked")).toBe(true);
+    expect(blocked.isActive(withBlocked)).toBe(true);
+  });
+
   it("apply bascule le critère et isActive le reflète", () => {
     const [done] = resolveQuickFilters(["done"]);
     if (!done) throw new Error("quick filter 'done' introuvable");
