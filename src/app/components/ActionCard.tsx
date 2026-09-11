@@ -94,7 +94,7 @@ export function ActionCard({
     setDragX(swipeCompleteEnabled ? clamped : Math.min(clamped, 0));
   }
 
-  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
+  function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     dragRef.current = null;
@@ -107,6 +107,27 @@ export function ActionCard({
       }
     }
     setDragX(0);
+  }
+
+  /**
+   * Annulation pure (aucune action déclenchée), pour deux cas où un
+   * relâchement "normal" n'a pas eu lieu : pointercancel (interruption
+   * système/appli) et sortie de l'élément à la souris avant que le geste
+   * ne soit devenu horizontal — donc avant capture du pointeur, si bien
+   * qu'aucun pointerup ne sera jamais reçu ici et le drag resterait
+   * fantôme pour un futur geste réutilisant le même pointerId.
+   */
+  function cancelDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    setDragX(0);
+  }
+
+  function handlePointerLeave(event: ReactPointerEvent<HTMLDivElement>) {
+    if (dragRef.current?.committed) return;
+    cancelDrag(event);
   }
 
   return (
@@ -128,8 +149,9 @@ export function ActionCard({
         style={dragX !== 0 ? { transform: `translateX(${dragX}px)` } : undefined}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={cancelDrag}
+        onPointerLeave={handlePointerLeave}
       >
         {hasChips && (
           <div className="action-card-chips">

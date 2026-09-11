@@ -133,6 +133,50 @@ describe("ActionCard — swipe (terminer / replanifier)", () => {
     expect(onMove).not.toHaveBeenCalled();
   });
 
+  it("pointercancel après un swipe au-delà du seuil n'entraîne aucune action", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    fireEvent(content, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+    fireEvent(content, new MouseEvent("pointermove", { clientX: 120, clientY: 0, bubbles: true }));
+    fireEvent(content, new MouseEvent("pointercancel", { clientX: 120, clientY: 0, bubbles: true }));
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("une souris relâchée hors de la carte avant capture efface le drag en attente", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    // Encore sous le seuil d'engagement horizontal (pas de capture) quand la souris sort.
+    fireEvent(content, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+    fireEvent(content, new MouseEvent("pointerleave", { clientX: 3, clientY: 0, bubbles: true }));
+    // Un geste ultérieur (même pointerId côté navigateur) ne doit rien devoir à l'ancien drag.
+    fireEvent(content, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+    fireEvent(content, new MouseEvent("pointermove", { clientX: 120, clientY: 0, bubbles: true }));
+    fireEvent(content, new MouseEvent("pointerup", { clientX: 120, clientY: 0, bubbles: true }));
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
   it("une action déjà terminée ne propose pas le swipe de complétion", () => {
     const onSwipeComplete = vi.fn();
     render(
