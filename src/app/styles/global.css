@@ -443,14 +443,11 @@ a {
 }
 
 .action-card {
-  background: var(--color-bg);
+  position: relative;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
-  padding: 13px 13px 11px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
   transition: box-shadow 100ms ease;
+  overflow: hidden;
 }
 
 .action-card:active {
@@ -459,6 +456,62 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .action-card {
+    transition: none;
+  }
+}
+
+/* Fonds révélés par le swipe, sous le contenu qui glisse par-dessus — pas
+   besoin d'animer leur opacité, ils sont simplement masqués tant que le
+   contenu ne s'est pas déplacé. */
+.action-card-swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.action-card-swipe-bg-complete,
+.action-card-swipe-bg-reschedule {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.action-card-swipe-bg-complete {
+  justify-content: flex-start;
+  padding-left: var(--space-4);
+  background: var(--color-success);
+}
+
+.action-card-swipe-bg-reschedule {
+  justify-content: flex-end;
+  padding-right: var(--space-4);
+  background: var(--color-accent);
+}
+
+.action-card-swipe-content {
+  position: relative;
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  padding: 13px 13px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: transform 200ms ease;
+  touch-action: pan-y;
+}
+
+.action-card-swipe-content.is-dragging {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-card-swipe-content {
     transition: none;
   }
 }
