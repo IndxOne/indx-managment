@@ -18,8 +18,18 @@ function workspace(overrides: Partial<Workspace> = {}): Workspace {
   };
 }
 
+function stubDesktop() {
+  const matchMedia = vi.fn().mockReturnValue({
+    matches: true,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  });
+  vi.stubGlobal("matchMedia", matchMedia);
+}
+
 describe("BottomNav", () => {
-  it("affiche les 4 destinations primaires + l'accès secondaire Plus (cadrage renouveau produit Lot 1)", () => {
+  it("affiche exactement les 4 destinations primaires sur mobile, sans Plus (cadrage renouveau produit Lot 1.1)", () => {
+    // jsdom sans matchMedia stubbé = mobile (cf. useIsDesktop).
     render(
       <BottomNav
         active="today"
@@ -33,10 +43,12 @@ describe("BottomNav", () => {
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Plus$/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(4);
   });
 
-  it("ne propose pas de 5e destination primaire au-delà de Plus", () => {
+  it("conserve un accès Plus au menu secondaire dans la sidebar desktop", () => {
+    stubDesktop();
     render(
       <BottomNav
         active="today"
@@ -46,7 +58,8 @@ describe("BottomNav", () => {
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getAllByRole("button", { name: /Accueil|Projets|Cette semaine|Rappels|Plus/ })).toHaveLength(5);
+    expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 
   it("marque l'onglet actif avec aria-current", () => {
@@ -107,23 +120,36 @@ describe("BottomNav", () => {
     await user.click(screen.getByRole("button", { name: /Cette semaine/ }));
     expect(onChange).toHaveBeenCalledWith("week");
 
-    await user.click(screen.getByRole("button", { name: /Rappels/ }));
+    screen.getByRole("button", { name: /Rappels/ }).focus();
+    await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("reminders");
+  });
+
+  it("desktop : le bouton Plus de la sidebar appelle onChange au clic et au clavier", async () => {
+    stubDesktop();
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <BottomNav
+        active="today"
+        onChange={onChange}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
 
     screen.getByRole("button", { name: /Plus/ }).focus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("more");
+
+    vi.unstubAllGlobals();
   });
 
   it("liste les espaces dans la barre latérale, marque l'espace actif et permet d'en créer un", async () => {
     // La liste n'est rendue qu'à partir de 1024px (useIsDesktop) : simule le
     // passage en desktop, sinon jsdom (sans matchMedia) reste en mobile.
-    const matchMedia = vi.fn().mockReturnValue({
-      matches: true,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    });
-    vi.stubGlobal("matchMedia", matchMedia);
+    stubDesktop();
 
     const user = userEvent.setup();
     const onSelectWorkspace = vi.fn();

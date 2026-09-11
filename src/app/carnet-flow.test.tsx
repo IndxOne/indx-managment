@@ -16,7 +16,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Suivi quotidien" });
 
-    await user.click(screen.getByRole("button", { name: /plus/i }));
+    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
     await user.click(screen.getByRole("button", { name: "Carnet" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Relancer le fournisseur X");
@@ -40,7 +40,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
-    await user.click(screen.getByRole("button", { name: /plus/i }));
+    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
     await user.click(screen.getByRole("button", { name: "Carnet" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Idée jetable");

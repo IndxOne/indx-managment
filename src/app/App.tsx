@@ -6,7 +6,9 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
+import { IconMore } from "./components/Icons";
 import { LoadingState, OfflineBanner } from "./components/StateBlocks";
+import { useIsDesktop } from "./hooks/useIsDesktop";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
@@ -83,6 +85,11 @@ function AppShell() {
   const [route, setRoute] = useState<Route>({ screen: "today" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
+  // Sur desktop, l'accès au menu secondaire vit dans la sidebar de BottomNav
+  // (bouton "Plus" existant) : le bouton d'en-tête ci-dessous est réservé au
+  // mobile, où la barre basse est strictement limitée à 4 destinations
+  // (cadrage renouveau produit, Lot 1.1).
+  const isDesktop = useIsDesktop();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
@@ -114,6 +121,17 @@ function AppShell() {
   return (
     <div className="app-shell">
       {!online && <OfflineBanner />}
+      {!isDesktop && (
+        <button
+          type="button"
+          className="app-more-trigger tap-target"
+          aria-label="Menu secondaire : Carnet, Hub, Approches métier, Recherche, Réglages"
+          aria-current={routeToTab(route) === "more" ? "page" : undefined}
+          onClick={() => setRoute({ screen: "more" })}
+        >
+          <IconMore width={20} height={20} strokeWidth={1.8} />
+        </button>
+      )}
       <BottomNav
         active={routeToTab(route)}
         onChange={handleNavChange}

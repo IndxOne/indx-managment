@@ -1098,6 +1098,30 @@ a {
   z-index: 30;
 }
 
+/* Accès mobile au menu secondaire (Carnet/Hub/Approches métier/Recherche/
+   Réglages) : la barre basse mobile est strictement limitée à 4
+   destinations (cadrage renouveau produit, Lot 1.1), ce bouton "•••" fixe
+   en coin haut-droit porte l'accès hors de cette barre plutôt que d'y
+   ajouter une 5e entrée. Absent du DOM sur desktop (cf. AppShell), où le
+   même accès vit dans la sidebar de .bottom-nav. */
+.app-more-trigger {
+  position: fixed;
+  top: max(var(--space-3), env(safe-area-inset-top));
+  right: max(var(--space-3), env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: 999px;
+  border: none;
+  background: var(--blur-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--color-text);
+  z-index: 20;
+}
+
 .bottom-nav-item {
   flex: 1;
   display: flex;

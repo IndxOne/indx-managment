@@ -5,10 +5,12 @@ import { IconBell, IconCalendar, IconGrid, IconMore, IconPlus, IconSun } from ".
 export type NavTab = "today" | "week" | "spaces" | "reminders" | "more";
 
 /**
- * 4 destinations primaires (Accueil, Projets, Cette semaine, Rappels) +
- * accès secondaire "Plus" (Carnet/Hub/Recherche/Réglages/Approches métier) —
- * même architecture informationnelle sur mobile (barre basse) et desktop
- * (sidebar), rendue différemment mais sans logique métier distincte.
+ * 4 destinations primaires (Accueil, Projets, Cette semaine, Rappels) — même
+ * liste sur mobile et desktop, aucune 5e destination permanente dans la
+ * barre basse mobile (cadrage renouveau produit, Lot 1.1). L'accès au menu
+ * secondaire (Carnet/Hub/Recherche/Réglages/Approches métier) reste visible
+ * dans la sidebar desktop (ci-dessous) ; sur mobile il est porté par un
+ * bouton "•••" dédié dans l'en-tête global (AppShell), hors de cette barre.
  */
 const TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
   { id: "today", label: "Accueil", Icon: IconSun },
@@ -53,15 +55,17 @@ export function BottomNav({
           <span>{label}</span>
         </button>
       ))}
-      <button
-        type="button"
-        className="bottom-nav-item tap-target"
-        aria-current={active === "more" ? "page" : undefined}
-        onClick={() => onChange("more")}
-      >
-        <IconMore width={24} height={24} strokeWidth={1.6} />
-        <span>Plus</span>
-      </button>
+      {isDesktop && (
+        <button
+          type="button"
+          className="bottom-nav-item tap-target"
+          aria-current={active === "more" ? "page" : undefined}
+          onClick={() => onChange("more")}
+        >
+          <IconMore width={24} height={24} strokeWidth={1.6} />
+          <span>Plus</span>
+        </button>
+      )}
 
       {isDesktop && (
         <div className="sidebar-workspaces">
