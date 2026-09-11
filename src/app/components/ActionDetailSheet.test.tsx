@@ -99,6 +99,23 @@ describe("ActionDetailSheet — ouverture et rangées", () => {
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("Échap ferme seulement la sous-sheet quand une est ouverte, jamais le détail en dessous (Lot 6 §J)", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<ActionDetailSheet {...baseProps({ onClose })} />);
+
+    await user.click(screen.getByRole("button", { name: /^Notes/ }));
+    expect(screen.getByText(/Notes - Relancer le prestataire/)).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    // La sous-sheet Notes s'est fermée...
+    expect(screen.queryByText(/Notes - Relancer le prestataire/)).not.toBeInTheDocument();
+    // ...mais le détail en dessous est resté ouvert (une seule frappe, une seule couche fermée).
+    expect(screen.getByRole("dialog", { name: "Relancer le prestataire" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
 
 describe("ActionDetailSheet — orchestration des sheets existantes", () => {
