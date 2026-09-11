@@ -108,7 +108,7 @@ confondre :
 | Axe | Répond à | Champ actuel | Cible |
 | --- | --- | --- | --- |
 | **Phase** | Où se situe le travail | `Action.phaseId` | inchangé, terminologie « Phase »/« Étape » clarifiée en UI |
-| **Statut** | Où en est l'action | `Action.status` | inchangé (`todo/doing/waiting/done` + `blocked` UI, voir §8) |
+| **Statut** | Où en est l'action | `Action.status` | étendu à `todo/doing/blocked/waiting/done` (décision validée, voir §8) |
 | **Vue** | Comment on regarde les données | état de composant, pas persistant | reste un état de composant (Colonnes/Liste/Semaine), jamais confondu avec Phase en libellé |
 
 Le point de confusion actuel documenté par l'exploration (preset `simple` :
@@ -116,6 +116,15 @@ Le point de confusion actuel documenté par l'exploration (preset `simple` :
 duplique quasi les libellés de statut) est **la source n°1 de confusion à
 corriger** dans ce renouveau : un preset ne doit plus proposer un
 `phaseTemplate` qui mime les statuts.
+
+**Décision validée** : le preset `simple` est **conservé**, pas retiré. Sa
+confusion phase/statut est corrigée par un nouveau `phaseTemplate` qui décrit
+la structure du travail (ex. `cadrage/exécution/suivi`, à affiner en
+implémentation) plutôt que l'avancement. Cette correction n'est **pas**
+traitée dans le Lot 1 : elle est planifiée au Lot 6, avec une table de
+correspondance ancien→nouveau `phaseTemplate` (même mécanisme que
+`LEGACY_PHASE_COLUMNS` déjà existant) pour ne pas casser l'affichage des
+actions déjà créées avec les anciennes valeurs.
 
 ## 8. Règles RUN vs PROJET
 
@@ -133,8 +142,9 @@ présentation change :
   (aucun blocage artificiel — principe déjà en place avec
   `isRecommendedApproach`, à conserver tel quel).
 
-Le statut `blocked` (nouveau, voir §16 pour le mapping) est visible dans les
-deux modes de la même façon (chip visuel identique).
+Le statut `blocked` (nouvelle valeur validée de `ActionStatus`, voir §16
+pour le mapping) est visible dans les deux modes de la même façon (chip
+visuel identique).
 
 ## 9. Vue Colonnes
 
@@ -152,10 +162,15 @@ Entrée = créer directement dans cette phase) ; clic sur une carte → détail.
 masquer une colonne vide, filtre rapide (responsable/priorité/statut) au
 niveau de la vue entière.
 
-**Mobile** : la vue Colonnes devient un carrousel horizontal à une colonne
-visible à la fois (swipe latéral pour changer de phase), chaque colonne
-gardant le même contenu de carte qu'en desktop — pas de vue "par étapes"
-séparée avec un rendu différent comme aujourd'hui (fusion, voir §22-24).
+**Mobile** : la vue Colonnes utilise un **scroll horizontal natif avec CSS
+`scroll-snap`** (décision validée) — pas de carrousel piloté en JS, pas de
+nouvelle librairie gestuelle. Chaque colonne s'aligne en pleine largeur via
+`scroll-snap-align`, la navigation se fait au doigt (scroll natif du
+navigateur) ou par un indicateur de position. Le swipe existant sur les
+cartes (terminer/replanifier) reste capturé au niveau de la carte et n'est
+pas affecté par le scroll horizontal du conteneur parent — pas de vue "par
+étapes" séparée avec un rendu différent comme aujourd'hui (fusion, voir
+§22-24).
 
 **Desktop** : colonnes côte à côte (reprend `KanbanBoard` existant comme
 socle), drag & drop HTML5 natif conservé.
@@ -246,8 +261,13 @@ statut, swipe, clic → détail), accès création rapide.
 
 **Actions secondaires** : navigation vers Cette semaine / Rappels / Projets.
 
-**Mobile** : écran d'accueil par défaut à l'ouverture de l'app (remplace
-`spaces-list` comme route initiale — décision produit à trancher, voir §31).
+**Mobile** : écran d'accueil par défaut à l'ouverture de l'app (**décision
+validée** : Home remplace `spaces-list` comme route initiale — objectif UX :
+ouvrir l'application sur ce qui nécessite une action immédiate, pas sur la
+liste des projets). Tant que le contenu enrichi de Home (blocs En retard/
+Bloqué, Lot 7) n'existe pas, le Lot 1 utilise l'écran « Aujourd'hui »
+existant comme contenu temporaire de la route initiale — pas d'anticipation
+du Lot 7.
 
 **Desktop** : identique, disposition en blocs verticaux ou colonnes selon
 largeur (pas de nouvelle librairie de grille — CSS existant).
@@ -297,12 +317,14 @@ via des sheets superposées sans écran dédié) qui rassemble ce qui est
 aujourd'hui éclaté entre `EditActionSheet`, `MoveActionSheet`, `NotesSheet`,
 `LinkActionSheet`, `ActionMenuSheet`.
 
-**Décision de cadrage** : le détail reste une **sheet plein écran** (pas une
-nouvelle route poussée dans `Route`, pour ne pas introduire de navigation à
-url/historique) — cohérent avec l'absence de router actuelle et le principe
-« pas de nouvelle dépendance ». Alternative validée dans le plan
-d'implémentation si l'exploration confirme un besoin de deep-link (peu
-probable pour une PWA sans partage de lien).
+**Décision validée — détail adaptatif** : le détail n'est **pas** une
+nouvelle route poussée dans `Route` (pas de navigation à url/historique,
+cohérent avec l'absence de router actuelle) mais son rendu s'adapte à la
+largeur d'écran :
+- **Mobile** : sheet plein écran.
+- **Desktop** : panneau latéral / drawer, qui **conserve le contexte du
+  projet** — l'écran d'espace/Colonnes reste visible en arrière-plan derrière
+  le drawer, contrairement à une sheet plein écran qui masquerait tout.
 
 **Informations visibles** : titre, description, statut, priorité, phase,
 échéance, responsable(s) si `collaborationMode==="team"`, tags, sous-actions
@@ -312,7 +334,7 @@ horodatées, action liée, historique des relances si `waiting`.
 **Actions principales** : éditer chaque champ inline (remplace le formulaire
 séparé `EditActionSheet` pour le contenu ; `MoveActionSheet` reste pour le
 changement d'axe planification/phase/statut si jugé plus clair en flux
-dédié — décision produit ouverte, voir §31), ajouter une note, lier une
+dédié, mineur à trancher en implémentation), ajouter une note, lier une
 action, ajouter une sous-action (1 niveau max, cf. contrainte du brief).
 
 **Actions secondaires** : dupliquer, supprimer (reprend `useDeleteWithUndo`
@@ -322,8 +344,9 @@ existant), partager (fonction `share-action.ts` déjà existante).
 plein-écran du même composant — réutilisation du socle, pas une nouvelle
 primitive).
 
-**Desktop** : peut s'afficher en panneau latéral plutôt que plein écran
-(optionnel, à trancher en implémentation — n'affecte pas le domaine).
+**Desktop** : panneau latéral / drawer (décision validée) qui conserve le
+contexte du projet en arrière-plan — même socle `BottomSheet` réutilisé en
+variant latéral plutôt qu'une nouvelle primitive de dialog.
 
 **États** : chargement (rare, l'action est déjà en mémoire côté client),
 erreur de sauvegarde (reprendre le pattern `syncStatus` existant :
@@ -341,9 +364,15 @@ a minima, sans RBAC/chat/organisation :
   `ApproachSettingsScreen` (écran déjà existant, un champ à y ajouter).
 - **Assignation simple** : un ou plusieurs responsables par action
   (`assigneeIds` déjà `string[]`), choisis dans une liste plate sans notion
-  de rôle. Pas d'invitation, pas de gestion de membres avancée dans ce lot —
-  la source de la liste de responsables possibles est une décision produit
-  ouverte (voir §31 : identifiants locaux vs table `projets_members` future).
+  de rôle. Pas d'invitation, pas de gestion de membres avancée dans ce lot.
+  **Décision validée** : `assigneeIds` référence des membres stables issus
+  d'une nouvelle table dédiée **`projets_members`** — pas d'identifiants
+  libres. Modèle minimal à étudier au Lot 8 :
+  `id, workspace_id, display_name, email (nullable), avatar (nullable),
+  active`. Cette table suit le pattern RLS déjà en place
+  (`user_hash = (select ...)`) et fait l'objet d'une migration Supabase
+  versionnée dédiée — **non implémentée dans le Lot 1**, planifiée
+  exclusivement au Lot 8.
 - **Affichage discret** : avatar/initiale en chip sur la carte, uniquement
   si `collaborationMode==="team"` et `assigneeIds.length > 0` — jamais affiché
   sur un projet Solo (progressive disclosure, principe n°2).
@@ -365,8 +394,9 @@ terminer/replanifier toujours doublé d'un équivalent non gestuel,
 
 Navigation basse simple à 4 entrées (§5), accès rapide à la création via
 `QuickAddBar` en haut de chaque liste (pas de FAB, §13). Vue Colonnes en
-carrousel à une colonne (§9). Nouveau statut `blocked` visible en chip
-identique aux autres statuts, pas de traitement visuel spécial disproportionné.
+scroll horizontal natif avec `scroll-snap` (§9). Nouveau statut `blocked`
+visible en chip identique aux autres statuts, pas de traitement visuel
+spécial disproportionné.
 
 ## 17. Desktop
 
@@ -375,8 +405,8 @@ refléter la nouvelle navigation à 4 entrées + accès secondaire (Carnet, Hub,
 Approches, Recherche, Réglages) — remplace l'ordre actuel en dur
 (Espaces/Aujourd'hui/Semaine/Rappels/Approches métier/Plus) par une
 structure cohérente avec §5. Vue Colonnes pleine largeur (`KanbanBoard`
-existant comme socle). Détail d'action optionnellement en panneau latéral
-plutôt que plein écran (§14).
+existant comme socle). Détail d'action en panneau latéral / drawer
+conservant le contexte du projet (décision validée, §14).
 
 ## 18. Raccourcis éventuels
 
@@ -432,16 +462,17 @@ Exigences nouvelles pour les écrans/composants créés dans ce chantier :
 | --- | --- | --- |
 | `Workspace{kind:"project"}` | Projet | aucun (renommage UI seul) |
 | `Workspace{kind:"run"}` | Espace RUN | aucun |
-| Route `today` | Home (enrichi retard/bloqué) | UI seule, ajout de sélecteurs dérivés |
-| Route `spaces-list` | Projets | renommage libellé + route |
+| Route `today` (valeur interne conservée) | Home / Accueil, route initiale de l'app | Lot 1 : libellé seul, contenu = écran Aujourd'hui existant. Lot 7 : enrichissement retard/bloqué |
+| Route `spaces-list` (valeur interne conservée) | Projets | Lot 1 : renommage de libellé uniquement |
 | Route `week` | Cette semaine | inchangé |
-| Route `reminders` (dans "Plus") | Rappels (onglet fixe) | déplacement dans `routeToTab`/`BottomNav` |
+| Route `reminders` (dans "Plus") | Rappels (onglet fixe) | Lot 1 : déplacement dans `routeToTab`/`BottomNav` |
 | `ActionCard` + `KanbanCard` | Carte unifiée `variant="list"\|"kanban"` | fusion composant (Lot 2) |
-| Kanban desktop + liste mobile « par étapes » | Vue Colonnes (carrousel mobile / grille desktop) | nouveau composant partagé (Lot 3) |
-| `phaseTemplate` façon statut (preset `simple`) | `phaseTemplate` distinct des statuts | ajustement des presets (données, pas de schéma) |
-| Statuts `todo/doing/waiting/done` | + statut `blocked` visuel | voir décision ouverte §31 (nouvelle valeur d'union `ActionStatus` = changement de type, à trancher) |
-| `assigneeIds`/`collaborationMode` non exposés | Exposés a minima (§15) | UI + extension `ActionFilters` |
-| « Plus » (fourre-tout) | Menu secondaire structuré | réorganisation, pas de nouvel écran métier |
+| Kanban desktop + liste mobile « par étapes » | Vue Colonnes (scroll-snap mobile / grille desktop) | nouveau composant partagé (Lot 3) |
+| `phaseTemplate` façon statut (preset `simple`) | `phaseTemplate` distinct des statuts, preset conservé | Lot 6 : nouvelle donnée de preset + table de correspondance |
+| Statuts `todo/doing/waiting/done` | `todo/doing/blocked/waiting/done` | **Décision validée** : extension de l'union `ActionStatus` (changement de type domaine, voir §28 risques pour les lots impactés) |
+| `assigneeIds` (chaînes libres) | `assigneeIds` référence `projets_members.id` | **Décision validée** : Lot 8, nouvelle table + migration Supabase dédiée |
+| `collaborationMode` non exposé | Exposé a minima (§15) | UI seule, Lot 8 |
+| « Plus » (fourre-tout) | Menu secondaire structuré | Lot 1 : réorganisation, pas de nouvel écran métier |
 
 ## 23. Composants à réutiliser
 
@@ -470,15 +501,15 @@ point d'extension), `KanbanBoard` (comme socle de la Vue Colonnes desktop),
    undo) derrière un hook ou composant partagé, chaque écran ne gardant que
    sa logique de sélection d'actions propre.
 5. **Vue mobile « par étapes » de `ProjectWorkspaceScreen`** → absorbée par
-   la Vue Colonnes en mode carrousel (§9), plus de 3ᵉ implémentation
+   la Vue Colonnes en scroll-snap mobile (§9), plus de 3ᵉ implémentation
    distincte du concept phase.
 
 ## 25. Composants à créer
 
 - **Carte unifiée** (résultat de la fusion §24.1, listé ici comme livrable).
 - **`ColumnsView`** : conteneur de la Vue Colonnes, wrapper responsive
-  (grille desktop / carrousel mobile) autour de la logique déjà présente
-  dans `KanbanBoard`.
+  (grille desktop / scroll horizontal `scroll-snap` mobile, CSS pur, pas de
+  librairie gestuelle) autour de la logique déjà présente dans `KanbanBoard`.
 - **`ActionDetailSheet`** : nouvel écran de détail d'action (§14), composé
   à partir des sheets existantes plutôt que recréées de zéro (réutilise
   leurs sous-formulaires internes).
@@ -526,31 +557,36 @@ point d'extension), `KanbanBoard` (comme socle de la Vue Colonnes desktop),
 
 ## 28. Risques
 
-- **Statut `blocked` = changement de type domaine.** Ajouter une valeur à
-  l'union `ActionStatus` touche `src/domain/types.ts`, `move-action.ts`,
-  tous les libellés, et potentiellement les données existantes en base (pas
-  de migration de schéma nécessaire car `status` est déjà `text`, mais
-  décision produit à trancher avant tout code — voir §31 et principe n°7
-  « ne pas toucher au domaine si l'UI suffit » : une alternative sans
-  toucher au type est un badge dérivé d'un champ existant (ex.
-  `waitingSince` dépassé) plutôt qu'un vrai statut ; à arbitrer.
+- **Statut `blocked` = changement de type domaine (décision validée).**
+  Ajouter cette valeur à l'union `ActionStatus` touche `src/domain/types.ts`,
+  `move-action.ts`, tous les libellés — aucune migration de schéma
+  nécessaire car `status` est déjà `text` côté Supabase, mais c'est
+  explicitement une exception au principe n°7 (« ne pas toucher au domaine
+  si l'UI suffit »), actée par décision produit. Ce changement de domaine
+  n'est pas couvert par le Lot 1 (navigation) ; il doit être traité dans un
+  lot dédié en amont du Lot 7 (Home affiche le bloc « Bloqué ») — voir plan
+  d'implémentation.
 - **Fusion `ActionCard`/`KanbanCard` en présence de tests nombreux** (21
   tests sur `ActionCard.test.tsx` seul) : risque de régression si le
   `variant` change un comportement testé — stratégie de migration écran par
   écran obligatoire (voir plan d'implémentation Lot 2).
-- **Vue Colonnes en carrousel mobile** : nouveau pattern d'interaction
-  (swipe entre colonnes) qui peut entrer en conflit avec le swipe existant
-  sur les cartes (terminer/replanifier) — zones de geste à border
-  soigneusement en implémentation.
-- **Filtre responsable sans source de vérité des membres** : `assigneeIds`
-  est une liste de chaînes libres aujourd'hui (initialisée à `[]`), sans
-  table `projets_members` — le picker de responsable devra soit inventer un
-  identifiant local, soit ce chantier doit d'abord trancher cette décision
-  produit (§31) avant l'implémentation du Lot 8.
-- **Renommage de routes/libellés** (Espaces→Projets, Aujourd'hui→Home) :
-  risque de rupture pour les préférences utilisateur déjà stockées
-  (`secondTab` dans `AppSettingsScreen`) si les valeurs de route changent de
-  nom sans migration de la préférence stockée localement.
+- **Vue Colonnes en scroll-snap mobile** : le scroll horizontal natif du
+  conteneur de colonnes doit coexister avec le swipe existant sur les cartes
+  (terminer/replanifier) sans conflit — zones de capture d'événements
+  pointeur à border soigneusement en implémentation (CSS `scroll-snap`
+  natif, pas de logique de geste custom).
+- **Table `projets_members` (décision validée, Lot 8)** : nécessite une
+  migration Supabase dédiée et un mécanisme de correspondance pour les
+  actions déjà créées avec des `assigneeIds` en chaînes libres (aucune
+  aujourd'hui en usage réel puisque non exposé, mais à vérifier en base au
+  moment du Lot 8 avant toute contrainte de clé étrangère stricte).
+- **Renommage de libellés** (Espaces→Projets, Aujourd'hui→Home) : les
+  **valeurs internes** de l'union `Route` sont conservées inchangées dans le
+  Lot 1 (seuls les libellés affichés changent), ce qui évite toute rupture
+  de la préférence `secondTab` stockée en `localStorage`. Si un renommage
+  des valeurs internes de route s'avère nécessaire dans un lot ultérieur, il
+  devra être accompagné d'une migration explicite et testée de cette
+  préférence — jamais d'un reset silencieux.
 - **CSS monolithique (1967 lignes) sans scoping** : tout nouveau composant
   ajoute un risque de collision de classe déjà documenté dans l'AUDIT — à
   nommer avec un préfixe dédié par nouveau composant (`columns-view-*`,
@@ -581,33 +617,40 @@ d'implémentation) :
 - Aucune nouvelle dépendance de production ajoutée sans section « Risques »
   dédiée dans le plan d'implémentation justifiant l'exception.
 - Aucune modification du schéma Supabase sauf si un lot le justifie
-  explicitement (ex. table de membres pour la collaboration, si la décision
-  §31 en confirme la nécessité) — et dans ce cas, nouvelle migration
-  versionnée dans `supabase/migrations/`, jamais de modification manuelle.
+  explicitement (la table `projets_members` pour la collaboration, décision
+  validée §31, est le seul cas actuellement identifié — Lot 8 uniquement) —
+  et dans ce cas, nouvelle migration versionnée dans
+  `supabase/migrations/`, jamais de modification manuelle.
 - Domaine (`src/domain`, `app-reducer.ts`) inchangé sauf décision explicite
   documentée (ex. statut `blocked`), conformément au principe n°7.
 - Chaque écran cible respecte son gabarit de description (objectif / infos
   visibles / actions principales / secondaires / mobile / desktop / états /
   accessibilité) tel que rempli dans ce document.
 
-## 31. Décisions produit encore nécessaires
+## 31. Décisions produit — historique des arbitrages
 
-(Reprises et développées dans le plan d'implémentation en tant que
-préalables à certains lots — voir aussi la liste de livrable final.)
+Toutes les décisions initialement ouvertes dans cette section ont été
+**tranchées**. Récapitulatif (détail dans les sections référencées) :
 
-1. Le statut `blocked` est-il un vrai statut (extension de l'union
-   `ActionStatus`, § domaine) ou un badge dérivé sans toucher au domaine ?
-2. La route initiale au démarrage devient-elle Home (nouveau) ou reste-t-elle
-   la liste des Projets ?
-3. Le détail d'action est-il une sheet plein écran (mobile et desktop) ou un
-   panneau latéral sur desktop ?
-4. La source des responsables assignables (`assigneeIds`) : identifiants
-   locaux libres (texte libre par utilisateur) ou nouvelle table Supabase
-   `projets_members` (implique une migration de schéma) ?
-5. Le renommage de libellés (Espaces→Projets, Aujourd'hui→Home, Plus→menu
-   secondaire) s'accompagne-t-il d'une migration de la préférence
-   `secondTab` stockée localement, ou celle-ci est-elle réinitialisée ?
-6. Le `phaseTemplate` du preset `simple` (qui duplique les statuts) est-il
-   corrigé par une nouvelle donnée de preset (`cadrage/exécution/suivi` par
-   exemple) ou le preset `simple` est-il retiré au profit d'un preset RUN/
-   PROJET générique sans phases nommées façon statut ?
+1. **Statut `blocked`** : vrai statut, extension validée de l'union
+   `ActionStatus` (`todo/doing/blocked/waiting/done`) — §8, §22, §28.
+2. **Route initiale** : Home (Accueil), pas la liste des Projets — §12, §22.
+3. **Détail d'action** : adaptatif — sheet plein écran mobile, panneau
+   latéral/drawer desktop conservant le contexte du projet — §14, §17.
+4. **Source des responsables** : table Supabase dédiée `projets_members`
+   (`id, workspace_id, display_name, email nullable, avatar nullable,
+   active`), pas d'identifiants libres — §15, §28. Migration au Lot 8
+   uniquement.
+5. **Renommage de libellés** (Espaces→Projets, Aujourd'hui→Home) : valeurs
+   internes de route/`localStorage` conservées quand elles peuvent rester
+   compatibles ; toute migration de préférence future doit être explicite et
+   testée, jamais un reset silencieux — §22, §28.
+6. **Preset `simple`** : conservé, sa confusion phase/statut est corrigée par
+   une nouvelle donnée de `phaseTemplate` + table de correspondance, planifié
+   au Lot 6 (pas dans le Lot 1) — §7.
+
+Aucune décision produit ouverte ne bloque actuellement le démarrage des
+lots du plan d'implémentation. De nouvelles décisions pourront apparaître au
+fil de l'affinement de chaque lot (ex. libellés exacts du nouveau
+`phaseTemplate` du preset `simple` au Lot 6) — elles seront ajoutées ici le
+cas échéant.

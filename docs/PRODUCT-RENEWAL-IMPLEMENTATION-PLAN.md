@@ -10,8 +10,9 @@ Contraintes transverses à tous les lots :
   verts avant tout merge.
 - Aucune suppression de comportement existant sans décision explicite notée
   dans le lot concerné.
-- Aucune modification du schéma Supabase sauf nécessité produit actée
-  (seul le Lot 8 peut potentiellement en avoir besoin, sous condition).
+- Aucune modification du schéma Supabase sauf nécessité produit actée (le
+  Lot 8 en a besoin — table `projets_members`, décision validée — c'est le
+  seul lot du plan qui touche Supabase).
 - Aucune nouvelle dépendance de production sans section « Justification »
   explicite dans le lot — aucun lot ci-dessous n'en requiert une à ce stade.
 
@@ -21,7 +22,9 @@ Contraintes transverses à tous les lots :
 
 **Objectif** : faire évoluer `App.tsx`/`BottomNav` vers la navigation cible
 (Accueil, Projets, Cette semaine, Rappels + menu secondaire) sans changer un
-seul écran de contenu.
+seul écran de contenu. Inclut le changement de route initiale vers Home
+(décision validée) et le renommage de libellés Espaces→Projets,
+Aujourd'hui→Home/Accueil.
 
 **Fichiers concernés** :
 - `src/app/App.tsx` (union `Route`, `routeToTab`, libellés de route)
@@ -32,33 +35,55 @@ seul écran de contenu.
 **Dépendances** : aucune — c'est le lot fondateur.
 
 **Risques** :
-- Renommage de route (`spaces-list`→conceptuellement « Projets »,
-  `today`→conceptuellement « Home ») : si les valeurs internes de l'union
+- Renommage de route (`spaces-list`→libellé « Projets »,
+  `today`→libellé « Accueil »/« Home ») : si les valeurs internes de l'union
   `Route` changent de nom littéral, toute préférence stockée en
   `localStorage` référençant une ancienne valeur casse silencieusement.
-  Mitigation : garder les valeurs internes de route inchangées (`"today"`,
-  `"spaces-list"`) et ne renommer que les **libellés affichés** dans ce lot ;
-  reporter tout renommage de valeur de route à un lot ultérieur avec
-  migration de préférence explicite (décision produit §31.5 de la spec).
+  Mitigation (conforme à la décision validée « ne jamais reset silencieusement
+  les préférences ») : garder les valeurs internes de route inchangées
+  (`"today"`, `"spaces-list"`) et ne renommer que les **libellés affichés**
+  dans ce lot ; reporter tout renommage de valeur de route à un lot ultérieur
+  avec migration de préférence explicite et testée.
+- Route initiale = Home : la route `today` (déjà existante, libellée
+  « Accueil ») devient l'état initial de `AppShell` au lieu de `spaces-list`.
+  Aucune dépendance créée vers le contenu enrichi du Lot 7 (blocs En retard/
+  Bloqué) : le contenu de la route `today` reste strictement l'écran
+  « Aujourd'hui » actuel (`AggregatedActionsScreen`), inchangé dans ce lot.
 - Rappels remonte au rang d'onglet fixe : `secondTab` (personnalisation
   actuelle qui substitue Semaine par Rappels) devient redondant. Décision :
   conserver `secondTab` tel quel dans ce lot (n'affecte que le 2ᵉ onglet
   mobile), le réévaluer seulement si Rappels devient un onglet permanent —
   dans ce cas, un lot dédié désactivera/nettoiera `useSecondTabPreference`
   avec une décision explicite (pas dans ce lot).
+- Contrainte de nombre d'onglets : la barre basse mobile reste à **4
+  destinations principales maximum** (Accueil, Projets, Cette semaine,
+  Rappels) — aucun 5ᵉ onglet permanent. Le contenu actuel de « Plus »
+  (Carnet, Hub, Approches métier, Recherche, Réglages) est regroupé derrière
+  un point d'entrée secondaire unique, pas éclaté en onglets supplémentaires.
 
-**Stratégie de migration** : renommage des libellés visibles uniquement
-d'abord (chaîne de caractères affichées), sans toucher à l'union `Route` ni
-à la logique de `routeToTab`. Un commit séparé pour l'éventuel ajout de
-Rappels comme 4ᵉ onglet fixe mobile (remplaçant Espaces/Semaine dans
-`TABS`), avec test de non-régression sur `BottomNav.test.tsx`.
+**Stratégie de migration** : renommage des libellés visibles d'abord
+(chaîne de caractères affichées), sans toucher aux valeurs internes de
+l'union `Route` ni à la logique de `routeToTab`. Commit séparé pour le
+changement d'état initial (`useState<Route>({screen: "spaces-list"})` →
+`useState<Route>({screen: "today"})` dans `AppShell`) — changement d'une
+seule ligne, sans toucher au contenu de l'écran. Commit séparé pour l'ajout
+de Rappels comme 4ᵉ onglet fixe mobile (remplaçant la logique
+Espaces/Semaine dans `TABS`, en gardant les 4 destinations dans les deux
+architectures desktop/mobile), avec test de non-régression sur
+`BottomNav.test.tsx`. Navigation desktop : même architecture informationnelle
+que mobile (mêmes 4 destinations + menu secondaire), aucune logique métier
+différente entre les deux — seule la présentation (sidebar vs barre basse)
+change, comme aujourd'hui.
 
 **Tests nécessaires** : `BottomNav.test.tsx` (nouveaux libellés, nouvel
-onglet), `App.test.tsx` (parcours de navigation mis à jour).
+onglet, ≤4 destinations principales sur mobile et desktop), `App.test.tsx`
+(route initiale = `today`, parcours de navigation mis à jour).
 
-**Critères de sortie** : les 4 destinations cibles sont accessibles depuis
-la barre basse mobile et la sidebar desktop ; aucun écran de contenu n'a
-changé ; tests verts.
+**Critères de sortie** : les 4 destinations cibles (Accueil, Projets, Cette
+semaine, Rappels) sont accessibles depuis la barre basse mobile et la
+sidebar desktop, avec la même architecture informationnelle des deux côtés ;
+l'app s'ouvre sur Home (contenu = écran Aujourd'hui actuel, inchangé) ;
+aucun écran de contenu n'a changé ; tests verts.
 
 **Rollback** : revert du commit unique de ce lot (aucune dépendance externe
 créée).
@@ -119,48 +144,60 @@ apparaît en production après bascule.
 
 ## Lot 3 — Vue Columns canonique
 
-**Objectif** : construire `ColumnsView` (desktop grille / mobile carrousel)
-comme unique implémentation du concept « colonnes par phase », remplaçant à
-terme le Kanban desktop actuel ET la vue mobile « par étapes » de
-`ProjectWorkspaceScreen`.
+**Objectif** : construire `ColumnsView` (desktop grille / mobile scroll
+horizontal natif) comme unique implémentation du concept « colonnes par
+phase », remplaçant à terme le Kanban desktop actuel ET la vue mobile « par
+étapes » de `ProjectWorkspaceScreen`.
+
+**Décision validée** : la version mobile utilise un **scroll horizontal
+natif avec CSS `scroll-snap`** (`scroll-snap-type`/`scroll-snap-align`) —
+pas de carrousel piloté en JS, pas de nouvelle librairie gestuelle
+(conforme au principe « pas de nouvelle dépendance lourde sans
+justification »). Le swipe existant sur les cartes (terminer/replanifier)
+doit rester pleinement fonctionnel : il est capturé au niveau de la carte
+(`onPointerDown` sur la zone de swipe), le scroll horizontal du conteneur
+de colonnes ne doit pas intercepter ces événements pointeur.
 
 **Fichiers concernés** :
 - Nouveau : `src/app/components/ColumnsView.tsx`
 - `src/app/components/KanbanBoard.tsx` (logique de colonnes/DnD réutilisée
   comme socle interne, pas réécrite)
 - `src/app/screens/ProjectWorkspaceScreen.tsx` (consommateur principal)
-- `src/app/styles/global.css` (nouveau bloc `.columns-view-*`, carrousel
+- `src/app/styles/global.css` (nouveau bloc `.columns-view-*`, scroll-snap
   mobile)
 
 **Dépendances** : **Lot 2 terminé** (la Vue Colonnes consomme la carte
 unifiée, pas `KanbanCard` séparément).
 
-**Risques** : le carrousel mobile introduit un geste de swipe horizontal
-entre colonnes qui peut entrer en conflit avec le swipe existant sur les
-cartes (terminer/replanifier, mouvement horizontal lui aussi). Mitigation :
-le swipe de carte reste capturé au niveau de la carte (`onPointerDown` sur
-`.action-card-swipe-content`), le swipe de carrousel doit se déclencher
-seulement en dehors de cette zone ou avec un seuil de vélocité distinct —
-à valider par test manuel sur device réel avant merge (pas seulement jsdom).
+**Risques** : le scroll horizontal natif du conteneur de colonnes peut, sur
+certains navigateurs/devices, capturer un geste qui recouvre partiellement
+la zone de swipe d'une carte en bord de colonne. Mitigation : la zone de
+swipe de carte utilise `onPointerDown`/`touch-action` dédiés qui priment sur
+le scroll du parent ; pas de `overflow-x` géré en JS (uniquement CSS
+`overflow-x: auto` + `scroll-snap-type: x mandatory`) pour laisser le
+navigateur arbitrer nativement les gestes plutôt qu'une logique custom
+fragile — à valider par test manuel sur device réel avant merge (pas
+seulement jsdom).
 
 **Stratégie de migration** : construire `ColumnsView` en desktop d'abord
 (mode grille, remplace visuellement `KanbanBoard` direct dans
 `ProjectWorkspaceScreen` derrière un flag de rendu interne), valider tests
-et usage réel, puis ajouter le mode carrousel mobile dans un second commit,
-en remplaçant la vue « par étapes » mobile existante seulement une fois le
-carrousel validé. Ne jamais avoir les deux implémentations mobiles actives
-en même temps au-delà d'un commit transitoire.
+et usage réel, puis ajouter le mode scroll-snap mobile dans un second
+commit, en remplaçant la vue « par étapes » mobile existante seulement une
+fois le scroll-snap validé. Ne jamais avoir les deux implémentations
+mobiles actives en même temps au-delà d'un commit transitoire.
 
 **Tests nécessaires** : tests desktop (grille, DnD via carte unifiée) ;
-tests mobile (changement de colonne active, contenu de carte identique à la
-vue liste) ; test de non-conflit de geste (swipe carte vs swipe carrousel).
+tests mobile (colonnes empilées horizontalement avec `scroll-snap`, contenu
+de carte identique à la vue liste) ; test de non-conflit de geste (swipe
+carte fonctionnel en présence du scroll horizontal du conteneur parent).
 
 **Critères de sortie** : `ProjectWorkspaceScreen` n'a plus qu'une seule
 implémentation du concept phase (Colonnes), aucune régression sur le drag &
 drop desktop existant, tests verts.
 
-**Rollback** : le commit de bascule mobile (2nd commit) est isolément
-revertable sans toucher au gain desktop déjà validé.
+**Rollback** : le commit de bascule mobile scroll-snap (2nd commit) est
+isolément revertable sans toucher au gain desktop déjà validé.
 
 ---
 
@@ -202,9 +239,13 @@ partout où une liste d'actions est affichée.
 ## Lot 5 — Détail action
 
 **Objectif** : construire `ActionDetailSheet`, écran de détail unifié
-remplaçant l'éclatement actuel entre `EditActionSheet`/`MoveActionSheet`/
-`NotesSheet`/`LinkActionSheet` pour la consultation, tout en conservant ces
-sous-formulaires comme briques internes plutôt que de les réécrire.
+**adaptatif** (décision validée) remplaçant l'éclatement actuel entre
+`EditActionSheet`/`MoveActionSheet`/`NotesSheet`/`LinkActionSheet` pour la
+consultation, tout en conservant ces sous-formulaires comme briques internes
+plutôt que de les réécrire :
+- **Mobile** : sheet plein écran.
+- **Desktop** : panneau latéral / drawer qui conserve le contexte du projet
+  (l'écran d'espace/Colonnes reste visible en arrière-plan).
 
 **Fichiers concernés** :
 - Nouveau : `src/app/components/ActionDetailSheet.tsx`
@@ -222,9 +263,13 @@ informations que la carte unifiée). Peut démarrer en parallèle du Lot 3/4.
 
 **Risques** : c'est le lot qui touche le plus grand nombre d'écrans
 consommateurs (6 écrans transversaux + les 2 écrans d'espace) — risque de
-régression diffus si la migration se fait en un seul commit. Décision
-produit préalable requise : §31.3 de la spec (sheet plein écran vs panneau
-latéral desktop) doit être tranchée avant de commencer ce lot.
+régression diffus si la migration se fait en un seul commit. Le rendu
+adaptatif (mobile plein écran / desktop drawer) double la surface de test
+par rapport à un seul mode d'affichage : chaque écran migré doit être
+validé dans les deux configurations. Le drawer desktop doit correctement
+conserver le focus et l'accessibilité (`role="dialog"`) sans piéger le focus
+de l'écran de fond resté visible (contrat `BottomSheet` à faire évoluer avec
+précaution, pas à dupliquer).
 
 **Stratégie de migration** : construire `ActionDetailSheet` en composition
 des sheets existantes (pas de réécriture de leur logique interne), le
@@ -251,15 +296,23 @@ commit).
 
 **Objectif** : extraire `SegmentedTabs` partagé (dette documentée dans
 l'AUDIT), corriger la confusion `phaseTemplate` du preset `simple` qui mime
-les statuts (spec §7/§31.6), garantir que RUN et PROJET utilisent
-strictement le même moteur d'affichage de carte/vue.
+les statuts (spec §7 — **décision validée : preset conservé**, correction
+uniquement), garantir que RUN et PROJET utilisent strictement le même
+moteur d'affichage de carte/vue.
 
 **Fichiers concernés** :
 - Nouveau : `src/app/components/SegmentedTabs.tsx`
 - `src/app/screens/RunWorkspaceScreen.tsx`,
   `src/app/screens/ProjectWorkspaceScreen.tsx` (consommateurs)
-- `src/presets/preset-registry.ts` (ajustement de `phaseTemplate` du preset
-  `simple`, décision §31.6 à trancher avant ce lot)
+- `src/presets/preset-registry.ts` (nouveau `phaseTemplate` du preset
+  `simple` conforme au principe « phase = structure du travail, statut =
+  avancement » — ex. `cadrage/exécution/suivi`, libellés exacts à affiner en
+  implémentation)
+- Mécanisme de correspondance ancien→nouveau `phaseTemplate` (même pattern
+  que `LEGACY_PHASE_COLUMNS` déjà existant dans
+  `ProjectWorkspaceScreen.tsx`), pour que les actions déjà créées avec
+  l'ancien `phaseTemplate` (`a_traiter/en_cours/en_attente/termine`)
+  continuent de s'afficher correctement
 
 **Dépendances** : **Lots 2 et 3 terminés** (harmonisation suppose la carte
 et la vue Colonnes déjà unifiées).
@@ -272,10 +325,10 @@ phase doit passer par une table de correspondance (même mécanisme que
 actions déjà créées avec l'ancien `phaseTemplate`.
 
 **Stratégie de migration** : extraire `SegmentedTabs` d'abord (risque nul,
-pur refactor de présentation, un commit par écran migré). Puis, seulement
-si la décision §31.6 opte pour un changement de `phaseTemplate`, ajouter une
-entrée de correspondance dans le mécanisme de compatibilité existant plutôt
-que de renommer en place.
+pur refactor de présentation, un commit par écran migré). Puis, dans un
+commit séparé, introduire le nouveau `phaseTemplate` du preset `simple`
+accompagné de sa table de correspondance ancien→nouveau — jamais un
+renommage en place sans compatibilité ascendante.
 
 **Tests nécessaires** : `SegmentedTabs.test.tsx` nouveau ; tests des deux
 écrans consommateurs inchangés dans leur comportement observable ; test de
@@ -306,27 +359,44 @@ Vue Semaine (`AggregatedActionsScreen` et le mode « Par semaine » de
   « bloqué », purs, testables isolément — cf. principe n°7, aucun besoin de
   toucher au domaine)
 
-**Dépendances** : **Lot 2 terminé** (Home affiche la carte unifiée). Le
-statut « bloqué » dépend de la décision §31.1 (vrai statut domaine vs badge
-dérivé) — si la décision opte pour un vrai statut, ce lot dépend aussi d'un
-lot domaine préalable non listé ici (à ajouter si tranché ainsi) ; si la
-décision opte pour un badge dérivé (recommandé par défaut pour respecter le
-principe n°7), aucune dépendance domaine supplémentaire.
+**Dépendances** : **Lot 2 terminé** (Home affiche la carte unifiée) et
+**changement de domaine `ActionStatus` préalable** (voir « Sous-lot 7.0 »
+ci-dessous) — le statut `blocked` est une **décision validée** (vrai statut,
+pas un badge dérivé), ce qui rend ce lot dépendant d'une extension du
+domaine avant tout travail UI sur le bloc « Bloqué ».
 
-**Risques** : le bloc « En retard » nécessite de comparer `schedule` à la
-date courante pour tous les statuts ≠ `done` — logique nouvelle mais pure,
-à bien couvrir de tests (fuseaux horaires, granularités `day`/`week`/`month`
-différentes) en s'appuyant sur `calendar-engine.ts` existant plutôt que
-recoder une comparaison de dates.
+**Sous-lot 7.0 — Domaine : ajout du statut `blocked`** (préalable obligatoire,
+commit séparé et isolé avant le reste du Lot 7) :
+- Fichiers : `src/domain/types.ts` (`ActionStatus = "todo" | "doing" |
+  "blocked" | "waiting" | "done"`), `src/domain/move-action.ts` (logique de
+  transition, si elle énumère les statuts valides), tous les modules de
+  libellés (`labels.ts` ou équivalent), `app-reducer.ts` si un `case` y
+  différencie les statuts explicitement.
+- Risque : c'est le seul point de tout le plan qui touche le domaine pur
+  (exception actée au principe n°7, cf. spec §28) — tout code qui fait un
+  `switch`/`if` exhaustif sur `ActionStatus` doit être audité pour éviter un
+  cas manquant silencieux (le typage strict TypeScript doit faire échouer le
+  typecheck sur tout `switch` non exhaustif : s'appuyer dessus plutôt que sur
+  une revue manuelle).
+- Test nécessaire : mise à jour des tests domaine (`move-action.test.ts` et
+  tout test énumérant les statuts) pour couvrir `blocked` explicitement.
+- Aucune migration Supabase requise (`status` est déjà `text` en base).
 
-**Stratégie de migration** : construire les sélecteurs purs
-(`home-sections.ts`) et leurs tests en premier, indépendamment de l'UI.
-Ajouter les blocs Home dans un commit séparé de la fusion de la logique
-Semaine (deux changements indépendants, pas de raison de les coupler).
+**Risques** (Lot 7 hors sous-lot 7.0) : le bloc « En retard » nécessite de
+comparer `schedule` à la date courante pour tous les statuts ≠ `done` —
+logique nouvelle mais pure, à bien couvrir de tests (fuseaux horaires,
+granularités `day`/`week`/`month` différentes) en s'appuyant sur
+`calendar-engine.ts` existant plutôt que recoder une comparaison de dates.
 
-**Tests nécessaires** : tests unitaires de `home-sections.ts` (en retard,
-bloqué, cas limites de fuseaux/granularité) ; test d'écran Home ; test de
-non-régression de la Vue Semaine fusionnée.
+**Stratégie de migration** : sous-lot 7.0 (domaine) en premier et isolé,
+tests domaine verts avant de poursuivre. Puis construire les sélecteurs purs
+(`home-sections.ts`) et leurs tests, indépendamment de l'UI. Ajouter les
+blocs Home dans un commit séparé de la fusion de la logique Semaine (deux
+changements indépendants, pas de raison de les coupler).
+
+**Tests nécessaires** : tests domaine du sous-lot 7.0 ; tests unitaires de
+`home-sections.ts` (en retard, bloqué, cas limites de fuseaux/granularité) ;
+test d'écran Home ; test de non-régression de la Vue Semaine fusionnée.
 
 **Critères de sortie** : Home répond aux 4 questions du brief sans aucun
 graphique décoratif ; une seule implémentation de la logique de
@@ -351,36 +421,60 @@ a minima, conformément à la spec §15 — sans RBAC, chat, ni organisation.
 - `src/app/utils/filter-actions.ts` (extension `ActionFilters` avec un
   `Set<string>` d'assigneeIds)
 - `src/app/components/FilterSheet.tsx` (nouvelle section filtre responsable)
-- Potentiellement `supabase/migrations/` **si et seulement si** la décision
-  §31.4 opte pour une table `projets_members` plutôt que des identifiants
-  locaux libres — à confirmer avant ce lot, aucune migration créée par
-  défaut.
+- **Nouveau** `supabase/migrations/<timestamp>_create_projets_members.sql`
+  (décision validée — table dédiée, pas d'identifiants libres). Modèle
+  minimal à étudier lors de l'implémentation :
+  ```sql
+  create table public.projets_members (
+    id uuid primary key default gen_random_uuid(),
+    workspace_id uuid not null references public.projets_workspaces(id),
+    display_name text not null,
+    email text,
+    avatar text,
+    active boolean not null default true,
+    user_hash text not null,
+    created_at timestamptz not null default now()
+  );
+  -- RLS : même pattern que les autres tables projets_*
+  alter table public.projets_members enable row level security;
+  create policy "own members" on public.projets_members for all
+    using (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'))
+    with check (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'));
+  ```
+  (esquisse à affiner en implémentation, pas figée ici — confirme le
+  principe RLS obligatoire, pas le détail final des colonnes/index).
+- `src/domain/types.ts`/`workspace.ts` : `assigneeIds` documenté comme
+  référençant désormais `projets_members.id` plutôt qu'une chaîne libre
+  (pas de changement de type TypeScript, `string[]` reste correct).
 
 **Dépendances** : **Lots 2 et 5 terminés** (le chip responsable s'affiche
-sur la carte unifiée et se règle depuis le détail d'action). Décision
-produit §31.4 tranchée avant de commencer.
+sur la carte unifiée et se règle depuis le détail d'action).
 
-**Risques** : c'est le seul lot qui peut nécessiter un changement de schéma
-Supabase (cf. décision §31.4). Si une table `projets_members` est jugée
-nécessaire, elle doit suivre le pattern RLS déjà en place
-(`user_hash = (select ...)`) et faire l'objet d'une migration dédiée, jamais
-d'une modification manuelle en base (invariant de la baseline). Risque
-produit : sans source de vérité des membres, le picker de responsable
-propose des identifiants libres, ce qui peut créer des doublons/fautes de
-frappe — accepté comme limite V1 explicite si la décision opte pour cette
-voie.
+**Risques** : c'est le seul lot qui nécessite un changement de schéma
+Supabase (table `projets_members`, décision validée). Elle doit suivre le
+pattern RLS déjà en place (`user_hash = (select ...)`) et faire l'objet
+d'une migration dédiée, jamais d'une modification manuelle en base
+(invariant de la baseline). Risque produit : au moment de la bascule, si
+des `assigneeIds` existent déjà en base sous une forme libre (peu probable,
+le champ n'est aujourd'hui jamais exposé en UI, initialisé à `[]`), une
+vérification préalable en base est nécessaire avant d'imposer une contrainte
+de clé étrangère stricte.
 
 **Stratégie de migration** : implémenter le toggle Solo/Équipe en premier
-(commit isolé, aucun risque, champ déjà dans le modèle). Puis le filtre par
-responsable (extension additive de `ActionFilters`, pattern déjà éprouvé).
-Puis l'affichage du chip sur la carte (dépend du Lot 2). La création de
-table `projets_members`, si actée, fait l'objet d'un commit Supabase séparé
-avec sa propre migration versionnée, avant le picker qui la consomme.
+(commit isolé, aucun risque, champ déjà dans le modèle). Puis créer la
+migration Supabase `projets_members` dans un commit séparé et dédié
+(vérifier en base l'absence d'`assigneeIds` existants avant toute contrainte
+stricte). Puis le picker de responsable consommant cette table, le filtre
+par responsable (extension additive de `ActionFilters`), et enfin
+l'affichage du chip sur la carte (dépend du Lot 2) — chacun dans son propre
+commit.
 
 **Tests nécessaires** : test du toggle Solo/Équipe (n'affecte aucune action
 existante, même garantie que `changeWorkspaceApproach` par construction) ;
-test du filtre responsable ; test d'affichage conditionnel du chip
-(absent en Solo, présent en Équipe avec assignés).
+vérification RLS de `projets_members` (même méthode que la vérification
+faite sur les 7 tables existantes lors du lot Supabase précédent) ; test du
+filtre responsable ; test d'affichage conditionnel du chip (absent en Solo,
+présent en Équipe avec assignés).
 
 **Critères de sortie** : un projet Équipe permet d'assigner et de filtrer
 par responsable sans qu'aucune permission ni notion de rôle n'apparaisse
@@ -477,11 +571,11 @@ restaure l'élément si un usage non anticipé est découvert.
 | --- | --- | --- | --- |
 | 1 — Navigation + shell | Faible | Faible | Renommage de libellés, pas de logique nouvelle |
 | 2 — ActionCard unifiée | Moyen | Moyen | Nombreux tests existants à préserver, fusion JSX |
-| 3 — Vue Columns canonique | Élevé | Moyen-élevé | Nouveau pattern carrousel mobile, conflit de gestes possible |
+| 3 — Vue Columns canonique | Moyen-élevé | Moyen | Scroll-snap CSS natif (pas de nouvelle lib), reste un nouveau conteneur responsive |
 | 4 — Création inline / rapide | Faible | Faible | Extension additive d'un composant déjà stable |
-| 5 — Détail action | Élevé | Moyen-élevé | 8 écrans consommateurs à migrer un par un |
-| 6 — RUN/PROJET harmonisés | Moyen | Faible-moyen | Extraction de composant + donnée de config sensible (phaseTemplate) |
-| 7 — Semaine / Home | Moyen | Moyen | Nouvelle logique « en retard » à bien tester (dates/fuseaux) |
-| 8 — Collaboration légère | Moyen | Moyen (élevé si migration Supabase) | Dépend d'une décision produit non tranchée (§31.4) |
+| 5 — Détail action | Élevé | Moyen-élevé | 8 écrans consommateurs à migrer un par un, + double surface de test (mobile plein écran / desktop drawer) |
+| 6 — RUN/PROJET harmonisés | Moyen | Faible-moyen | Extraction de composant + correction actée du `phaseTemplate` (preset conservé, table de correspondance requise) |
+| 7 — Semaine / Home | Moyen-élevé | Moyen | Inclut le sous-lot 7.0 (extension domaine `ActionStatus`, seule exception au principe n°7 de tout le plan) + logique « en retard » à bien tester (dates/fuseaux) |
+| 8 — Collaboration légère | Moyen-élevé | Moyen-élevé | Décision produit tranchée (table `projets_members`) : seul lot du plan avec migration Supabase, à séquencer avec soin |
 | 9 — Polish / accessibilité | Moyen | Faible | Pas de logique nouvelle, mais travail diffus |
 | 10 — Nettoyage ancien code | Faible | Faible (si discipline de séquencement respectée) | Suppressions ciblées, chaque preuve déjà établie par les lots précédents |
