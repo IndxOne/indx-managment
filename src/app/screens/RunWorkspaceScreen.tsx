@@ -15,6 +15,7 @@ import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { QuickFilterChips } from "../components/QuickFilterChips";
+import { SegmentedTabs } from "../components/SegmentedTabs";
 import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
@@ -121,33 +122,15 @@ export function RunWorkspaceScreen({
       </div>
 
       <div className="app-main">
-        <div className="segmented" role="tablist" aria-label="Vue temporelle">
-          <div
-            className="segmented-thumb"
-            aria-hidden="true"
-            style={{ width: "calc(50% - 2px)", left: 2, transform: `translateX(${view === "today" ? "0%" : "100%"})` }}
-          />
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "today"}
-            aria-current={view === "today"}
-            className="segmented-item"
-            onClick={() => setView("today")}
-          >
-            Aujourd'hui
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "week"}
-            aria-current={view === "week"}
-            className="segmented-item"
-            onClick={() => setView("week")}
-          >
-            Cette semaine
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Vue temporelle"
+          options={[
+            { id: "today", label: "Aujourd'hui" },
+            { id: "week", label: "Cette semaine" },
+          ]}
+          value={view}
+          onChange={setView}
+        />
 
         <QuickFilterChips quickFilterIds={preset.quickFilters} filters={filters} onChange={setFilters} />
 

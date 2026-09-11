@@ -19,6 +19,7 @@ import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { QuickAddBar } from "../components/QuickAddBar";
+import { SegmentedTabs } from "../components/SegmentedTabs";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState } from "../components/StateBlocks";
 
@@ -138,33 +139,15 @@ export function ProjectWorkspaceScreen({
 
       <div className="app-main">
         {phases.length > 0 && (
-          <div className="segmented" role="tablist" aria-label="Organisation">
-            <div
-              className="segmented-thumb"
-              aria-hidden="true"
-              style={{ width: "calc(50% - 2px)", left: 2, transform: `translateX(${mode === "phase" ? "0%" : "100%"})` }}
-            />
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "phase"}
-              aria-current={mode === "phase"}
-              className="segmented-item"
-              onClick={() => setMode("phase")}
-            >
-              Par étapes
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "week"}
-              aria-current={mode === "week"}
-              className="segmented-item"
-              onClick={() => setMode("week")}
-            >
-              Par semaine
-            </button>
-          </div>
+          <SegmentedTabs
+            ariaLabel="Organisation"
+            options={[
+              { id: "phase", label: "Par étapes" },
+              { id: "week", label: "Par semaine" },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
         )}
         {mode === "phase" ? (
           <ColumnsView
