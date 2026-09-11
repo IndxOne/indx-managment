@@ -172,11 +172,6 @@ export function ActionCard({
             {action.itemType !== "task" && (
               <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
             )}
-            {syncStatus && (
-              <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
-                {syncStatus === "conflict" ? "Conflit" : "En attente"}
-              </span>
-            )}
           </div>
         )}
         <div className="action-card-body">
@@ -214,6 +209,11 @@ export function ActionCard({
               {hasLink && (
                 <span className="meta-chip">
                   <IconLink width={14} height={14} />
+                </span>
+              )}
+              {syncStatus && (
+                <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
+                  {syncStatus === "conflict" ? "Conflit" : "En attente"}
                 </span>
               )}
             </div>
