@@ -6,6 +6,7 @@ import {
   type CreateWorkspaceInput,
   type Workspace,
 } from "../../domain/workspace";
+import { renameMember, setMemberActive, type Member } from "../../domain/member";
 import { moveAction, type MoveDestination } from "../../domain/move-action";
 import { editActionContent, type ActionContentEdit } from "../../domain/edit-action";
 import { addNote } from "../../domain/add-note";
@@ -43,7 +44,10 @@ export type AppEvent =
   | { type: "carnet/create"; note: CarnetNote }
   | { type: "carnet/delete"; noteId: string }
   | { type: "carnet/convert"; noteId: string; input: NewActionInput; id: string; now: string }
-  | { type: "hub-settings/update"; settings: HubSettings };
+  | { type: "hub-settings/update"; settings: HubSettings }
+  | { type: "member/create"; member: Member }
+  | { type: "member/rename"; workspaceId: string; memberId: string; displayName: string; now: string }
+  | { type: "member/setActive"; workspaceId: string; memberId: string; active: boolean; now: string };
 
 export function appReducer(state: AppState, event: AppEvent): AppState {
   switch (event.type) {
@@ -57,6 +61,7 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         workspaces: [...state.workspaces, workspace],
         actionsByWorkspace: { ...state.actionsByWorkspace, [workspace.id]: [] },
         recurrenceRulesByWorkspace: { ...state.recurrenceRulesByWorkspace, [workspace.id]: [] },
+        membersByWorkspace: { ...state.membersByWorkspace, [workspace.id]: [] },
       };
     }
     case "workspace/changeApproach": {
@@ -259,6 +264,37 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
     }
     case "hub-settings/update": {
       return { ...state, hubSettings: event.settings };
+    }
+    case "member/create": {
+      const existing = state.membersByWorkspace?.[event.member.workspaceId] ?? [];
+      return {
+        ...state,
+        membersByWorkspace: { ...state.membersByWorkspace, [event.member.workspaceId]: [...existing, event.member] },
+      };
+    }
+    case "member/rename": {
+      const existing = state.membersByWorkspace?.[event.workspaceId] ?? [];
+      return {
+        ...state,
+        membersByWorkspace: {
+          ...state.membersByWorkspace,
+          [event.workspaceId]: existing.map((member) =>
+            member.id === event.memberId ? renameMember(member, event.displayName, event.now) : member
+          ),
+        },
+      };
+    }
+    case "member/setActive": {
+      const existing = state.membersByWorkspace?.[event.workspaceId] ?? [];
+      return {
+        ...state,
+        membersByWorkspace: {
+          ...state.membersByWorkspace,
+          [event.workspaceId]: existing.map((member) =>
+            member.id === event.memberId ? setMemberActive(member, event.active, event.now) : member
+          ),
+        },
+      };
     }
     case "recurrence/delete": {
       const existingRules = state.recurrenceRulesByWorkspace[event.workspaceId] ?? [];

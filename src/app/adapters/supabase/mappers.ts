@@ -9,6 +9,7 @@ import type {
   WorkspaceKind,
 } from "../../../domain/types";
 import type { CollaborationMode } from "../../../domain/types";
+import type { Member } from "../../../domain/member";
 import type { Workspace } from "../../../domain/workspace";
 import type { WaitingReminderRule } from "../../../reminders/waiting-reminder";
 import type { RecurrenceFrequency, RecurrenceRule } from "../../../recurrence/recurrence-engine";
@@ -176,6 +177,45 @@ export function hubSettingsToRow(settings: HubSettings, userHash: string, now: s
     daily_rate: settings.dailyRate,
     treasury_forecast: settings.treasuryForecast,
     updated_at: now,
+  };
+}
+
+export interface MemberRow {
+  id: string;
+  user_hash: string;
+  workspace_id: string;
+  display_name: string;
+  email: string | null;
+  avatar_url: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function memberFromRow(row: MemberRow): Member {
+  return {
+    id: row.id,
+    workspaceId: row.workspace_id,
+    displayName: row.display_name,
+    email: row.email ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
+    active: row.active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function memberToRow(member: Member, userHash: string): MemberRow {
+  return {
+    id: member.id,
+    user_hash: userHash,
+    workspace_id: member.workspaceId,
+    display_name: member.displayName,
+    email: member.email ?? null,
+    avatar_url: member.avatarUrl ?? null,
+    active: member.active,
+    created_at: member.createdAt,
+    updated_at: member.updatedAt,
   };
 }
 

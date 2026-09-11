@@ -1,6 +1,7 @@
 import { useMemo, useReducer, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
+import { createMember } from "../../domain/member";
 import { defaultMaterializationWindow } from "../../recurrence/recurrence-engine";
 import { appReducer, buildRecurrenceRule, generateId } from "./app-reducer";
 import {
@@ -101,6 +102,15 @@ export function TemporaryStoreProvider({
         dispatch({ type: "hub-settings/update", settings });
         return Promise.resolve();
       },
+      createMember: (input) => {
+        const member = createMember({ ...input, id: generateId() });
+        dispatch({ type: "member/create", member });
+        return member;
+      },
+      renameMember: (workspaceId, memberId, displayName) =>
+        dispatch({ type: "member/rename", workspaceId, memberId, displayName, now: new Date().toISOString() }),
+      setMemberActive: (workspaceId, memberId, active) =>
+        dispatch({ type: "member/setActive", workspaceId, memberId, active, now: new Date().toISOString() }),
     }),
     [state]
   );
