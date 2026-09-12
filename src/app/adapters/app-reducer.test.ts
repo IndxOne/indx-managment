@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Action } from "../../domain/types";
 import type { Member } from "../../domain/member";
-import type { RecurrenceRule } from "../../recurrence/recurrence-engine";
+import { generateRecurringOccurrences, type RecurrenceRule } from "../../recurrence/recurrence-engine";
 import { appReducer } from "./app-reducer";
 import { EMPTY_STATE, type AppState } from "./store-context";
 
@@ -104,7 +104,8 @@ describe("appReducer — recurrence/create", () => {
       window: { start: "2026-09-08", end: "2026-09-08" },
     });
 
-    expect(next.actionsByWorkspace.w1?.map((a) => a.id)).toEqual(["a0", "r1__2026-09-08"]);
+    const [expectedOccurrence] = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-08" });
+    expect(next.actionsByWorkspace.w1?.map((a) => a.id)).toEqual(["a0", expectedOccurrence!.id]);
   });
 });
 

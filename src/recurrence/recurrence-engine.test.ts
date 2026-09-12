@@ -101,6 +101,58 @@ describe("generateRecurringOccurrences", () => {
   });
 });
 
+describe("generateRecurringOccurrences — id d'occurrence (uuid déterministe)", () => {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  it("produit toujours un uuid syntaxiquement valide (jamais `${ruleId}__${date}`)", () => {
+    const occurrences = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-29" });
+    for (const occurrence of occurrences) {
+      expect(occurrence.id).toMatch(UUID_RE);
+    }
+  });
+
+  it("même règle + même date => même uuid entre deux appels indépendants", () => {
+    const a = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-08" });
+    const b = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-08" });
+    expect(a[0]!.id).toBe(b[0]!.id);
+  });
+
+  it("une règle différente (même date) => uuid différent", () => {
+    const a = generateRecurringOccurrences(rule({ id: "r1" }), { start: "2026-09-08", end: "2026-09-08" });
+    const b = generateRecurringOccurrences(rule({ id: "r2" }), { start: "2026-09-08", end: "2026-09-08" });
+    expect(a[0]!.id).not.toBe(b[0]!.id);
+  });
+
+  it("une date différente (même règle) => uuid différent", () => {
+    const occurrences = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-15" });
+    expect(occurrences[0]!.id).not.toBe(occurrences[1]!.id);
+  });
+
+  it("génération répétée sur une fenêtre élargie : zéro doublon logique (mêmes ids réutilisés, jamais de nouveaux ids pour les mêmes dates)", () => {
+    const narrow = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-15" });
+    const wide = generateRecurringOccurrences(rule(), { start: "2026-09-08", end: "2026-09-29" });
+    for (const occurrence of narrow) {
+      const same = wide.find((candidate) => dayValue(candidate) === dayValue(occurrence));
+      expect(same?.id).toBe(occurrence.id);
+    }
+    expect(new Set(wide.map((a) => a.id)).size).toBe(wide.length); // pas deux occurrences avec le même id
+  });
+
+  it("valide pour daily/weekly/monthly", () => {
+    const daily = generateRecurringOccurrences(rule({ frequency: "daily", interval: 1 }), {
+      start: "2026-09-08",
+      end: "2026-09-10",
+    });
+    const monthly = generateRecurringOccurrences(rule({ frequency: "monthly", interval: 1, startDate: "2026-01-31" }), {
+      start: "2026-01-01",
+      end: "2026-03-31",
+    });
+    for (const occurrence of [...daily, ...monthly]) {
+      expect(occurrence.id).toMatch(UUID_RE);
+    }
+  });
+});
+
 describe("defaultMaterializationWindow", () => {
   it("s'étend sur l'horizon par défaut (90 jours) depuis aujourd'hui quand endDate est absent", () => {
     const window = defaultMaterializationWindow({ startDate: "2026-09-01" }, "2026-09-08");

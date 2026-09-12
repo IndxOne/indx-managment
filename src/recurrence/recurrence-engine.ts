@@ -1,5 +1,15 @@
 import { addDays, parseCalendarDate } from "../calendar/iso-week";
 import type { Action, Priority, WorkItemType } from "../domain/types";
+import { uuidV5 } from "./deterministic-uuid";
+
+/**
+ * Namespace fixe (propre à l'app, arbitraire, jamais réutilisé ailleurs)
+ * pour dériver l'id d'une occurrence de récurrence — cf. buildOccurrence.
+ * Ne jamais changer cette valeur : elle fait partie du contrat
+ * d'idempotence (même règle + même date doit produire le même uuid entre
+ * deux déploiements).
+ */
+const RECURRENCE_OCCURRENCE_NAMESPACE = "e6a1f1d2-9b3a-4e9d-8b53-2f6f0b6a1c31";
 
 export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
 
@@ -32,10 +42,13 @@ export interface GenerationWindow {
 
 /**
  * Génère les occurrences d'une règle sur une fenêtre donnée. Pure et
- * déterministe : l'id de chaque occurrence est dérivé de `${rule.id}__${date}`,
- * donc deux appels avec les mêmes paramètres produisent exactement les mêmes
- * actions — une persistance qui fait un upsert par id ne duplique jamais
- * une occurrence déjà générée (idempotence, cadrage §10).
+ * déterministe : l'id de chaque occurrence est un UUID v5 dérivé de
+ * `${rule.id}:${date}` (cf. deterministic-uuid.ts), donc deux appels avec
+ * les mêmes paramètres produisent exactement les mêmes actions — une
+ * persistance qui fait un upsert par id ne duplique jamais une occurrence
+ * déjà générée (idempotence, cadrage §10). `rule.id` reste un uuid "normal"
+ * (créé côté appelant) ; seul l'id d'occurrence doit être dérivé, pour que
+ * `projets_actions.id` (colonne uuid) reste toujours syntaxiquement valide.
  */
 export function generateRecurringOccurrences(rule: RecurrenceRule, window: GenerationWindow): Action[] {
   if (rule.interval < 1) {
@@ -89,7 +102,7 @@ function addMonths(dateValue: string, months: number): string {
 
 function buildOccurrence(rule: RecurrenceRule, dateValue: string): Action {
   return {
-    id: `${rule.id}__${dateValue}`,
+    id: uuidV5(RECURRENCE_OCCURRENCE_NAMESPACE, `${rule.id}:${dateValue}`),
     workspaceId: rule.workspaceId,
     title: rule.template.title,
     description: rule.template.description,
