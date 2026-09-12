@@ -22,7 +22,9 @@ import { NotesSheet } from "../components/NotesSheet";
 import { QuickAddBar } from "../components/QuickAddBar";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { UndoBanner } from "../components/UndoBanner";
-import { EmptyState } from "../components/StateBlocks";
+import { EmptyState, NoResultsState } from "../components/StateBlocks";
+import { FilterSheet } from "../components/FilterSheet";
+import { applyFilters, EMPTY_FILTERS, hasActiveFilters, type ActionFilters } from "../utils/filter-actions";
 
 type ProjectMode = "phase" | "week";
 
@@ -68,6 +70,8 @@ export function ProjectWorkspaceScreen({
   // aucun moyen d'ajouter une action (cf. bug remonté au changement d'approche).
   const [mode, setMode] = useState<ProjectMode>(phases.length > 0 ? "phase" : "week");
   const [currentPhase, setCurrentPhase] = useState<string | undefined>(phases[0]);
+  const [filters, setFilters] = useState<ActionFilters>(EMPTY_FILTERS);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [addSheetDraftTitle, setAddSheetDraftTitle] = useState("");
   const [movingAction, setMovingAction] = useState<Action | null>(null);
@@ -83,23 +87,25 @@ export function ProjectWorkspaceScreen({
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
 
+  const filteredActions = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
+
   const actionsByPhase = useMemo(() => {
     const grouped: Record<string, Action[]> = {};
     for (const phase of phases) grouped[phase] = [];
-    for (const action of allActions) {
+    for (const action of filteredActions) {
       const phase = resolveDisplayPhaseId(action.phaseId, phases);
       if (phase && grouped[phase]) grouped[phase]!.push(action);
     }
     return grouped;
-  }, [allActions, phases]);
+  }, [filteredActions, phases]);
 
   const weekActions = useMemo(() => {
     if (mode !== "week") return [];
-    return allActions.filter((action) => {
+    return filteredActions.filter((action) => {
       const derived = deriveScheduleKeys(action.schedule, timezone);
       return ["today", "tomorrow", "this_week"].includes(derived.relativeLabel);
     });
-  }, [allActions, mode, timezone]);
+  }, [filteredActions, mode, timezone]);
 
   // Une action sans échéance (ajout rapide sans détail, ou approche sans
   // phase où rien ne planifie automatiquement) doit rester quelque part
@@ -107,8 +113,8 @@ export function ProjectWorkspaceScreen({
   // autre liste ne la montre (finding Codex PR #28).
   const unscheduledActions = useMemo(() => {
     if (mode !== "week") return [];
-    return allActions.filter((action) => deriveScheduleKeys(action.schedule, timezone).relativeLabel === "unscheduled");
-  }, [allActions, mode, timezone]);
+    return filteredActions.filter((action) => deriveScheduleKeys(action.schedule, timezone).relativeLabel === "unscheduled");
+  }, [filteredActions, mode, timezone]);
 
   return (
     <div>
@@ -118,6 +124,9 @@ export function ProjectWorkspaceScreen({
           <span className={`badge badge-${workspace.kind}`}>PROJET</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" className="btn" onClick={() => setFilterSheetOpen(true)}>
+            Filtres{hasActiveFilters(filters) ? " •" : ""}
+          </button>
           <button type="button" className="btn btn-icon" onClick={onOpenSettings} aria-label="Paramètres de l'espace">
             <IconSettings width={17} height={17} />
           </button>
@@ -183,7 +192,11 @@ export function ProjectWorkspaceScreen({
                 <h2 id="section-week" className="section-title">
                   Cette semaine
                 </h2>
-                <EmptyState title="Rien cette semaine" description="Aucune action planifiée dans les 7 prochains jours." />
+                {hasActiveFilters(filters) ? (
+                  <NoResultsState onClearFilters={() => setFilters(EMPTY_FILTERS)} />
+                ) : (
+                  <EmptyState title="Rien cette semaine" description="Aucune action planifiée dans les 7 prochains jours." />
+                )}
               </section>
             ) : (
               <>
@@ -230,6 +243,16 @@ export function ProjectWorkspaceScreen({
           </>
         )}
       </div>
+
+      {filterSheetOpen && (
+        <FilterSheet
+          filters={filters}
+          statusLabels={statusLabels}
+          members={members}
+          onChange={setFilters}
+          onClose={() => setFilterSheetOpen(false)}
+        />
+      )}
 
       {addSheetOpen && (
         <AddActionSheet
