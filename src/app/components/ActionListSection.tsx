@@ -81,7 +81,12 @@ export function ActionListSection({
           {title}
         </h2>
         {doneCount > 0 && (
-          <button type="button" className="btn tap-target" onClick={() => setHideDone((value) => !value)}>
+          <button
+            type="button"
+            className="btn tap-target"
+            aria-pressed={hideDone}
+            onClick={() => setHideDone((value) => !value)}
+          >
             {hideDone ? `Afficher terminées (${doneCount})` : `Masquer terminées (${doneCount})`}
           </button>
         )}

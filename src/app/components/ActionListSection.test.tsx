@@ -65,12 +65,14 @@ describe("ActionListSection — masquer les actions terminées", () => {
 
     expect(screen.getByText("Fait 1")).toBeInTheDocument();
     expect(screen.getByText("Fait 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Masquer terminées (2)" })).toHaveAttribute("aria-pressed", "false");
 
     await user.click(screen.getByRole("button", { name: "Masquer terminées (2)" }));
 
     expect(screen.queryByText("Fait 1")).not.toBeInTheDocument();
     expect(screen.queryByText("Fait 2")).not.toBeInTheDocument();
     expect(screen.getByText("À faire")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Afficher terminées (2)" })).toHaveAttribute("aria-pressed", "true");
 
     await user.click(screen.getByRole("button", { name: "Afficher terminées (2)" }));
     expect(screen.getByText("Fait 1")).toBeInTheDocument();

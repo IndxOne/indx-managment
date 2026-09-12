@@ -7,7 +7,7 @@ import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { IconMore } from "./components/Icons";
-import { LoadingState, OfflineBanner } from "./components/StateBlocks";
+import { ErrorState, LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { useIsDesktop } from "./hooks/useIsDesktop";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
@@ -264,12 +264,7 @@ function AppShell() {
 function WorkspaceNotFound({ onBack }: { onBack: () => void }) {
   return (
     <div className="app-main">
-      <div className="state-block" role="alert">
-        <p>Cet espace est introuvable.</p>
-        <button type="button" className="btn tap-target" onClick={onBack}>
-          Retour aux espaces
-        </button>
-      </div>
+      <ErrorState title="Cet espace est introuvable." onRetry={onBack} retryLabel="Retour aux espaces" />
     </div>
   );
 }

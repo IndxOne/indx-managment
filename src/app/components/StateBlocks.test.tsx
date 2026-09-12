@@ -27,6 +27,15 @@ describe("États obligatoires (cadrage §8)", () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
+  it("ErrorState accepte un libellé de bouton personnalisé (Lot 9 — réutilisation pour un cas non-retry)", async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+    render(<ErrorState title="Cet espace est introuvable." onRetry={onRetry} retryLabel="Retour aux espaces" />);
+    await user.click(screen.getByRole("button", { name: "Retour aux espaces" }));
+    expect(onRetry).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Réessayer" })).not.toBeInTheDocument();
+  });
+
   it("NoResultsState permet de réinitialiser les filtres", async () => {
     const user = userEvent.setup();
     const onClear = vi.fn();
