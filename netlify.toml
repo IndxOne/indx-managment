@@ -4,6 +4,14 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # supabase/migrations/*.sql contient l'URL du projet Supabase en clair
+  # (référencée dans une tâche pg_cron) — valeur déjà publique (identique à
+  # VITE_SUPABASE_URL, expédiée telle quelle dans le bundle JS client), mais
+  # le scanner de secrets de Netlify la signale à tort car elle correspond à
+  # une variable marquée "secret" sur ce site. Ce dossier n'est jamais servi
+  # au navigateur (hors de `publish = "dist"`), l'exclure du scan est sans
+  # risque et sans effet sur le contenu déployé.
+  SECRETS_SCAN_OMIT_PATHS = "supabase/migrations/**"
 
 [[redirects]]
   from = "/*"
