@@ -40,10 +40,13 @@ export function ErrorState({
   title = "Une erreur est survenue",
   description,
   onRetry,
+  retryLabel = "Réessayer",
 }: {
   title?: string;
   description?: string;
   onRetry?: () => void;
+  /** Libellé du bouton d'action (ex. "Retour aux espaces" quand ce n'est pas une vraie relance). */
+  retryLabel?: string;
 }) {
   return (
     <div className="state-block" data-variant="error" role="alert">
@@ -51,7 +54,7 @@ export function ErrorState({
       {description && <p>{description}</p>}
       {onRetry && (
         <button type="button" className="btn tap-target" onClick={onRetry}>
-          Réessayer
+          {retryLabel}
         </button>
       )}
     </div>

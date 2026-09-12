@@ -335,3 +335,302 @@ describe("ActionCard — badge de synchronisation (Lot 3 §2)", () => {
     expect(screen.getByText("Conflit")).toBeInTheDocument();
   });
 });
+
+describe("ActionCard — ouverture du détail (Lot 5)", () => {
+  it("sans onOpenDetail, le titre n'est pas un bouton (comportement inchangé)", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: /^Relancer le prestataire/ })).not.toBeInTheDocument();
+  });
+
+  it("le clic sur le titre appelle onOpenDetail (variant list)", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /^Relancer le prestataire/ }));
+    expect(onOpenDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it("le clic sur la checkbox de statut n'ouvre pas le détail", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={onCycleStatus}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await user.click(screen.getByRole("checkbox"));
+    expect(onCycleStatus).toHaveBeenCalledTimes(1);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("le clic sur le menu n'ouvre pas le détail", async () => {
+    const user = userEvent.setup();
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    await openMenu(user);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("un swipe committed n'ouvre pas le détail ensuite", () => {
+    const onOpenDetail = vi.fn();
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    swipe(content, 120);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    // Le clic natif éventuellement synthétisé par le navigateur après le
+    // swipe ne doit pas rouvrir le détail.
+    fireEvent.click(screen.getByRole("button", { name: /^Relancer le prestataire/ }));
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("en variant kanban, le clic sur le titre appelle onOpenDetail et un dragstart le neutralise", () => {
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onOpenDetail={onOpenDetail}
+        draggable
+        onDragStart={vi.fn()}
+        onDragEnd={vi.fn()}
+      />
+    );
+    const button = screen.getByRole("button", { name: /^Relancer le prestataire/ });
+    fireEvent.click(button);
+    expect(onOpenDetail).toHaveBeenCalledTimes(1);
+
+    onOpenDetail.mockClear();
+    const card = button.closest(".kanban-card")!;
+    fireEvent.dragStart(card);
+    fireEvent.click(button);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+});
+
+describe("ActionCard — variant kanban (Lot 2 : fusion avec l'ancienne KanbanCard)", () => {
+  it("affiche un chip de statut coloré plutôt qu'une checkbox", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    // Même si onCycleStatus est fourni, le variant kanban n'affiche jamais de checkbox.
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByText("À faire")).toHaveClass("status-chip");
+  });
+
+  it("est draggable et déclenche onDragStart/onDragEnd", () => {
+    const onDragStart = vi.fn();
+    const onDragEnd = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        draggable
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      />
+    );
+    const card = screen.getByText("Relancer le prestataire").closest(".kanban-card")!;
+    expect(card).toHaveAttribute("draggable", "true");
+    fireEvent.dragStart(card);
+    expect(onDragStart).toHaveBeenCalledTimes(1);
+    fireEvent.dragEnd(card);
+    expect(onDragEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it("le swipe est désactivé en variant kanban même si onSwipeComplete est fourni", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const card = screen.getByText("Relancer le prestataire").closest(".kanban-card")!;
+    expect(card.querySelector(".action-card-swipe-bg")).not.toBeInTheDocument();
+    swipe(card, 120);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("réutilise le même menu d'actions (Notes/Lien/Déplacer/Éditer/Supprimer) que le variant list", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={onMove}
+      />
+    );
+    await openMenu(user);
+    await user.click(screen.getByRole("button", { name: /Déplacer/ }));
+    expect(onMove).toHaveBeenCalledTimes(1);
+  });
+
+  it("affiche le badge de synchronisation, comme le variant list (parité desktop/mobile)", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        syncStatus="pending"
+      />
+    );
+    expect(screen.getByText("En attente")).toBeInTheDocument();
+  });
+
+  it("affiche une bannière de relance active même avant échéance (comportement propre au variant kanban, conservé)", () => {
+    render(
+      <ActionCard
+        action={baseAction({
+          status: "waiting",
+          waitingSince: new Date().toISOString(),
+          waitingReminder: { afterDays: 3, enabled: true, history: [] },
+        })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        variant="kanban"
+        onMove={vi.fn()}
+        onDisableReminder={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Relance active")).toBeInTheDocument();
+  });
+});
+
+describe("ActionCard — chip de phase et compatibilité legacy (Lot 6, finalisation)", () => {
+  it("sans phaseOptions, affiche le phaseId tel quel (comportement inchangé)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: "conception" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Conception")).toBeInTheDocument();
+  });
+
+  it("avec phaseOptions, résout un phaseId legacy vers son équivalent courant au lieu de l'afficher brut", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: "en_cours" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        phaseOptions={["preparation", "realisation", "verification", "cloture"]}
+      />
+    );
+    expect(screen.getByText("Réalisation")).toBeInTheDocument();
+    expect(screen.queryByText("En cours")).not.toBeInTheDocument();
+  });
+
+  it("sans phaseId, n'affiche aucun chip de phase même avec phaseOptions fourni", () => {
+    render(
+      <ActionCard
+        action={baseAction({ phaseId: undefined })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        phaseOptions={["preparation", "realisation", "verification", "cloture"]}
+      />
+    );
+    expect(screen.queryByText("Préparation")).not.toBeInTheDocument();
+  });
+});
+
+describe("ActionCard — indicateur responsable compact (Lot 8B)", () => {
+  it("sans assignedMembers, aucun indicateur (mode Solo)", () => {
+    render(<ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />);
+    expect(screen.queryByLabelText(/Responsable/)).not.toBeInTheDocument();
+  });
+
+  it("affiche les initiales d'un seul responsable", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        assignedMembers={[
+          { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+        ]}
+      />
+    );
+    expect(screen.getByLabelText("Responsable : Koffi")).toHaveTextContent("KO");
+  });
+
+  it("affiche au maximum 2 initiales puis +N", () => {
+    const members = [
+      { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+      { id: "m2", workspaceId: "w1", displayName: "Alice", active: true, createdAt: "x", updatedAt: "x" },
+      { id: "m3", workspaceId: "w1", displayName: "Bob", active: true, createdAt: "x", updatedAt: "x" },
+    ];
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        assignedMembers={members}
+      />
+    );
+    expect(screen.getByLabelText("Responsables : Koffi, Alice, Bob")).toHaveTextContent("KO AL +1");
+  });
+});

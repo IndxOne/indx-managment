@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
-import type { Action, ActionStatus, Priority, WorkItemType } from "../../domain/types";
+import type { Action, ActionStatus, CollaborationMode, Priority, WorkItemType } from "../../domain/types";
 import type { ActionContentEdit } from "../../domain/edit-action";
+import type { Member } from "../../domain/member";
 import type { MoveDestination } from "../../domain/move-action";
 import type { CreateWorkspaceInput, Workspace } from "../../domain/workspace";
 import type { RecurrenceFrequency, RecurrenceRule } from "../../recurrence/recurrence-engine";
@@ -36,6 +37,8 @@ export interface AppState {
   carnetNotes: CarnetNote[];
   /** Absent tant que l'utilisateur n'a jamais renseigné ces repères. */
   hubSettings?: HubSettings;
+  /** Membres par espace (Lot 8A) — étiquettes d'assignation, pas des comptes. Absent = espace jamais passé en mode équipe. */
+  membersByWorkspace?: Record<string, Member[]>;
 }
 
 export const EMPTY_STATE: AppState = {
@@ -43,7 +46,15 @@ export const EMPTY_STATE: AppState = {
   actionsByWorkspace: {},
   recurrenceRulesByWorkspace: {},
   carnetNotes: [],
+  membersByWorkspace: {},
 };
+
+export interface NewMemberInput {
+  workspaceId: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string;
+}
 
 export interface NewActionInput {
   workspaceId: string;
@@ -97,6 +108,7 @@ export interface StoreContextValue {
   conflicts: SyncConflict[];
   createWorkspaceAction: (input: NewWorkspaceInput) => Workspace;
   changeApproach: (workspaceId: string, approach: Workspace["approach"]) => void;
+  setCollaborationMode: (workspaceId: string, mode: CollaborationMode) => void;
   /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */
   editWorkspaceDescription: (workspaceId: string, description: string) => Promise<void>;
   createAction: (input: NewActionInput) => void;
@@ -111,6 +123,7 @@ export interface StoreContextValue {
   addNote: (workspaceId: string, actionId: string, text: string) => void;
   linkAction: (workspaceId: string, actionId: string, linkedActionId: string) => void;
   unlinkAction: (workspaceId: string, actionId: string) => void;
+  setAssignees: (workspaceId: string, actionId: string, assigneeIds: string[]) => void;
   /** Retourne l'action et sa position avant suppression, pour permettre l'annulation. */
   deleteAction: (workspaceId: string, actionId: string) => { action: Action; index: number } | undefined;
   undoDeleteAction: (workspaceId: string, action: Action, index: number) => void;
@@ -120,6 +133,9 @@ export interface StoreContextValue {
   convertCarnetNote: (noteId: string, input: Omit<NewActionInput, "sourceNoteId">) => void;
   /** Retourne une promesse pour permettre à l'appelant de distinguer succès et échec (retry côté UI). */
   updateHubSettings: (settings: HubSettings) => Promise<void>;
+  createMember: (input: NewMemberInput) => Member;
+  renameMember: (workspaceId: string, memberId: string, displayName: string) => void;
+  setMemberActive: (workspaceId: string, memberId: string, active: boolean) => void;
 }
 
 export const StoreContext = createContext<StoreContextValue | null>(null);

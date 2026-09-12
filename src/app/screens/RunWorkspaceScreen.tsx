@@ -10,10 +10,12 @@ import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { ActionListSection } from "../components/ActionListSection";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
+import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { QuickFilterChips } from "../components/QuickFilterChips";
+import { SegmentedTabs } from "../components/SegmentedTabs";
 import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
@@ -47,10 +49,13 @@ export function RunWorkspaceScreen({
     addNote,
     linkAction,
     unlinkAction,
+    setAssignees,
   } = useStore();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
+  const isTeam = workspace.collaborationMode === "team";
+  const members = isTeam ? state.membersByWorkspace?.[workspace.id] ?? [] : undefined;
 
   // Vérifie les relances devenues dues à chaque affichage / changement de
   // la liste (pas d'ordonnanceur en tâche de fond en Lot 3 — cf. Lot 5).
@@ -70,6 +75,8 @@ export function RunWorkspaceScreen({
   const notesAction = allActions.find((action) => action.id === notesActionId) ?? null;
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
   const linkingAction = allActions.find((action) => action.id === linkingActionId) ?? null;
+  const [detailActionId, setDetailActionId] = useState<string | null>(null);
+  const detailAction = allActions.find((action) => action.id === detailActionId) ?? null;
 
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
@@ -118,33 +125,15 @@ export function RunWorkspaceScreen({
       </div>
 
       <div className="app-main">
-        <div className="segmented" role="tablist" aria-label="Vue temporelle">
-          <div
-            className="segmented-thumb"
-            aria-hidden="true"
-            style={{ width: "calc(50% - 2px)", left: 2, transform: `translateX(${view === "today" ? "0%" : "100%"})` }}
-          />
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "today"}
-            aria-current={view === "today"}
-            className="segmented-item"
-            onClick={() => setView("today")}
-          >
-            Aujourd'hui
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "week"}
-            aria-current={view === "week"}
-            className="segmented-item"
-            onClick={() => setView("week")}
-          >
-            Cette semaine
-          </button>
-        </div>
+        <SegmentedTabs
+          ariaLabel="Vue temporelle"
+          options={[
+            { id: "today", label: "Aujourd'hui" },
+            { id: "week", label: "Cette semaine" },
+          ]}
+          value={view}
+          onChange={setView}
+        />
 
         <QuickFilterChips quickFilterIds={preset.quickFilters} filters={filters} onChange={setFilters} />
 
@@ -182,6 +171,8 @@ export function RunWorkspaceScreen({
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
+              members={members}
             />
 
             <ActionListSection
@@ -200,6 +191,8 @@ export function RunWorkspaceScreen({
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
+              members={members}
             />
 
             <ActionListSection
@@ -217,6 +210,8 @@ export function RunWorkspaceScreen({
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
+              members={members}
             />
           </>
         )}
@@ -226,6 +221,7 @@ export function RunWorkspaceScreen({
         <FilterSheet
           filters={filters}
           statusLabels={statusLabels}
+          members={members}
           onChange={setFilters}
           onClose={() => setFilterSheetOpen(false)}
         />
@@ -292,6 +288,36 @@ export function RunWorkspaceScreen({
           }}
           onUnlink={() => unlinkAction(workspace.id, linkingAction.id)}
           onNavigate={onNavigateToWorkspace}
+        />
+      )}
+
+      {detailAction && (
+        <ActionDetailSheet
+          action={detailAction}
+          phaseOptions={preset.phaseTemplate ?? []}
+          statusLabels={statusLabels}
+          timezone={timezone}
+          workspaces={state.workspaces}
+          actionsByWorkspace={state.actionsByWorkspace}
+          onClose={() => setDetailActionId(null)}
+          onEdit={(edit) => editAction(workspace.id, detailAction.id, edit)}
+          onMove={(destination) => move(workspace.id, detailAction, destination)}
+          onSetReminder={(afterDays) => setReminder(workspace.id, detailAction.id, afterDays)}
+          onDisableReminder={() => disableReminder(workspace.id, detailAction.id)}
+          onAddNote={(text) => addNote(workspace.id, detailAction.id, text)}
+          onLink={(linkedId) => linkAction(workspace.id, detailAction.id, linkedId)}
+          onUnlink={() => unlinkAction(workspace.id, detailAction.id)}
+          onNavigate={onNavigateToWorkspace}
+          onDelete={() => remove(workspace.id, detailAction)}
+          collaboration={
+            members
+              ? {
+                  members,
+                  assigneeIds: detailAction.assigneeIds,
+                  onChangeAssignees: (assigneeIds) => setAssignees(workspace.id, detailAction.id, assigneeIds),
+                }
+              : undefined
+          }
         />
       )}
 

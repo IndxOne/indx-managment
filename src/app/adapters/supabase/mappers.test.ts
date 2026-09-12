@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { Action } from "../../../domain/types";
 import type { Workspace } from "../../../domain/workspace";
 import type { RecurrenceRule } from "../../../recurrence/recurrence-engine";
+import type { Member } from "../../../domain/member";
 import {
   actionFromRow,
   actionToRow,
   carnetNoteFromRow,
   carnetNoteToRow,
+  memberFromRow,
+  memberToRow,
   recurrenceRuleFromRow,
   recurrenceRuleToRow,
   workspaceFromRow,
@@ -153,5 +156,41 @@ describe("carnetNoteToRow / carnetNoteFromRow", () => {
     const row = carnetNoteToRow(original, USER_HASH);
     expect(row.user_hash).toBe(USER_HASH);
     expect(carnetNoteFromRow(row)).toEqual(original);
+  });
+});
+
+function member(overrides: Partial<Member> = {}): Member {
+  return {
+    id: "m1",
+    workspaceId: "11111111-1111-1111-1111-111111111111",
+    displayName: "Koffi",
+    active: true,
+    createdAt: "2026-09-11T00:00:00.000Z",
+    updatedAt: "2026-09-11T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+describe("memberToRow / memberFromRow (Lot 8A)", () => {
+  it("round-trip sans perte", () => {
+    const original = member();
+    const row = memberToRow(original, USER_HASH);
+    expect(row.user_hash).toBe(USER_HASH);
+    expect(memberFromRow(row)).toEqual(original);
+  });
+
+  it("email et avatarUrl absents deviennent null en base puis undefined au retour", () => {
+    const row = memberToRow(member(), USER_HASH);
+    expect(row.email).toBeNull();
+    expect(row.avatar_url).toBeNull();
+    const rehydrated = memberFromRow(row);
+    expect(rehydrated.email).toBeUndefined();
+    expect(rehydrated.avatarUrl).toBeUndefined();
+  });
+
+  it("conserve active=false (désactivation)", () => {
+    const row = memberToRow(member({ active: false }), USER_HASH);
+    expect(row.active).toBe(false);
+    expect(memberFromRow(row).active).toBe(false);
   });
 });

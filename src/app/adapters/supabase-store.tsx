@@ -12,6 +12,8 @@ import {
   carnetNoteToRow,
   hubSettingsFromRow,
   hubSettingsToRow,
+  memberFromRow,
+  memberToRow,
   recurrenceRuleFromRow,
   recurrenceRuleToRow,
   workspaceFromRow,
@@ -19,9 +21,11 @@ import {
   type ActionRow,
   type CarnetNoteRow,
   type HubSettingsRow,
+  type MemberRow,
   type RecurrenceRuleRow,
   type WorkspaceRow,
 } from "./supabase/mappers";
+import { createMember } from "../../domain/member";
 import { getOrCreateUserHash } from "./supabase/user-hash";
 import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue, type SyncConflict } from "./store-context";
 
@@ -87,25 +91,30 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         { data: recurrenceRuleRows, error: recurrenceRulesError },
         { data: carnetNoteRows, error: carnetNotesError },
         { data: hubSettingsRow, error: hubSettingsError },
+        { data: memberRows, error: membersError },
       ] = await Promise.all([
         client.from("projets_workspaces").select("*").order("created_at"),
         client.from("projets_actions").select("*").order("created_at"),
         client.from("projets_recurrence_rules").select("*").order("created_at"),
         client.from("projets_carnet_notes").select("*").order("created_at"),
         client.from("projets_hub_settings").select("*").maybeSingle(),
+        client.from("projets_members").select("*").order("created_at"),
       ]);
       if (workspacesError) throw workspacesError;
       if (actionsError) throw actionsError;
       if (recurrenceRulesError) throw recurrenceRulesError;
       if (carnetNotesError) throw carnetNotesError;
       if (hubSettingsError) throw hubSettingsError;
+      if (membersError) throw membersError;
 
       const workspaces = ((workspaceRows ?? []) as WorkspaceRow[]).map(workspaceFromRow);
       const actionsByWorkspace: AppState["actionsByWorkspace"] = {};
       const recurrenceRulesByWorkspace: AppState["recurrenceRulesByWorkspace"] = {};
+      const membersByWorkspace: NonNullable<AppState["membersByWorkspace"]> = {};
       for (const workspace of workspaces) {
         actionsByWorkspace[workspace.id] = [];
         recurrenceRulesByWorkspace[workspace.id] = [];
+        membersByWorkspace[workspace.id] = [];
       }
       for (const row of (actionRows ?? []) as ActionRow[]) {
         const action = actionFromRow(row);
@@ -115,12 +124,16 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         const rule = recurrenceRuleFromRow(row);
         (recurrenceRulesByWorkspace[rule.workspaceId] ??= []).push(rule);
       }
+      for (const row of (memberRows ?? []) as MemberRow[]) {
+        const member = memberFromRow(row);
+        (membersByWorkspace[member.workspaceId] ??= []).push(member);
+      }
       const carnetNotes = ((carnetNoteRows ?? []) as CarnetNoteRow[]).map(carnetNoteFromRow);
       const hubSettings = hubSettingsRow ? hubSettingsFromRow(hubSettingsRow as HubSettingsRow) : undefined;
 
       dispatch({
         type: "hydrate",
-        state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes, hubSettings },
+        state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes, hubSettings, membersByWorkspace },
       });
       setStatus("ready");
     } catch (cause) {
@@ -309,6 +322,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const { error } = await client
             .from("projets_workspaces")
             .update({ approach, updated_at: new Date().toISOString() })
+            .eq("id", workspaceId);
+          if (error) throw error;
+        });
+      },
+
+      setCollaborationMode: (workspaceId, mode) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "workspace/setCollaborationMode", workspaceId, collaborationMode: mode, now }, async () => {
+          const { error } = await client
+            .from("projets_workspaces")
+            .update({ collaboration_mode: mode, updated_at: now })
             .eq("id", workspaceId);
           if (error) throw error;
         });
@@ -570,6 +594,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
+      setAssignees: (workspaceId, actionId, assigneeIds) => {
+        const now = new Date().toISOString();
+        dispatchAndPersistAction(actionId, { type: "action/setAssignees", workspaceId, actionId, assigneeIds, now }, async () => {
+          const { error } = await client
+            .from("projets_actions")
+            .update({ assignee_ids: assigneeIds, updated_at: now })
+            .eq("id", actionId);
+          if (error) throw error;
+        });
+      },
+
       deleteAction: (workspaceId, actionId) => {
         const list = state.actionsByWorkspace[workspaceId] ?? [];
         const index = list.findIndex((a) => a.id === actionId);
@@ -585,6 +620,34 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       undoDeleteAction: (workspaceId, action, index) => {
         dispatchAndPersistAction(action.id, { type: "action/undoDelete", workspaceId, action, index }, async () => {
           const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash));
+          if (error) throw error;
+        });
+      },
+
+      createMember: (input) => {
+        const member = createMember({ ...input, id: generateId() });
+        dispatchAndPersist({ type: "member/create", member }, async () => {
+          const { error } = await client.from("projets_members").insert(memberToRow(member, userHash));
+          if (error) throw error;
+        });
+        return member;
+      },
+
+      renameMember: (workspaceId, memberId, displayName) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "member/rename", workspaceId, memberId, displayName, now }, async () => {
+          const { error } = await client
+            .from("projets_members")
+            .update({ display_name: displayName, updated_at: now })
+            .eq("id", memberId);
+          if (error) throw error;
+        });
+      },
+
+      setMemberActive: (workspaceId, memberId, active) => {
+        const now = new Date().toISOString();
+        dispatchAndPersist({ type: "member/setActive", workspaceId, memberId, active, now }, async () => {
+          const { error } = await client.from("projets_members").update({ active, updated_at: now }).eq("id", memberId);
           if (error) throw error;
         });
       },

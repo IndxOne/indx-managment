@@ -1,4 +1,5 @@
-import { useRef, useState, type FormEvent } from "react";
+import type { FormEvent } from "react";
+import { useInlineCreate } from "../hooks/useInlineCreate";
 import { IconMore, IconPlus } from "./Icons";
 
 /**
@@ -16,16 +17,11 @@ export function QuickAddBar({
   onOpenFullForm: (draftTitle: string) => void;
   placeholder?: string;
 }) {
-  const [title, setTitle] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { title, setTitle, submit, inputRef } = useInlineCreate(onQuickAdd);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    onQuickAdd(trimmed);
-    setTitle("");
-    inputRef.current?.focus();
+    if (submit()) inputRef.current?.focus();
   }
 
   return (

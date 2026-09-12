@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeWorkspaceApproach, createWorkspace, editWorkspaceDescription } from "./workspace";
+import { changeWorkspaceApproach, createWorkspace, editWorkspaceDescription, setWorkspaceCollaborationMode } from "./workspace";
 import { isRecommendedApproach } from "../presets/preset-registry";
 
 describe("createWorkspace", () => {
@@ -49,6 +49,21 @@ describe("changeWorkspaceApproach", () => {
     const ws = createWorkspace({ id: "w1", name: "Test", kind: "run", now: "2026-09-08T00:00:00.000Z" });
     const result = changeWorkspaceApproach(ws, ws.approach, "2026-09-09T00:00:00.000Z");
     expect(result).toBe(ws);
+  });
+});
+
+describe("setWorkspaceCollaborationMode", () => {
+  it("passe de solo à équipe sans toucher au reste", () => {
+    const ws = createWorkspace({ id: "w1", name: "Test", kind: "project", now: "2026-09-08T00:00:00.000Z" });
+    const updated = setWorkspaceCollaborationMode(ws, "team", "2026-09-09T00:00:00.000Z");
+    expect(updated.collaborationMode).toBe("team");
+    expect(updated.updatedAt).toBe("2026-09-09T00:00:00.000Z");
+    expect(updated.approach).toBe(ws.approach);
+  });
+
+  it("est un no-op si le mode est déjà celui demandé", () => {
+    const ws = createWorkspace({ id: "w1", name: "Test", kind: "project", now: "2026-09-08T00:00:00.000Z" });
+    expect(setWorkspaceCollaborationMode(ws, "solo", "2026-09-09T00:00:00.000Z")).toBe(ws);
   });
 });
 

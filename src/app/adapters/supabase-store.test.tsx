@@ -142,7 +142,7 @@ describe("App — chargement Supabase", () => {
 
     const loadingLabel = await screen.findByText("Chargement des espaces…");
     expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
-    const weekTab = screen.getByRole("button", { name: "Semaine" });
+    const weekTab = screen.getByRole("button", { name: "Cette semaine" });
     await user.click(weekTab);
     expect(weekTab).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();

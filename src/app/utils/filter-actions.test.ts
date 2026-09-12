@@ -56,4 +56,27 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters(EMPTY_FILTERS)).toBe(false);
     expect(hasActiveFilters({ ...EMPTY_FILTERS, itemTypes: new Set(["incident"]) })).toBe(true);
   });
+
+  it("détecte le filtre responsable (Lot 8B)", () => {
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, assignee: "m1" })).toBe(true);
+    expect(hasActiveFilters({ ...EMPTY_FILTERS, assignee: "unassigned" })).toBe(true);
+  });
+});
+
+describe("applyFilters — responsable (Lot 8B)", () => {
+  it("filtre par id de membre assigné", () => {
+    const actions = [
+      action({ id: "a1", assigneeIds: ["m1"] }),
+      action({ id: "a2", assigneeIds: ["m2"] }),
+      action({ id: "a3", assigneeIds: ["m1", "m2"] }),
+    ];
+    const result = applyFilters(actions, { ...EMPTY_FILTERS, assignee: "m1" });
+    expect(result.map((a) => a.id)).toEqual(["a1", "a3"]);
+  });
+
+  it("« unassigned » ne garde que les actions sans aucun responsable", () => {
+    const actions = [action({ id: "a1", assigneeIds: [] }), action({ id: "a2", assigneeIds: ["m1"] })];
+    const result = applyFilters(actions, { ...EMPTY_FILTERS, assignee: "unassigned" });
+    expect(result.map((a) => a.id)).toEqual(["a1"]);
+  });
 });

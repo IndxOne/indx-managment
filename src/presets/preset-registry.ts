@@ -24,7 +24,13 @@ export const PRESET_REGISTRY: Record<ProfessionalApproach, WorkspacePreset> = {
     visibleFields: ["title", "status", "dueDate"],
     quickFilters: ["thisWeek", "done"],
     suggestedAutomations: [],
-    phaseTemplate: ["a_traiter", "en_cours", "en_attente", "termine"],
+    // Phases de déroulement (où en est le TRAVAIL), pas des statuts déguisés
+    // (cadrage Lot 6 §E) — l'ancien template ("à traiter"/"en cours"/"en
+    // attente"/"terminé") reproduisait mot pour mot STATUS_LABELS_DEFAULT,
+    // confondant phase et statut. Les actions existantes avec un ancien
+    // phaseId sont remappées vers l'équivalent le plus proche par
+    // LEGACY_PHASE_COLUMNS (ProjectWorkspaceScreen.tsx), jamais perdues.
+    phaseTemplate: ["preparation", "realisation", "verification", "cloture"],
   },
   it_ops: {
     id: "it_ops",

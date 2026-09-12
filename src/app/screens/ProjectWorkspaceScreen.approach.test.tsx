@@ -27,7 +27,7 @@ function stateWithWorkspace(): AppState {
 }
 
 describe("ProjectWorkspaceScreen — approche management", () => {
-  it("propose ses quatre colonnes métier et permet toujours d'ajouter une action", async () => {
+  it("propose ses quatre colonnes métier, chacune une région nommée avec un bouton d'ajout (Lot 3 : ColumnsView)", async () => {
     render(
       <AnnouncerProvider>
         <TemporaryStoreProvider initialState={stateWithWorkspace()}>
@@ -41,8 +41,13 @@ describe("ProjectWorkspaceScreen — approche management", () => {
       </AnnouncerProvider>
     );
 
-    expect(await screen.findByPlaceholderText("Ajouter à « Objectifs »…")).toBeInTheDocument();
-    expect(screen.getAllByRole("tab", { name: /Objectifs|Planification|Suivi|Bilan/ })).toHaveLength(4);
+    const regions = await screen.findAllByRole("region");
+    expect(regions).toHaveLength(4);
+    expect(screen.getByText("Objectifs")).toBeInTheDocument();
+    expect(screen.getByText("Planification")).toBeInTheDocument();
+    expect(screen.getByText("Suivi")).toBeInTheDocument();
+    expect(screen.getByText("Bilan")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Ajouter une action/ })).toHaveLength(4);
   });
 
   it("une action ajoutée sans échéance reste visible (finding Codex PR #28)", async () => {
@@ -60,7 +65,9 @@ describe("ProjectWorkspaceScreen — approche management", () => {
       </AnnouncerProvider>
     );
 
-    await user.type(await screen.findByPlaceholderText("Ajouter à « Objectifs »…"), "Cadrer le périmètre{Enter}");
+    // Création rapide inline (Lot 4) : CTA -> champ -> Entrée, sans ouvrir de sheet.
+    await user.click((await screen.findAllByRole("button", { name: /Ajouter une action/ }))[0]!);
+    await user.type(screen.getByLabelText("Nouvelle action dans Objectifs"), "Cadrer le périmètre{Enter}");
 
     expect(await screen.findByText("Cadrer le périmètre")).toBeInTheDocument();
   });
@@ -96,7 +103,7 @@ describe("ProjectWorkspaceScreen — approche management", () => {
       </AnnouncerProvider>
     );
 
-    await screen.findByPlaceholderText("Ajouter à « Objectifs »…");
+    await screen.findByText("Objectifs");
     expect(screen.getByRole("tab", { name: "Par étapes" })).toBeInTheDocument();
   });
 });

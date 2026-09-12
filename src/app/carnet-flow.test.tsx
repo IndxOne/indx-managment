@@ -8,13 +8,15 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     await screen.findByText("Aucun espace pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un espace" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Suivi quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Suivi quotidien" });
 
-    await user.click(screen.getByRole("button", { name: /plus/i }));
+    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
     await user.click(screen.getByRole("button", { name: "Carnet" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Relancer le fournisseur X");
@@ -28,7 +30,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     await screen.findByText("Carnet vide");
 
     // L'action existe dans l'espace, avec le texte de la note comme titre.
-    await user.click(screen.getByRole("button", { name: /espaces/i }));
+    await user.click(screen.getByRole("button", { name: /projets/i }));
     await user.click(screen.getByRole("button", { name: /suivi quotidien/i }));
     expect(await screen.findByText("Relancer le fournisseur X")).toBeInTheDocument();
   });
@@ -37,8 +39,8 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: /plus/i }));
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
     await user.click(screen.getByRole("button", { name: "Carnet" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Idée jetable");

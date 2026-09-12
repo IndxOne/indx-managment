@@ -225,6 +225,14 @@ export function StatusCheckIcon({ status, size = 24 }: { status: ActionStatus; s
       </svg>
     );
   }
+  if (status === "blocked") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="var(--color-danger)" strokeWidth={1.8} />
+        <line x1="6.2" y1="17.8" x2="17.8" y2="6.2" stroke="var(--color-danger)" strokeWidth={1.8} strokeLinecap="round" />
+      </svg>
+    );
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="10" fill="none" stroke="var(--color-text-tertiary)" strokeWidth={1.8} />
@@ -297,6 +305,18 @@ export function IconCompass(props: IconProps) {
     <svg {...base} {...props}>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M14.8 9.2 12.9 13.4 8.7 15.3 10.6 11.1Z" />
+    </svg>
+  );
+}
+
+/** Responsable(s) d'une action (Lot 8B) — deux silhouettes superposées. */
+export function IconUsers(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="8.5" r="3" />
+      <path d="M3.5 19 a5.5 5.5 0 0 1 11 0" />
+      <path d="M15.5 6.2 a2.6 2.6 0 0 1 0 5" />
+      <path d="M15 13.3 a5 5 0 0 1 5.5 5.7" />
     </svg>
   );
 }

@@ -5,6 +5,7 @@ import type { Action, ActionStatus } from "../../domain/types";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import { phaseLabel } from "../labels";
 import { phaseChipClass } from "../utils/phase-color";
+import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { scheduleSummary } from "../utils/schedule-summary";
 import { BottomSheet } from "./BottomSheet";
 import { IconCalendar, IconLayers, StatusCheckIcon } from "./Icons";
@@ -14,6 +15,8 @@ export function MoveActionSheet({
   phaseOptions,
   statusLabels,
   timezone,
+  /** Ouvre directement sur cet axe, en sautant l'écran de choix — utilisé par ActionDetailSheet (Lot 5) pour un accès direct depuis les lignes "Statut"/"Échéance". Absent = comportement inchangé (choix de l'axe d'abord). */
+  initialAxis,
   onCancel,
   onConfirm,
   onSetReminder,
@@ -23,13 +26,15 @@ export function MoveActionSheet({
   statusLabels: Record<ActionStatus, string>;
   /** Fuseau de l'écran appelant : la semaine par défaut doit correspondre à "aujourd'hui" pour l'utilisateur, pas en UTC. */
   timezone: string;
+  initialAxis?: MoveAxis;
   onCancel: () => void;
   onConfirm: (destination: MoveDestination) => void;
   /** Appelé en plus de onConfirm si l'utilisateur active une relance en passant à "waiting". */
   onSetReminder?: (afterDays: number) => void;
 }) {
-  const [axis, setAxis] = useState<MoveAxis | null>(null);
+  const [axis, setAxis] = useState<MoveAxis | null>(initialAxis ?? null);
   const currentWeek = formatIsoWeek(todayInTimeZone(timezone));
+  const displayPhaseId = resolveDisplayPhaseId(action.phaseId, phaseOptions);
 
   if (axis === null) {
     return (
@@ -54,7 +59,7 @@ export function MoveActionSheet({
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span className="move-axis-label">Phase</span>
-                <span className="move-axis-sub">{action.phaseId ? phaseLabel(action.phaseId) : "Aucune phase"}</span>
+                <span className="move-axis-sub">{displayPhaseId ? phaseLabel(displayPhaseId) : "Aucune phase"}</span>
               </span>
             </button>
           )}

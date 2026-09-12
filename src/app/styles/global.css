@@ -21,6 +21,11 @@
   --color-accent-contrast: #ffffff;
   --color-danger: #ff3b30;
   --color-warning: #ff9500;
+  /* #ff9500 (orange système iOS) ne passe pas le contraste WCAG AA en texte
+     sur fond blanc (2.20:1) — variante texte assombrie à 5.01:1 (Lot 10),
+     réservée à l'usage en texte (statut de relance) ; --color-warning
+     reste inchangé pour les usages non textuels (fonds, icônes, bordures). */
+  --color-warning-text: #a35f00;
   --color-success: #34c759;
   --color-success-soft: #e8f8ed;
   --color-warning-soft: #fff3e0;
@@ -46,9 +51,11 @@
   --chip-purple-bg: #f1ebfe;
   --chip-purple-text: #6d28d9;
   --chip-orange-bg: #fff3e0;
-  --chip-orange-text: #b25f00;
+  /* #b25f00 était sous l'AA (4.23:1) sur --chip-orange-bg — assombri à 4.88:1 (Lot 10). */
+  --chip-orange-text: #a35700;
   --chip-green-bg: #e7f8ec;
-  --chip-green-text: #1e8a3d;
+  /* #1e8a3d était sous l'AA (4.00:1) sur --chip-green-bg — assombri à 4.97:1 (Lot 10). */
+  --chip-green-text: #1a7935;
   --chip-red-bg: #ffece9;
   --chip-red-text: #c92a1f;
   --chip-teal-bg: #e4f7f5;
@@ -79,6 +86,8 @@
     --color-accent-contrast: #ffffff;
     --color-danger: #ff453a;
     --color-warning: #ff9f0a;
+    /* Déjà conforme AA en dark mode (8.28:1) : pas de variante séparée nécessaire. */
+    --color-warning-text: #ff9f0a;
     --color-success: #30d158;
     --color-success-soft: #0f2417;
     --color-warning-soft: #2a2210;
@@ -127,6 +136,7 @@
   --color-accent-contrast: #ffffff;
   --color-danger: #ff453a;
   --color-warning: #ff9f0a;
+  --color-warning-text: #ff9f0a;
   --color-success: #30d158;
   --color-success-soft: #0f2417;
   --color-warning-soft: #2a2210;
@@ -311,8 +321,12 @@ a {
 }
 
 /* Bouton "…" discret sur une rangée : transparent au repos, estompage gris
-   uniquement au clic — jamais un chip visible en permanence. */
+   uniquement au clic — jamais un chip visible en permanence. Le cercle
+   visuel reste à 32px (densité des rangées) mais la zone cliquable réelle
+   atteint le minimum tactile de 44px via ::before (Lot 9 — aucun impact
+   visuel ni sur la mise en page environnante). */
 .icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -325,6 +339,12 @@ a {
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background 120ms ease;
+}
+
+.icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }
 
 .icon-btn:active:not(:disabled) {
@@ -350,6 +370,7 @@ a {
 }
 
 .quick-add-plus {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -362,6 +383,14 @@ a {
   color: #ffffff;
   flex-shrink: 0;
   cursor: pointer;
+}
+
+/* Zone cliquable réelle portée à 44px (Lot 9) sans agrandir le bouton
+   visuel ni la barre .quick-add (52px de haut, marge suffisante). */
+.quick-add-plus::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
 }
 
 .quick-add-plus:disabled {
@@ -1098,6 +1127,30 @@ a {
   z-index: 30;
 }
 
+/* Accès mobile au menu secondaire (Carnet/Hub/Approches métier/Recherche/
+   Réglages) : la barre basse mobile est strictement limitée à 4
+   destinations (cadrage renouveau produit, Lot 1.1), ce bouton "•••" fixe
+   en coin haut-droit porte l'accès hors de cette barre plutôt que d'y
+   ajouter une 5e entrée. Absent du DOM sur desktop (cf. AppShell), où le
+   même accès vit dans la sidebar de .bottom-nav. */
+.app-more-trigger {
+  position: fixed;
+  top: max(var(--space-3), env(safe-area-inset-top));
+  right: max(var(--space-3), env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: 999px;
+  border: none;
+  background: var(--blur-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--color-text);
+  z-index: 20;
+}
+
 .bottom-nav-item {
   flex: 1;
   display: flex;
@@ -1152,7 +1205,7 @@ a {
   align-items: center;
   gap: var(--space-3);
   width: 100%;
-  min-height: 36px;
+  min-height: var(--touch-target);
   padding: 0 var(--space-2);
   border-radius: 8px;
   border: none;
@@ -1178,7 +1231,7 @@ a {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 36px;
+  min-height: var(--touch-target);
   padding: 0 var(--space-2);
   border-radius: 8px;
   border: none;
@@ -1600,6 +1653,93 @@ a {
   font-weight: 700;
 }
 
+/* Ouverture du détail unifié (Lot 5) : bouton invisible qui reprend la
+   mise en page normale du bloc titre+sous-titre — jamais de chrome de
+   bouton, juste une cible cliquable/focusable en plus de la checkbox et
+   du menu (déjà des boutons séparés, aucun conflit de nesting). */
+.action-card-open-detail {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-height: var(--touch-target);
+}
+
+/* ActionDetailSheet (Lot 5) : plein écran mobile, panneau latéral desktop
+   avec le tableau visible derrière (fond translucide, pas de blur ni
+   d'opacité qui masquerait totalement le contexte). */
+.action-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 40;
+}
+
+.action-detail-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  animation: sheet-in 180ms ease-out;
+}
+
+@media (min-width: 720px) {
+  .action-detail-sheet {
+    inset: 0 0 0 auto;
+    width: min(420px, 90vw);
+    box-shadow: var(--shadow-sheet);
+    animation: action-detail-in-desktop 180ms ease-out;
+  }
+}
+
+@keyframes action-detail-in-desktop {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-detail-sheet {
+    animation: none;
+  }
+}
+
+.action-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
+  border-bottom: 0.5px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.action-detail-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.action-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
 .meta-chip {
   display: inline-flex;
   align-items: center;
@@ -1645,10 +1785,6 @@ a {
 
 .action-menu-item:active {
   background: var(--color-fill);
-}
-
-.action-menu-item-danger {
-  color: var(--color-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1758,38 +1894,48 @@ a {
   }
 }
 
-/* Tableau Kanban (espaces PROJET, desktop uniquement — cf. useIsDesktop). */
-.kanban-board {
+/* Vue Colonnes canonique (Lot 3 — ColumnsView.tsx), espaces PROJET.
+   Mobile-first : une colonne quasi pleine largeur par défaut, alignée en
+   scroll-snap ("une colonne principalement visible à la fois", cf. brief
+   Lot 3). Le bloc @media (min-width: 1024px) plus bas bascule vers des
+   colonnes fixes côte à côte sans snap, seuil identique à celui déjà
+   utilisé par .bottom-nav/.sidebar-workspaces (cf. useIsDesktop). Remplace
+   les anciennes .kanban-board/.kanban-column* (desktop uniquement) et
+   l'ancien rendu mobile "par étapes" à base de chips + ActionListSection —
+   une seule implémentation CSS-responsive, aucune branche JS par device. */
+.columns-view {
   display: flex;
   gap: var(--space-4);
   overflow-x: auto;
   padding-bottom: var(--space-4);
   align-items: flex-start;
+  scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   /* --color-border (translucide) se fond dans le fond une fois mélangé : contraste ~1.6:1 (finding Codex PR #26).
      --color-text-muted passe 3:1 dans les deux thèmes (4.54:1 clair, 5.22:1 sombre, cf. fix a11y PR #25). */
   scrollbar-color: var(--color-text-muted) transparent;
 }
 
-.kanban-board::-webkit-scrollbar {
+.columns-view::-webkit-scrollbar {
   height: 6px;
 }
 
-.kanban-board::-webkit-scrollbar-track {
+.columns-view::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.kanban-board::-webkit-scrollbar-thumb {
+.columns-view::-webkit-scrollbar-thumb {
   background: var(--color-text-muted);
   border-radius: 999px;
 }
 
-.kanban-board::-webkit-scrollbar-thumb:hover {
+.columns-view::-webkit-scrollbar-thumb:hover {
   background: var(--color-text);
 }
 
-.kanban-column {
-  flex: 0 0 280px;
+.columns-column {
+  flex: 0 0 calc(100% - var(--space-5));
+  scroll-snap-align: start;
   background: var(--color-page);
   border-radius: var(--radius-lg);
   border-top: 3px solid var(--color-border);
@@ -1799,32 +1945,43 @@ a {
   gap: var(--space-2);
 }
 
-.kanban-column[data-drag-over="true"] {
+@media (min-width: 1024px) {
+  .columns-view {
+    scroll-snap-type: none;
+  }
+
+  .columns-column {
+    flex: 0 0 280px;
+    scroll-snap-align: none;
+  }
+}
+
+.columns-column[data-drag-over="true"] {
   background: var(--color-fill);
 }
 
-.kanban-column.phase-chip-blue { border-top-color: var(--chip-blue-text); }
-.kanban-column.phase-chip-purple { border-top-color: var(--chip-purple-text); }
-.kanban-column.phase-chip-orange { border-top-color: var(--chip-orange-text); }
-.kanban-column.phase-chip-green { border-top-color: var(--chip-green-text); }
-.kanban-column.phase-chip-red { border-top-color: var(--chip-red-text); }
-.kanban-column.phase-chip-teal { border-top-color: var(--chip-teal-text); }
-.kanban-column.phase-chip-pink { border-top-color: var(--chip-pink-text); }
-.kanban-column.phase-chip-gray { border-top-color: var(--chip-gray-text); }
+.columns-column.phase-chip-blue { border-top-color: var(--chip-blue-text); }
+.columns-column.phase-chip-purple { border-top-color: var(--chip-purple-text); }
+.columns-column.phase-chip-orange { border-top-color: var(--chip-orange-text); }
+.columns-column.phase-chip-green { border-top-color: var(--chip-green-text); }
+.columns-column.phase-chip-red { border-top-color: var(--chip-red-text); }
+.columns-column.phase-chip-teal { border-top-color: var(--chip-teal-text); }
+.columns-column.phase-chip-pink { border-top-color: var(--chip-pink-text); }
+.columns-column.phase-chip-gray { border-top-color: var(--chip-gray-text); }
 
-.kanban-column-header {
+.columns-column-header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
 }
 
-.kanban-column-title {
+.columns-column-title {
   font-weight: 700;
   flex: 1;
 }
 
-.kanban-column-count {
+.columns-column-count {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   background: var(--color-fill);
@@ -1832,11 +1989,19 @@ a {
   padding: 1px 8px;
 }
 
-.kanban-column-cards {
+.columns-column-cards {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   min-height: 8px;
+}
+
+/* Création rapide inline (Lot 4) : réutilise .quick-add tel quel (même
+   pattern que QuickAddBar), seul le margin-bottom est neutralisé — la
+   colonne (.columns-column, flex-direction: column, gap déjà présent) gère
+   déjà l'espacement, un 2e espacement cumulerait un vide en bas de colonne. */
+.columns-column-quickadd {
+  margin-bottom: 0;
 }
 
 .kanban-card {
@@ -1860,12 +2025,9 @@ a {
   margin-top: 2px;
 }
 
-.kanban-card-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0;
-}
+/* .kanban-card-chips supprimée (Lot 2) : dupliquait .action-card-chips pour
+   le même rôle (rangée de chips sous le titre) — la carte kanban unifiée
+   réutilise désormais .action-card-chips. */
 
 .status-chip {
   display: inline-flex;
@@ -1885,6 +2047,11 @@ a {
 .status-chip[data-status="doing"] {
   background: var(--color-accent-soft);
   color: var(--color-accent);
+}
+
+.status-chip[data-status="blocked"] {
+  background: var(--chip-red-bg);
+  color: var(--chip-red-text);
 }
 
 .status-chip[data-status="waiting"] {

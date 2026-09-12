@@ -5,11 +5,6 @@ import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash
 import { useStore } from "../adapters/store-context";
 import { buildExportPayload, downloadExport } from "../utils/export-data";
 import { getStoredThemePreference, setThemePreference, type ThemePreference } from "../utils/theme";
-import {
-  getStoredSecondTabPreference,
-  setSecondTabPreference,
-  type SecondTabPreference,
-} from "../utils/bottom-nav-preference";
 import { EmptyState } from "../components/StateBlocks";
 import { MoreSubNav } from "../components/MoreSubNav";
 import type { MoreDestination } from "../more-links";
@@ -18,11 +13,6 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Système" },
   { value: "light", label: "Clair" },
   { value: "dark", label: "Sombre" },
-];
-
-const SECOND_TAB_OPTIONS: { value: SecondTabPreference; label: string }[] = [
-  { value: "week", label: "Semaine" },
-  { value: "reminders", label: "Rappels" },
 ];
 
 /**
@@ -42,16 +32,10 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemePreference>(getStoredThemePreference());
-  const [secondTab, setSecondTab] = useState<SecondTabPreference>(getStoredSecondTabPreference());
 
   function handleThemeChange(next: ThemePreference) {
     setTheme(next);
     setThemePreference(next);
-  }
-
-  function handleSecondTabChange(next: SecondTabPreference) {
-    setSecondTab(next);
-    setSecondTabPreference(next);
   }
 
   useEffect(() => {
@@ -121,22 +105,6 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
                 name="theme"
                 checked={theme === option.value}
                 onChange={() => handleThemeChange(option.value)}
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-
-        <h2 className="section-title">Barre de navigation</h2>
-        <p className="action-sub">Choisis ce que la 2e destination affiche sur mobile, à côté d'Aujourd'hui.</p>
-        <div className="choice-group" role="radiogroup" aria-label="2e destination de la barre basse">
-          {SECOND_TAB_OPTIONS.map((option) => (
-            <label key={option.value} className="choice-option">
-              <input
-                type="radio"
-                name="second-tab"
-                checked={secondTab === option.value}
-                onChange={() => handleSecondTabChange(option.value)}
               />
               {option.label}
             </label>

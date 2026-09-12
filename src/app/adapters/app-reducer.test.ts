@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
 import type { Action } from "../../domain/types";
+import type { Member } from "../../domain/member";
 import type { RecurrenceRule } from "../../recurrence/recurrence-engine";
 import { appReducer } from "./app-reducer";
 import { EMPTY_STATE, type AppState } from "./store-context";
+
+function member(overrides: Partial<Member> = {}): Member {
+  return {
+    id: "m1",
+    workspaceId: "w1",
+    displayName: "Koffi",
+    active: true,
+    createdAt: "2026-09-11T00:00:00.000Z",
+    updatedAt: "2026-09-11T00:00:00.000Z",
+    ...overrides,
+  };
+}
 
 function rule(overrides: Partial<RecurrenceRule> = {}): RecurrenceRule {
   return {
@@ -177,3 +190,96 @@ function futureOccurrence(
     updatedAt: dateValue,
   };
 }
+
+describe("appReducer — member/* (Lot 8A)", () => {
+  it("member/create ajoute un membre à l'espace", () => {
+    const next = appReducer(EMPTY_STATE, { type: "member/create", member: member() });
+    expect(next.membersByWorkspace?.w1).toEqual([member()]);
+  });
+
+  it("member/rename change le nom du membre visé, laisse les autres intacts", () => {
+    const before: AppState = { ...EMPTY_STATE, membersByWorkspace: { w1: [member(), member({ id: "m2", displayName: "Alice" })] } };
+    const next = appReducer(before, {
+      type: "member/rename",
+      workspaceId: "w1",
+      memberId: "m1",
+      displayName: "Koffi N.",
+      now: "2026-09-12T00:00:00.000Z",
+    });
+    expect(next.membersByWorkspace?.w1?.find((m) => m.id === "m1")?.displayName).toBe("Koffi N.");
+    expect(next.membersByWorkspace?.w1?.find((m) => m.id === "m2")?.displayName).toBe("Alice");
+  });
+
+  it("member/setActive désactive un membre sans toucher aux autres champs", () => {
+    const before: AppState = { ...EMPTY_STATE, membersByWorkspace: { w1: [member()] } };
+    const next = appReducer(before, {
+      type: "member/setActive",
+      workspaceId: "w1",
+      memberId: "m1",
+      active: false,
+      now: "2026-09-12T00:00:00.000Z",
+    });
+    const updated = next.membersByWorkspace?.w1?.[0];
+    expect(updated?.active).toBe(false);
+    expect(updated?.displayName).toBe("Koffi");
+  });
+
+  it("member/setActive sur un membre déjà assigné à une action ne modifie jamais assigneeIds", () => {
+    const action = {
+      id: "a1",
+      workspaceId: "w1",
+      title: "Tâche",
+      status: "todo" as const,
+      priority: "normal" as const,
+      itemType: "task" as const,
+      assigneeIds: ["m1"],
+      tags: [],
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    };
+    const before: AppState = {
+      ...EMPTY_STATE,
+      actionsByWorkspace: { w1: [action] },
+      membersByWorkspace: { w1: [member()] },
+    };
+    const next = appReducer(before, {
+      type: "member/setActive",
+      workspaceId: "w1",
+      memberId: "m1",
+      active: false,
+      now: "2026-09-12T00:00:00.000Z",
+    });
+    expect(next.actionsByWorkspace.w1?.[0]?.assigneeIds).toEqual(["m1"]);
+  });
+});
+
+describe("appReducer — workspace/setCollaborationMode (Lot 8B)", () => {
+  it("passe le mode à team sans toucher aux actions ni aux membres", () => {
+    const before: AppState = {
+      ...EMPTY_STATE,
+      workspaces: [
+        {
+          id: "w1",
+          name: "Test",
+          kind: "project",
+          approach: "project_amoa",
+          collaborationMode: "solo",
+          presetVersion: 1,
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-01T00:00:00.000Z",
+        },
+      ],
+      actionsByWorkspace: { w1: [] },
+      membersByWorkspace: { w1: [] },
+    };
+    const next = appReducer(before, {
+      type: "workspace/setCollaborationMode",
+      workspaceId: "w1",
+      collaborationMode: "team",
+      now: "2026-09-12T00:00:00.000Z",
+    });
+    expect(next.workspaces[0]?.collaborationMode).toBe("team");
+    expect(next.actionsByWorkspace.w1).toEqual([]);
+    expect(next.membersByWorkspace?.w1).toEqual([]);
+  });
+});

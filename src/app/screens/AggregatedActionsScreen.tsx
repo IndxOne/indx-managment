@@ -8,6 +8,7 @@ import { useStore } from "../adapters/temporary-store";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
+import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { LinkActionSheet } from "../components/LinkActionSheet";
@@ -57,6 +58,7 @@ export function AggregatedActionsScreen({
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [notesActionId, setNotesActionId] = useState<string | null>(null);
   const [linkingActionId, setLinkingActionId] = useState<string | null>(null);
+  const [detailActionId, setDetailActionId] = useState<string | null>(null);
 
   const { waiting, inView } = useMemo(() => {
     const waitingBucket: Action[] = [];
@@ -98,6 +100,7 @@ export function AggregatedActionsScreen({
 
   const notesAction = notesActionId ? findAction(notesActionId) ?? null : null;
   const linkingAction = linkingActionId ? findAction(linkingActionId) ?? null : null;
+  const detailAction = detailActionId ? findAction(detailActionId) ?? null : null;
 
   const nothingToShow = waiting.length === 0 && inView.length === 0;
 
@@ -128,6 +131,7 @@ export function AggregatedActionsScreen({
               onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
               resolveSyncStatus={resolveSyncStatus}
             />
             <ActionListSection
@@ -148,6 +152,7 @@ export function AggregatedActionsScreen({
               onDisableReminder={(action) => disableReminder(action.workspaceId, action.id)}
               onOpenNotes={(action) => setNotesActionId(action.id)}
               onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
               resolveSyncStatus={resolveSyncStatus}
             />
           </>
@@ -200,6 +205,27 @@ export function AggregatedActionsScreen({
           }}
           onUnlink={() => unlinkAction(linkingAction.workspaceId, linkingAction.id)}
           onNavigate={onNavigateToWorkspace}
+        />
+      )}
+
+      {detailAction && (
+        <ActionDetailSheet
+          action={detailAction}
+          phaseOptions={presetFor(detailAction.workspaceId)?.phaseTemplate ?? []}
+          statusLabels={resolveStatusLabels(detailAction)}
+          timezone={timezone}
+          workspaces={state.workspaces}
+          actionsByWorkspace={state.actionsByWorkspace}
+          onClose={() => setDetailActionId(null)}
+          onEdit={(edit) => editAction(detailAction.workspaceId, detailAction.id, edit)}
+          onMove={(destination) => move(detailAction.workspaceId, detailAction, destination)}
+          onSetReminder={(afterDays) => setReminder(detailAction.workspaceId, detailAction.id, afterDays)}
+          onDisableReminder={() => disableReminder(detailAction.workspaceId, detailAction.id)}
+          onAddNote={(text) => addNote(detailAction.workspaceId, detailAction.id, text)}
+          onLink={(linkedId) => linkAction(detailAction.workspaceId, detailAction.id, linkedId)}
+          onUnlink={() => unlinkAction(detailAction.workspaceId, detailAction.id)}
+          onNavigate={onNavigateToWorkspace}
+          onDelete={() => remove(detailAction.workspaceId, detailAction)}
         />
       )}
 
