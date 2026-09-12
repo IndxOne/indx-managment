@@ -298,7 +298,7 @@ export function ActionCard({
         )}
         {menuButton}
         {onDisableReminder && reminderActive && (
-          <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
+          <div className="action-sub" style={{ color: "var(--color-warning-text)", fontWeight: 600 }} role="status">
             {reminderDue ? "Relance due" : "Relance active"}
             <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>
               Désactiver
@@ -388,7 +388,7 @@ export function ActionCard({
               listInfo
             )}
             {reminderDue && (
-              <div className="action-sub" style={{ color: "var(--color-warning)", fontWeight: 600 }} role="status">
+              <div className="action-sub" style={{ color: "var(--color-warning-text)", fontWeight: 600 }} role="status">
                 Relance due
                 {onDisableReminder && (
                   <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={onDisableReminder}>

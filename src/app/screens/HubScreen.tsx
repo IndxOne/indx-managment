@@ -59,7 +59,7 @@ export function HubScreen({
           Espaces
         </h2>
         <div className="stat-grid">
-          <StatTile value={stats.runCount} label="Espaces RUN" color="var(--color-warning)" onClick={onOpenSpaces} />
+          <StatTile value={stats.runCount} label="Espaces RUN" color="var(--color-warning-text)" onClick={onOpenSpaces} />
           <StatTile value={stats.projectCount} label="Espaces PROJET" color="#6355ff" onClick={onOpenSpaces} />
         </div>
 
@@ -82,7 +82,7 @@ export function HubScreen({
             value={stats.activeReminders}
             label="Relances actives"
             sub={stats.dueReminders > 0 ? `dont ${stats.dueReminders} due(s)` : undefined}
-            color="var(--color-warning)"
+            color="var(--color-warning-text)"
             onClick={() => onNavigate("reminders")}
           />
           <StatTile value={stats.activeRecurrenceRules} label="Récurrences actives" color="#8b5cf6" />
@@ -98,12 +98,17 @@ export function HubScreen({
   );
 }
 
+// Couleur du grand chiffre de StatTile (28px/800) : --color-text-tertiary et
+// --color-success échouent le contraste WCAG AA même sur du texte large
+// (respectivement 1.68:1 et 2.22:1) — remplacés ici par des tokens déjà
+// conformes (--color-text-muted, --chip-green-text) plutôt que par une
+// nouvelle variante à usage unique (Lot 10).
 const STATUS_COLORS: Record<ActionStatus, string> = {
-  todo: "var(--color-text-tertiary)",
+  todo: "var(--color-text-muted)",
   doing: "var(--color-accent)",
   blocked: "var(--color-danger)",
-  waiting: "var(--color-warning)",
-  done: "var(--color-success)",
+  waiting: "var(--color-warning-text)",
+  done: "var(--chip-green-text)",
 };
 
 function StatTile({

@@ -5,7 +5,6 @@ import type { Action } from "../../domain/types";
 import { moveAction } from "../../domain/move-action";
 import { changeWorkspaceApproach, createWorkspace } from "../../domain/workspace";
 import { computeHiddenFieldsOnApproachChange, resolveWorkspacePreset } from "../../presets/preset-registry";
-import { migrateLegacyActions, type LegacyAction } from "../../migration/migrate-legacy-actions";
 import { isWaitingReminderDue, setWaitingReminder, triggerWaitingReminderIfDue } from "../../reminders/waiting-reminder";
 
 /**
@@ -179,51 +178,6 @@ describe("Scénario C — Changement d'approche", () => {
       resolveWorkspacePreset(initial).visibleFields
     );
     expect(hidden.length).toBeGreaterThan(0); // confirmation requise côté UI, mais pas de blocage
-  });
-});
-
-describe("Données — migration sans perte, pas d'orpheline, source Carnet préservée", () => {
-  it("migre un lot hétérogène sans perte et sans levée d'exception sur les cas valides", () => {
-    const legacy: LegacyAction[] = [
-      {
-        id: "l1",
-        workspaceId: "w1",
-        title: "Avec échéance",
-        status: "todo",
-        priority: "normal",
-        itemType: "task",
-        dueDate: "2026-09-09",
-        createdAt: "2026-09-01T00:00:00.000Z",
-        updatedAt: "2026-09-01T00:00:00.000Z",
-      },
-      {
-        id: "l2",
-        workspaceId: "w1",
-        title: "Issue d'une note du Carnet",
-        status: "todo",
-        priority: "normal",
-        itemType: "task",
-        sourceNoteId: "note-42",
-        createdAt: "2026-09-01T00:00:00.000Z",
-        updatedAt: "2026-09-01T00:00:00.000Z",
-      },
-      {
-        id: "l3",
-        workspaceId: "w1",
-        title: "Sans aucune planification",
-        status: "done",
-        priority: "low",
-        itemType: "task",
-        createdAt: "2026-09-01T00:00:00.000Z",
-        updatedAt: "2026-09-01T00:00:00.000Z",
-      },
-    ];
-
-    const migrated = migrateLegacyActions(legacy);
-    expect(migrated).toHaveLength(3);
-    expect(migrated.every((a) => a.workspaceId === "w1")).toBe(true); // aucune orpheline
-    expect(migrated.find((a) => a.id === "l2")?.sourceNoteId).toBe("note-42"); // source Carnet préservée
-    expect(migrated.find((a) => a.id === "l3")?.schedule).toEqual({ granularity: "none" });
   });
 });
 

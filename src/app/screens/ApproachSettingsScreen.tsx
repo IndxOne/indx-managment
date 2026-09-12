@@ -179,7 +179,7 @@ export function ApproachSettingsScreen({ workspace, onDone }: { workspace: Works
         </fieldset>
 
         {isChange && !recommended && (
-          <p role="status" style={{ color: "var(--color-warning)" }}>
+          <p role="status" style={{ color: "var(--color-warning-text)" }}>
             Combinaison inhabituelle pour un espace {workspace.kind === "run" ? "RUN" : "PROJET"} - autorisée, mais non
             recommandée.
           </p>

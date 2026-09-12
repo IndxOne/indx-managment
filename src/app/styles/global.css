@@ -21,6 +21,11 @@
   --color-accent-contrast: #ffffff;
   --color-danger: #ff3b30;
   --color-warning: #ff9500;
+  /* #ff9500 (orange système iOS) ne passe pas le contraste WCAG AA en texte
+     sur fond blanc (2.20:1) — variante texte assombrie à 5.01:1 (Lot 10),
+     réservée à l'usage en texte (statut de relance) ; --color-warning
+     reste inchangé pour les usages non textuels (fonds, icônes, bordures). */
+  --color-warning-text: #a35f00;
   --color-success: #34c759;
   --color-success-soft: #e8f8ed;
   --color-warning-soft: #fff3e0;
@@ -46,9 +51,11 @@
   --chip-purple-bg: #f1ebfe;
   --chip-purple-text: #6d28d9;
   --chip-orange-bg: #fff3e0;
-  --chip-orange-text: #b25f00;
+  /* #b25f00 était sous l'AA (4.23:1) sur --chip-orange-bg — assombri à 4.88:1 (Lot 10). */
+  --chip-orange-text: #a35700;
   --chip-green-bg: #e7f8ec;
-  --chip-green-text: #1e8a3d;
+  /* #1e8a3d était sous l'AA (4.00:1) sur --chip-green-bg — assombri à 4.97:1 (Lot 10). */
+  --chip-green-text: #1a7935;
   --chip-red-bg: #ffece9;
   --chip-red-text: #c92a1f;
   --chip-teal-bg: #e4f7f5;
@@ -79,6 +86,8 @@
     --color-accent-contrast: #ffffff;
     --color-danger: #ff453a;
     --color-warning: #ff9f0a;
+    /* Déjà conforme AA en dark mode (8.28:1) : pas de variante séparée nécessaire. */
+    --color-warning-text: #ff9f0a;
     --color-success: #30d158;
     --color-success-soft: #0f2417;
     --color-warning-soft: #2a2210;
@@ -127,6 +136,7 @@
   --color-accent-contrast: #ffffff;
   --color-danger: #ff453a;
   --color-warning: #ff9f0a;
+  --color-warning-text: #ff9f0a;
   --color-success: #30d158;
   --color-success-soft: #0f2417;
   --color-warning-soft: #2a2210;
@@ -1775,10 +1785,6 @@ a {
 
 .action-menu-item:active {
   background: var(--color-fill);
-}
-
-.action-menu-item-danger {
-  color: var(--color-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

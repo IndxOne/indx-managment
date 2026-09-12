@@ -579,3 +579,25 @@ restaure l'élément si un usage non anticipé est découvert.
 | 8 — Collaboration légère | Moyen-élevé | Moyen-élevé | Décision produit tranchée (table `projets_members`) : seul lot du plan avec migration Supabase, à séquencer avec soin |
 | 9 — Polish / accessibilité | Moyen | Faible | Pas de logique nouvelle, mais travail diffus |
 | 10 — Nettoyage ancien code | Faible | Faible (si discipline de séquencement respectée) | Suppressions ciblées, chaque preuve déjà établie par les lots précédents |
+
+---
+
+## Statut de clôture
+
+**Tous les lots livrés.** Le Lot 8 a été exécuté en trois sous-lots
+(8A modèle Member, 8B UX collaboration, 8.1 finalisation filtre PROJET +
+validation navigateur) plutôt qu'un seul commit, décision prise en cours de
+route pour respecter le STOP explicite demandé entre modèle/persistance et
+UX. Le Lot 10 a confirmé et exécuté les deux suppressions que ce plan
+laissait volontairement ouvertes :
+
+- `migrate-legacy-actions.ts` : **retiré**, avec preuve live (base
+  Supabase inspectée directement, aucune donnée de production dans
+  l'ancien format) — critère de sortie de ce plan enfin satisfait.
+- Aucune "double implémentation" identifiée dans `docs/AUDIT.md` ne
+  subsiste, hors celle explicitement conservée
+  (`LEGACY_PHASE_ALIASES`, toujours utilisée par 40% des actions de
+  production — voir `docs/LOT10-CLOSURE.md` Phase C).
+
+Détail complet de la clôture : `docs/LOT10-CLOSURE.md`. Bilan produit et
+architecture final : `docs/PRODUCT-RENEWAL-FINAL.md`.

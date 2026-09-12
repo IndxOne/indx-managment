@@ -654,3 +654,24 @@ lots du plan d'implémentation. De nouvelles décisions pourront apparaître au
 fil de l'affinement de chaque lot (ex. libellés exacts du nouveau
 `phaseTemplate` du preset `simple` au Lot 6) — elles seront ajoutées ici le
 cas échéant.
+
+---
+
+## Statut de clôture (Lot 10)
+
+Chantier terminé — 10 lots livrés (dont 8A/8B/8.1 en sous-lots de la
+collaboration légère). Cette spec reste la référence de cadrage produit ;
+le bilan final (vision, architecture, dette, décisions reportées) est dans
+`docs/PRODUCT-RENEWAL-FINAL.md`, le détail d'exécution du dernier lot dans
+`docs/LOT10-CLOSURE.md`.
+
+**Écarts acceptés par rapport à cette spec** :
+- Assignation/filtre Responsable limités à RUN et PROJET, pas étendus aux
+  vues transversales (Home, Semaine agrégée, Recherche) — décision Lot 8B,
+  explicitement autorisée par le brief ("ne pas étendre obligatoirement si
+  cela complexifie fortement le modèle transversal").
+- Aucune fonctionnalité de collaboration au-delà de "membre = étiquette" —
+  conforme à la décision Lot 8A, jamais remise en cause.
+
+**Points différés** : voir `docs/PRODUCT-RENEWAL-FINAL.md` §12 (décisions
+reportées) et §14 (évolutions possibles non engagées).
