@@ -48,20 +48,7 @@ describe("AuthScreen — étape email", () => {
 
     expect(sendOtpMock).toHaveBeenCalledWith("agent@exemple.com");
     expect(await screen.findByLabelText("Code reçu par email")).toBeInTheDocument();
-  });
-
-  it("affiche un message générique en cas d'échec, sans exposer le détail Supabase", async () => {
-    sendOtpMock.mockResolvedValue({ error: { message: "user not found (détail interne)" } });
-    const user = userEvent.setup();
-    render(<AuthScreen />);
-
-    await user.type(await screen.findByLabelText("Adresse email"), "agent@exemple.com");
-    await user.click(screen.getByRole("button", { name: "Envoyer le code" }));
-
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Une erreur est survenue. Réessaie dans un instant.");
-    expect(alert).not.toHaveTextContent("user not found");
-    expect(screen.queryByLabelText("Code reçu par email")).not.toBeInTheDocument();
+    expect(screen.getByText("Si cette adresse est autorisée, un code a été envoyé.")).toBeInTheDocument();
   });
 
   it("anti-double soumission : un clic pendant l'envoi ne déclenche pas un second appel", async () => {
@@ -82,6 +69,49 @@ describe("AuthScreen — étape email", () => {
     await act(async () => {
       resolveSend({ error: null });
     });
+  });
+});
+
+/**
+ * Fix 1 (revue PR #47, P2) : anti-énumération de compte. Avec
+ * shouldCreateUser:false, un email sans compte éligible fait échouer
+ * sendOtp côté Supabase alors qu'un compte existant réussit — l'écran ne
+ * doit jamais distinguer les deux cas visuellement.
+ */
+describe("AuthScreen — anti-énumération (Fix 1)", () => {
+  it("un échec d'envoi (ex. compte absent) mène exactement au même écran qu'un succès", async () => {
+    sendOtpMock.mockResolvedValue({ error: { message: "user not found (détail interne)" } });
+    const user = userEvent.setup();
+    render(<AuthScreen />);
+
+    await user.type(await screen.findByLabelText("Adresse email"), "inconnu@exemple.com");
+    await user.click(screen.getByRole("button", { name: "Envoyer le code" }));
+
+    // Même comportement visuel qu'un envoi réussi : étape OTP, message neutre, aucune erreur.
+    expect(await screen.findByLabelText("Code reçu par email")).toBeInTheDocument();
+    expect(screen.getByText("Si cette adresse est autorisée, un code a été envoyé.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("un renvoi qui échoue produit aussi le même écran qu'un renvoi réussi", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ delay: null });
+    render(<AuthScreen />);
+    await user.type(await screen.findByLabelText("Adresse email"), "agent@exemple.com");
+    await user.click(screen.getByRole("button", { name: "Envoyer le code" }));
+    await screen.findByLabelText("Code reçu par email");
+
+    sendOtpMock.mockResolvedValue({ error: { message: "détail interne" } });
+    await act(async () => {
+      vi.advanceTimersByTime(60_000); // fin du cooldown, bouton de renvoi réactivé
+    });
+    await user.click(screen.getByRole("button", { name: "Renvoyer le code" }));
+
+    // Même comportement visuel qu'un renvoi réussi : toujours sur l'étape OTP, aucune erreur.
+    expect(screen.getByLabelText("Code reçu par email")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 });
 
@@ -124,7 +154,8 @@ describe("AuthScreen — étape OTP", () => {
     expect(screen.getByRole("button", { name: /Renvoyer le code \(\d+s\)/ })).toBeDisabled();
   });
 
-  it("renvoi avec délai : redevient actif une fois le délai écoulé, et rappelle sendOtp", async () => {
+  /** Fix 5 (revue PR #47, P2) : cooldown aligné sur le throttle Supabase par défaut (60s, pas 30s). */
+  it("renvoi avec délai : reste désactivé à 59s, redevient actif à 60s pile, et rappelle sendOtp", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ delay: null });
     render(<AuthScreen />);
@@ -133,11 +164,16 @@ describe("AuthScreen — étape OTP", () => {
     await screen.findByLabelText("Code reçu par email");
 
     expect(sendOtpMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Renvoyer le code (60s)" })).toBeInTheDocument();
 
     await act(async () => {
-      vi.advanceTimersByTime(30_000);
+      vi.advanceTimersByTime(59_000);
     });
+    expect(screen.getByRole("button", { name: /Renvoyer le code \(\d+s\)/ })).toBeDisabled();
 
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
     const resendButton = screen.getByRole("button", { name: "Renvoyer le code" });
     expect(resendButton).not.toBeDisabled();
 
@@ -145,6 +181,22 @@ describe("AuthScreen — étape OTP", () => {
     expect(sendOtpMock).toHaveBeenCalledTimes(2);
 
     vi.useRealTimers();
+  });
+
+  /** Fix 3 (revue PR #47, P2) : corriger un email mal saisi sans recharger l'écran. */
+  it("« Modifier l'adresse » revient à l'étape email, vide le code et les erreurs, conserve l'email saisi", async () => {
+    verifyOtpMock.mockResolvedValue({ authUserId: null, error: { message: "otp_expired" } });
+    const user = await goToOtpStep();
+    await user.type(screen.getByLabelText("Code reçu par email"), "000000");
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+    await screen.findByRole("alert"); // une erreur est affichée avant de changer d'adresse
+
+    await user.click(screen.getByRole("button", { name: "Modifier l'adresse" }));
+
+    const emailInput = await screen.findByLabelText("Adresse email");
+    expect(emailInput).toHaveValue("agent@exemple.com");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Code reçu par email")).not.toBeInTheDocument();
   });
 });
 
@@ -169,6 +221,40 @@ describe("AuthScreen — session et déconnexion", () => {
     expect(await screen.findByText("Connecté.")).toBeInTheDocument();
   });
 
+  /** Fix 2 (revue PR #47, P2) : ne jamais perturber une saisie OTP sans session préalable. */
+  it("un événement de session null sans connexion préalable ne réinitialise pas une saisie OTP en cours", async () => {
+    const user = userEvent.setup();
+    render(<AuthScreen />);
+    await user.type(await screen.findByLabelText("Adresse email"), "agent@exemple.com");
+    await user.click(screen.getByRole("button", { name: "Envoyer le code" }));
+    await user.type(await screen.findByLabelText("Code reçu par email"), "42");
+
+    const handler = onAuthStateChangeMock.mock.calls[0]![0] as (id: string | null) => void;
+    await act(async () => {
+      handler(null); // ex. INITIAL_SESSION répété, jamais eu de session
+    });
+
+    expect(screen.getByLabelText("Code reçu par email")).toHaveValue("42");
+  });
+
+  /** Fix 2 (suite) : une vraie transition connecté -> déconnecté, elle, réinitialise bien l'étape. */
+  it("une déconnexion externe après une session active réinitialise l'étape", async () => {
+    render(<AuthScreen />);
+    await screen.findByLabelText("Adresse email");
+
+    const handler = onAuthStateChangeMock.mock.calls[0]![0] as (id: string | null) => void;
+    await act(async () => {
+      handler("auth-uid-via-listener");
+    });
+    expect(await screen.findByText("Connecté.")).toBeInTheDocument();
+
+    await act(async () => {
+      handler(null);
+    });
+
+    expect(await screen.findByLabelText("Adresse email")).toBeInTheDocument();
+  });
+
   it("déconnexion : appelle signOut et revient à l'étape email", async () => {
     getCurrentAuthUserIdMock.mockResolvedValue("auth-uid-existant");
     const user = userEvent.setup();
@@ -178,5 +264,20 @@ describe("AuthScreen — session et déconnexion", () => {
 
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(await screen.findByLabelText("Adresse email")).toBeInTheDocument();
+  });
+
+  /** Fix 4 (revue PR #47, P2) : ne jamais afficher un faux état déconnecté si signOut échoue. */
+  it("déconnexion en échec : message générique, reste sur l'état connecté", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue("auth-uid-existant");
+    signOutMock.mockResolvedValue({ error: { message: "network error" } });
+    const user = userEvent.setup();
+    render(<AuthScreen />);
+
+    await user.click(await screen.findByRole("button", { name: "Se déconnecter" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Une erreur est survenue. Réessaie dans un instant.");
+    expect(screen.getByText("Connecté.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
   });
 });

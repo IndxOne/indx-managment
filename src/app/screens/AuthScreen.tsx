@@ -7,7 +7,14 @@ import {
   verifyOtp,
 } from "../adapters/supabase/auth";
 
-const RESEND_COOLDOWN_SECONDS = 30;
+/**
+ * Supabase applique par défaut un throttle de 60s entre deux demandes
+ * d'OTP pour la même adresse : un cooldown UI plus court garantirait un
+ * rate-limit côté serveur au premier clic disponible (retour revue PR
+ * #47). Valeur centralisée ici, à ajuster si la configuration Supabase
+ * Dashboard change ce throttle.
+ */
+const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
  * Message volontairement générique : ne jamais distinguer "email inconnu"
@@ -16,6 +23,17 @@ const RESEND_COOLDOWN_SECONDS = 30;
  * adresse correspond à un compte existant.
  */
 const GENERIC_ERROR = "Une erreur est survenue. Réessaie dans un instant.";
+
+/**
+ * Affiché après chaque envoi/renvoi, que l'adresse corresponde ou non à un
+ * compte éligible : avec shouldCreateUser:false, Supabase distingue déjà
+ * "compte existant" de "compte absent" par son résultat d'appel. Passer
+ * systématiquement à l'étape OTP avec ce même message neutre (jamais de
+ * branche visible différente selon le résultat, jamais d'erreur affichée
+ * ici) empêche un observateur d'énumérer les comptes actifs depuis le
+ * comportement de l'écran (retour revue PR #47, recoupe R6).
+ */
+const SEND_NOTICE = "Si cette adresse est autorisée, un code a été envoyé.";
 
 type Step = "email" | "otp";
 
@@ -39,13 +57,32 @@ export function AuthScreen() {
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * Dernier authUserId connu, mis à jour dans le listener lui-même (donc
+   * toujours lu AVANT la nouvelle valeur). Sert uniquement à détecter une
+   * transition connecté -> déconnecté survenue ailleurs (autre onglet,
+   * expiration de session) : une session absente dès le départ (jamais
+   * connecté) ne doit jamais réinitialiser une saisie OTP en cours
+   * (retour revue PR #47).
+   */
+  const previousAuthUserId = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
     getCurrentAuthUserId().then((id) => {
-      if (active) setAuthUserId(id);
+      if (active) {
+        previousAuthUserId.current = id;
+        setAuthUserId(id);
+      }
     });
-    const unsubscribe = onAuthStateChange((id) => setAuthUserId(id));
+    const unsubscribe = onAuthStateChange((id) => {
+      const wasAuthenticated = previousAuthUserId.current !== null;
+      previousAuthUserId.current = id;
+      setAuthUserId(id);
+      if (wasAuthenticated && id === null) {
+        setStep("email");
+      }
+    });
     return () => {
       active = false;
       unsubscribe();
@@ -77,12 +114,9 @@ export function AuthScreen() {
     if (submitting) return;
     setSubmitting(true);
     setError(null);
-    const { error: sendError } = await sendOtp(email.trim());
+    // Résultat d'appel volontairement ignoré ici : voir SEND_NOTICE.
+    await sendOtp(email.trim());
     setSubmitting(false);
-    if (sendError) {
-      setError(GENERIC_ERROR);
-      return;
-    }
     setStep("otp");
     startCooldown();
   }
@@ -98,6 +132,7 @@ export function AuthScreen() {
       setError(GENERIC_ERROR);
       return;
     }
+    previousAuthUserId.current = verifiedId;
     setAuthUserId(verifiedId);
   }
 
@@ -105,20 +140,33 @@ export function AuthScreen() {
     if (submitting || cooldown > 0) return;
     setSubmitting(true);
     setError(null);
-    const { error: resendError } = await sendOtp(email.trim());
+    // Même choix qu'à l'envoi initial : résultat ignoré, voir SEND_NOTICE.
+    await sendOtp(email.trim());
     setSubmitting(false);
-    if (resendError) {
-      setError(GENERIC_ERROR);
-      return;
-    }
     startCooldown();
+  }
+
+  function handleChangeEmail() {
+    if (submitting) return;
+    setStep("email");
+    setToken("");
+    setError(null);
   }
 
   async function handleSignOut() {
     if (submitting) return;
     setSubmitting(true);
-    await authSignOut();
+    setError(null);
+    const { error: signOutError } = await authSignOut();
     setSubmitting(false);
+    if (signOutError) {
+      // Échec réel (ex. hors-ligne) : ne jamais afficher un faux état
+      // déconnecté tant que la session locale n'est pas confirmée retirée
+      // (retour revue PR #47).
+      setError(GENERIC_ERROR);
+      return;
+    }
+    previousAuthUserId.current = null;
     setAuthUserId(null);
     setStep("email");
     setEmail("");
@@ -130,6 +178,11 @@ export function AuthScreen() {
     return (
       <div>
         <p>Connecté.</p>
+        {error && (
+          <p role="alert" style={{ color: "var(--color-danger)" }}>
+            {error}
+          </p>
+        )}
         <button type="button" className="btn btn-block tap-target" disabled={submitting} onClick={handleSignOut}>
           Se déconnecter
         </button>
@@ -140,6 +193,7 @@ export function AuthScreen() {
   if (step === "otp") {
     return (
       <form onSubmit={handleVerifyOtp}>
+        <p className="action-sub">{SEND_NOTICE}</p>
         <div className="field">
           <label htmlFor="auth-otp-code">Code reçu par email</label>
           <input
@@ -176,6 +230,9 @@ export function AuthScreen() {
           onClick={handleResend}
         >
           {cooldown > 0 ? `Renvoyer le code (${cooldown}s)` : "Renvoyer le code"}
+        </button>
+        <button type="button" className="btn btn-block tap-target" disabled={submitting} onClick={handleChangeEmail}>
+          Modifier l&apos;adresse
         </button>
       </form>
     );
