@@ -419,3 +419,130 @@ describe("SupabaseStoreProvider — course sur deux sauvegardes rapprochées des
     expect(recordedUpdates[1]!.patch).toMatchObject({ description: "Deuxième version" });
   });
 });
+
+/**
+ * Caractérisation Lot 0 : chargement en erreur. load() (supabase-store.tsx:84-143)
+ * rejette dès la première requête en échec (Promise.all + throw), l'état
+ * passe à "error" et SupabaseBootScreen s'affiche avec un bouton "Réessayer".
+ */
+describe("SupabaseStoreProvider — erreur de chargement", () => {
+  it("affiche l'écran d'erreur avec le message Postgrest si une des 6 requêtes échoue", async () => {
+    mockClientInstance = {
+      from(table: string) {
+        return {
+          select: () => ({
+            order: async () => {
+              if (table === "projets_workspaces") {
+                return { data: null, error: { message: "colonne inconnue" } };
+              }
+              return { data: [], error: null };
+            },
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        };
+      },
+    };
+
+    render(
+      <SupabaseStoreProvider>
+        <p>ne doit pas s'afficher</p>
+      </SupabaseStoreProvider>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("colonne inconnue");
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+    expect(screen.queryByText("ne doit pas s'afficher")).not.toBeInTheDocument();
+  });
+
+  it("le bouton Réessayer relance load() et peut aboutir", async () => {
+    let shouldFail = true;
+    mockClientInstance = {
+      from(table: string) {
+        return {
+          select: () => ({
+            order: async () => {
+              if (table === "projets_workspaces" && shouldFail) {
+                return { data: null, error: { message: "indisponible" } };
+              }
+              if (table === "projets_workspaces") return { data: [workspaceRow()], error: null };
+              if (table === "projets_actions" && !shouldFail) return { data: [actionRow()], error: null };
+              return { data: [], error: null };
+            },
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        };
+      },
+    };
+
+    render(
+      <SupabaseStoreProvider>
+        <TestConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    await screen.findByRole("alert");
+    shouldFail = false;
+    await act(async () => {
+      screen.getByRole("button", { name: "Réessayer" }).click();
+    });
+
+    expect(await screen.findByRole("button", { name: "go" })).toBeInTheDocument();
+  });
+});
+
+/**
+ * Caractérisation Lot 0 : création (insert), chemin non couvert par les
+ * tests de course ci-dessus (qui portent sur update()). Confirme que le
+ * user_hash local est bien celui envoyé sur l'écriture, conformément au
+ * mécanisme d'isolation RLS actuel (cf. audit Lot 0).
+ */
+describe("SupabaseStoreProvider — création (insert)", () => {
+  it("createWorkspaceAction insère une ligne avec le user_hash courant", async () => {
+    const inserted: { table: string; row: Record<string, unknown> }[] = [];
+    mockClientInstance = {
+      from(table: string) {
+        return {
+          select: () => ({
+            order: async () => ({ data: [], error: null }),
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+          insert: (row: Record<string, unknown>) => {
+            inserted.push({ table, row });
+            return Promise.resolve({ error: null });
+          },
+        };
+      },
+    };
+
+    function CreateWorkspaceConsumer() {
+      const { createWorkspaceAction } = useStore();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            createWorkspaceAction({ name: "Nouvel espace", kind: "project", approach: "simple" })
+          }
+        >
+          créer
+        </button>
+      );
+    }
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.table).toBe("projets_workspaces");
+    expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", name: "Nouvel espace" });
+  });
+});
