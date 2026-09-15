@@ -38,13 +38,12 @@ grant execute on function projets_push_public_key() to anon, authenticated;
 select vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'projets_push_cron_secret')
 where not exists (select 1 from vault.secrets where name = 'projets_push_cron_secret');
 
-select cron.schedule('projets-push-reminders', '0 * * * *', $$
-  select net.http_post(
-    url := 'https://wdxvhceddrtxworblfec.supabase.co/functions/v1/projets-push-reminders',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'projets_push_cron_secret')
-    ),
-    body := '{}'::jsonb
-  );
-$$);
+-- Aucun cron créé ici (audit staging, 2026-09-15) : la version d'origine
+-- programmait un job pg_cron horaire avec l'URL de l'Edge Function de
+-- PRODUCTION codée en dur — dangereux dès qu'un environnement autre que la
+-- prod rejoue cette migration (confirmé concrètement : ce job a été créé et
+-- laissé actif lors d'un rejeu local avant cette correction, avant d'être
+-- désarmé manuellement — 0 exécution, 0 requête envoyée, mais le risque
+-- était réel). Le wrapper qui lit l'URL depuis Vault (par projet, jamais
+-- codée en dur) et l'activation manuelle du cron vivent dans
+-- 20260915100100_push_reminders_no_hardcoded_url.sql.

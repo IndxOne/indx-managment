@@ -67,7 +67,7 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
 
   function handleExport() {
     if (!currentCode) return;
-    downloadExport(buildExportPayload(state, currentCode));
+    downloadExport(buildExportPayload(state));
   }
 
   function handleUseCode() {

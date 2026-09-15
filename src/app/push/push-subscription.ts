@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCurrentAuthUserId } from "../adapters/supabase/auth";
 
 /**
  * Abonnement Web Push de cet appareil (relances dues, envoyées par l'Edge
@@ -6,6 +7,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * (RPC projets_push_public_key), jamais d'une variable de build. Le service
  * worker n'existe qu'en build de production : en dev, l'abonnement est
  * impossible et le message l'explique.
+ *
+ * owner_id (auth.uid(), cf. migration 20260915100000) envoyé EN COMPLÉMENT
+ * de user_hash quand une session Auth existe — jamais en remplacement :
+ * user_hash reste requis (colonne NOT NULL, identifiant d'appareil local
+ * indépendant de l'auth) et ce même code est déployé sur la production, qui
+ * ne porte pas encore cette colonne. Sans session Auth (cas de la
+ * production aujourd'hui, AuthScreen non branché), owner_id est omis du
+ * payload — comportement strictement inchangé.
  */
 
 const TABLE = "projets_push_subscriptions";
@@ -35,9 +44,14 @@ export async function enablePush(client: SupabaseClient, userHash: string): Prom
     // base64url accepté tel quel par tous les navigateurs qui gèrent Web Push (Chrome, Firefox, Safari ≥ 16.4).
     applicationServerKey: publicKey,
   });
-  const { error } = await client
-    .from(TABLE)
-    .upsert({ endpoint: subscription.endpoint, user_hash: userHash, subscription: subscription.toJSON() });
+  const ownerId = await getCurrentAuthUserId();
+  const row: Record<string, unknown> = {
+    endpoint: subscription.endpoint,
+    user_hash: userHash,
+    subscription: subscription.toJSON(),
+  };
+  if (ownerId) row.owner_id = ownerId;
+  const { error } = await client.from(TABLE).upsert(row);
   if (error) {
     await subscription.unsubscribe();
     throw error;

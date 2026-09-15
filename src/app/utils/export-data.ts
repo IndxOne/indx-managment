@@ -14,10 +14,15 @@ import type { AppState } from "../adapters/store-context";
  */
 export const EXPORT_FORMAT_VERSION = 2;
 
+/**
+ * Ne porte plus `userHash` (retiré) : ce fichier peut être partagé/stocké
+ * hors de l'appareil (cloud perso, pièce jointe) sans exposer le secret qui
+ * conditionne aujourd'hui l'accès aux données (cf. audit RLS). L'export
+ * reste write-only — rien dans le code ne relit ce champ pour restaurer.
+ */
 export interface ExportPayload {
   formatVersion: number;
   exportedAt: string;
-  userHash: string;
   workspaces: AppState["workspaces"];
   actionsByWorkspace: AppState["actionsByWorkspace"];
   recurrenceRulesByWorkspace: AppState["recurrenceRulesByWorkspace"];
@@ -26,11 +31,10 @@ export interface ExportPayload {
   membersByWorkspace: NonNullable<AppState["membersByWorkspace"]>;
 }
 
-export function buildExportPayload(state: AppState, userHash: string, now: Date = new Date()): ExportPayload {
+export function buildExportPayload(state: AppState, now: Date = new Date()): ExportPayload {
   return {
     formatVersion: EXPORT_FORMAT_VERSION,
     exportedAt: now.toISOString(),
-    userHash,
     workspaces: state.workspaces,
     actionsByWorkspace: state.actionsByWorkspace,
     recurrenceRulesByWorkspace: state.recurrenceRulesByWorkspace,

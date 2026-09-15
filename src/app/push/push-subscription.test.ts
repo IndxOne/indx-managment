@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { disablePush, enablePush } from "./push-subscription";
 
+const { getCurrentAuthUserId } = vi.hoisted(() => ({ getCurrentAuthUserId: vi.fn(async () => null as string | null) }));
+vi.mock("../adapters/supabase/auth", () => ({ getCurrentAuthUserId }));
+
 function fakeClient(publicKey: string | null) {
   const upsert = vi.fn(async () => ({ error: null }));
   const eq = vi.fn(async () => ({ error: null }));
@@ -27,7 +30,11 @@ function fakeRegistration(existing: object | null) {
   return { subscribe, subscription };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  getCurrentAuthUserId.mockReset();
+  getCurrentAuthUserId.mockResolvedValue(null);
+});
 
 describe("push-subscription", () => {
   it("s'abonne avec la clé publique du serveur et enregistre l'abonnement", async () => {
@@ -40,6 +47,19 @@ describe("push-subscription", () => {
     expect(upsert).toHaveBeenCalledWith({
       endpoint: "https://push.example/abc",
       user_hash: "hash-1",
+      subscription: { endpoint: "https://push.example/abc", keys: { p256dh: "p", auth: "a" } },
+    });
+  });
+
+  it("ajoute owner_id en complément de user_hash quand une session Auth existe", async () => {
+    getCurrentAuthUserId.mockResolvedValue("11111111-1111-1111-1111-111111111111");
+    const { client, upsert } = fakeClient("AQID");
+    fakeRegistration(null);
+    await enablePush(client, "hash-1");
+    expect(upsert).toHaveBeenCalledWith({
+      endpoint: "https://push.example/abc",
+      user_hash: "hash-1",
+      owner_id: "11111111-1111-1111-1111-111111111111",
       subscription: { endpoint: "https://push.example/abc", keys: { p256dh: "p", auth: "a" } },
     });
   });

@@ -21,6 +21,7 @@ alter policy "own workspaces" on public.projets_workspaces
   using (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'))
   with check (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'));
 
-alter policy "users_own_row" on public.sync_snapshots
-  using (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'))
-  with check (user_hash = (select (current_setting('request.headers', true))::json ->> 'x-user-hash'));
+-- La policy "users_own_row" sur sync_snapshots a été retirée (audit staging,
+-- 2026-09-15) : cette table n'est plus créée (20260425190353, neutralisée).
+-- Aucune garde conditionnelle nécessaire ici — les 4 tables ci-dessus
+-- existent toujours à ce stade de l'historique, rien d'autre à conditionner.

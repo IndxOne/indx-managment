@@ -1,16 +1,12 @@
-CREATE TABLE sync_snapshots (
-  user_hash  TEXT PRIMARY KEY,
-  payload    TEXT NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE sync_snapshots ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "users_own_row" ON sync_snapshots
-  FOR ALL
-  USING (
-    user_hash = (current_setting('request.headers', true)::json->>'x-user-hash')
-  )
-  WITH CHECK (
-    user_hash = (current_setting('request.headers', true)::json->>'x-user-hash')
-  );
+-- Neutralisée (audit staging, 2026-09-15) : sync_snapshots était un
+-- mécanisme de synchronisation antérieur au Lot 5 (INDXONE Projets),
+-- jamais référencé dans le code applicatif actuel (recherche exhaustive
+-- sur src/ : 0 occurrence). Fichier et version CONSERVÉS tels quels
+-- (l'historique déjà appliqué en production, où cette table existe
+-- réellement, n'est pas réécrit) : seul son contenu devient un no-op pour
+-- tout NOUVEL environnement qui rejoue cette migration (staging, local) —
+-- plus de création de sync_snapshots pour ces environnements.
+--
+-- fix_rls_auth_initplan_perf (20260909135232) a été corrigée en écho :
+-- elle ne référence plus sync_snapshots.
+select 1;
