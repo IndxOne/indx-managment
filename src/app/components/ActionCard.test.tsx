@@ -193,6 +193,147 @@ describe("ActionCard — swipe (terminer / replanifier)", () => {
   });
 });
 
+describe("ActionCard — swipe : seuil en pourcentage de la largeur réelle (renouveau mobile)", () => {
+  function mockWidth(element: Element, width: number) {
+    Object.defineProperty(element, "offsetWidth", { configurable: true, value: width });
+  }
+
+  it("sur une carte large, un déplacement qui aurait dépassé l'ancien seuil fixe (88px) ne déclenche plus rien", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockWidth(content, 600);
+    // 35% de 600px = 210px : 120px (l'ancien seuil fixe suffisait) reste sous le seuil réel.
+    swipe(content, 120);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+  });
+
+  it("sur la même carte large, un déplacement au-delà de 35% de sa largeur réelle déclenche bien onSwipeComplete", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockWidth(content, 600);
+    // 35% de 600px = 210px.
+    swipe(content, 250);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("sur une carte étroite, le seuil réel (35% de sa largeur) reste bien plus petit que sur une carte large", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockWidth(content, 200);
+    // 35% de 200px = 70px : un déplacement qui ne suffirait jamais sur la carte large ci-dessus déclenche ici.
+    swipe(content, 90);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("un pointerdown démarré sur la checkbox de statut n'amorce jamais de swipe", () => {
+    const onSwipeComplete = vi.fn();
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+        onCycleStatus={onCycleStatus}
+      />
+    );
+    const checkbox = screen.getByRole("checkbox");
+    fireEvent(checkbox, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+    fireEvent(checkbox, new MouseEvent("pointermove", { clientX: 120, clientY: 0, bubbles: true }));
+    fireEvent(checkbox, new MouseEvent("pointerup", { clientX: 120, clientY: 0, bubbles: true }));
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe("ActionCard — bouton « Traiter » (alternative non gestuelle) et description RUN", () => {
+  it("n'affiche aucun bouton « Traiter » sans onTreat (comportement inchangé)", () => {
+    render(
+      <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: "Traiter" })).not.toBeInTheDocument();
+  });
+
+  it("le bouton « Traiter » fonctionne sans aucun événement pointeur", async () => {
+    const user = userEvent.setup();
+    const onTreat = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onTreat={onTreat}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Traiter" }));
+    expect(onTreat).toHaveBeenCalledTimes(1);
+  });
+
+  it("une action déjà terminée ne propose pas de bouton « Traiter »", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onTreat={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Traiter" })).not.toBeInTheDocument();
+  });
+
+  it("affiche la description (max 2 lignes) uniquement quand showDescription est actif", () => {
+    const { rerender } = render(
+      <ActionCard
+        action={baseAction({ description: "Contexte utile pour traiter vite." })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+      />
+    );
+    expect(screen.queryByText("Contexte utile pour traiter vite.")).not.toBeInTheDocument();
+
+    rerender(
+      <ActionCard
+        action={baseAction({ description: "Contexte utile pour traiter vite." })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        showDescription
+      />
+    );
+    expect(screen.getByText("Contexte utile pour traiter vite.")).toBeInTheDocument();
+  });
+});
+
 describe("ActionCard — menu d'actions unique", () => {
   it("n'affiche qu'un seul bouton visible par défaut (plus de rangée de boutons)", () => {
     render(
