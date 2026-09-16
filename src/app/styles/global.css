@@ -1286,8 +1286,15 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  /* Le padding droit réserve la place du bouton "•••" mobile
+     (`.app-more-trigger`, position fixed, touch-target 44px + space-3 depuis
+     le bord) : sans cette marge, un bouton d'en-tête assez large (ex. "+
+     Créer" de l'écran Aujourd'hui, v2.2) vient se superposer visuellement au
+     déclencheur du menu secondaire plutôt que de s'arrêter avant lui. Sans
+     effet sur desktop, où ce bouton n'existe pas (mais la marge inutilisée
+     y est sans conséquence, la sidebar a de la place). */
   padding: calc(var(--space-5) + env(safe-area-inset-top))
-    max(20px, env(safe-area-inset-right)) 10px
+    max(calc(var(--touch-target) + var(--space-3) + var(--space-2)), env(safe-area-inset-right)) 10px
     max(20px, env(safe-area-inset-left));
   background: var(--color-page);
 }
