@@ -806,6 +806,39 @@ a {
   font-size: 1rem;
 }
 
+/* Rangée nom + statut/priorité dérivés (Lot B, liste des projets) — pas de
+   nouveau système de chip : réutilise .phase-chip existant. */
+.workspace-card-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workspace-card-top .workspace-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-card-progress-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.workspace-card-progress-row .progress-track {
+  flex: 1;
+}
+
+.workspace-card-progress-label {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+
 .workspace-card-desc {
   color: var(--color-text-muted);
   font-size: 0.8125rem;
@@ -1359,12 +1392,33 @@ a {
   background: var(--color-page);
 }
 
+/* Le premier enfant direct (bloc titre) doit pouvoir rétrécir/tronquer au
+   lieu de forcer .top-bar à passer sur 2 lignes (repéré à 320px : le titre
+   long d'un espace RUN faisait déborder/chevaucher "Filtres" + réglages). */
+.top-bar > :first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.top-bar > :last-child {
+  flex-shrink: 0;
+}
+
 .top-bar h1 {
   font-size: 2.125rem;
   font-weight: 700;
   letter-spacing: -0.4px;
   line-height: 1.05;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 359px) {
+  .top-bar h1 {
+    font-size: 1.625rem;
+  }
 }
 
 /* Segmented control natif : piste "fill" + curseur blanc qui glisse. */
@@ -2078,6 +2132,55 @@ a {
   .toast {
     animation: none;
   }
+}
+
+/* Vue "Par étapes" mobile d'un espace PROJET (Lot B) : hiérarchie verticale
+   (ProjectPhaseOverview) au lieu du Kanban à défilement horizontal forcé —
+   ce dernier (.columns-view) reste réservé au desktop. */
+.project-overview-header {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.project-overview-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.project-overview-progress .progress-track {
+  flex: 1;
+}
+
+.phase-tab-scroller {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+}
+
+.phase-tab-chip {
+  flex-shrink: 0;
+  min-height: var(--touch-target);
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.phase-tab-chip-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-contrast);
 }
 
 /* Barre de progression compacte — "Projets actifs" (Home) : jauge sobre,
