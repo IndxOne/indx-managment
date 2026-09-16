@@ -11,10 +11,21 @@ import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconCalendar, IconGripVertical, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
-// Seuil à partir duquel relâcher déclenche l'action ; au-delà, la carte
-// arrête de suivre le doigt pour ne pas la faire sortir de son conteneur.
-const SWIPE_THRESHOLD = 88;
-const SWIPE_MAX = 132;
+// Seuil de swipe exprimé en % de la largeur réelle de la carte (v2.2 —
+// remplace l'ancien seuil en pixels fixes) : une carte étroite (téléphone en
+// portrait 320px) et une carte large (tablette/desktop en fenêtre réduite)
+// doivent réclamer le même geste proportionnel, pas la même distance
+// absolue. Mesurée via getBoundingClientRect() au pointerdown (cf.
+// handlePointerDown) plutôt qu'un ref+effect, pour capter la largeur exacte
+// au moment du geste sans dépendre du cycle de rendu React.
+const SWIPE_THRESHOLD_RATIO = 0.35;
+const SWIPE_MAX_RATIO = 0.5;
+const SWIPE_MAX_CAP = 220;
+// jsdom (et tout DOM pas encore posé en layout) renvoie une largeur de 0 :
+// on retombe sur une largeur de repli calibrée pour reproduire l'ancien
+// seuil fixe (88px ≈ 35% de 251px), afin que les tests existants pilotés en
+// pixels (deltaX) restent valides sans les récrire un par un.
+const SWIPE_FALLBACK_WIDTH = 251;
 
 /**
  * Carte d'action unique (Lot 2 du renouveau produit) : fusionne l'ancienne
@@ -50,6 +61,7 @@ export function ActionCard({
   onDragEnd,
   phaseOptions,
   assignedMembers,
+  compact,
 }: {
   action: Action;
   timezone: string;
@@ -81,11 +93,15 @@ export function ActionCard({
   phaseOptions?: string[];
   /** Responsables déjà résolus (Lot 8B) — initiales compactes, max 2 + "+N". Absent ou vide = rien affiché (mode Solo, ou action non assignée). */
   assignedMembers?: Member[];
+  /** Densité "Résolu" (v2.2, RUN uniquement) : quand vrai ET l'action est terminée, remplace la carte complète par un format compact — badge "Résolu", titre, responsable. Sans effet sur une action non terminée, ni en variant "kanban" (jamais compacté, le Kanban a son propre chip de statut). Absent/faux = comportement inchangé (carte complète, juste atténuée). */
+  compact?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean; width: number } | null>(
+    null
+  );
   // Un swipe committed (list) ou un drag HTML5 (kanban) synthétise parfois
   // quand même un "click" natif au relâchement — sans ce garde-fou, ouvrir
   // le détail au clic sur le titre ouvrirait aussi le détail après un
@@ -115,11 +131,23 @@ export function ActionCard({
   // Le variant kanban n'a jamais de swipe : le geste tactile entrerait en
   // conflit avec le drag & drop HTML5 natif (mêmes événements pointeur).
   const swipeCompleteEnabled = !isKanban && Boolean(onSwipeComplete) && !isDone;
-  const swipeEnabled = !isKanban && (swipeCompleteEnabled || Boolean(onMove));
+  // Une carte "Résolu" compacte n'a plus rien à faire glisser (déjà
+  // terminée, aucun "Replanifier" pertinent) : le swipe se désactive avec
+  // elle plutôt que de laisser un geste sans effet visible.
+  const isCompactDone = Boolean(compact) && isDone && !isKanban;
+  const swipeEnabled = !isKanban && !isCompactDone && (swipeCompleteEnabled || Boolean(onMove));
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!swipeEnabled || menuOpen) return;
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false };
+    // Un geste amorcé sur un élément interactif (checkbox de statut, menu
+    // "•••", futur bouton "Traiter") ne doit jamais être capturé comme un
+    // swipe : l'utilisateur voulait taper ce bouton, pas glisser la carte.
+    if ((event.target as HTMLElement).closest?.("button, a, input, select, textarea")) return;
+    // Largeur mesurée une seule fois, au début du geste : la carte ne
+    // change pas de taille pendant qu'on la fait glisser, pas besoin de la
+    // remesurer à chaque pointermove.
+    const width = event.currentTarget.getBoundingClientRect().width || SWIPE_FALLBACK_WIDTH;
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false, width };
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -140,7 +168,7 @@ export function ActionCard({
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }
     event.preventDefault();
-    const max = SWIPE_MAX;
+    const max = Math.min(drag.width * SWIPE_MAX_RATIO, SWIPE_MAX_CAP);
     const clamped = Math.max(-max, Math.min(max, deltaX));
     setDragX(swipeCompleteEnabled ? clamped : Math.min(clamped, 0));
   }
@@ -151,9 +179,10 @@ export function ActionCard({
     dragRef.current = null;
     setIsDragging(false);
     if (drag.committed) {
-      if (dragX >= SWIPE_THRESHOLD && swipeCompleteEnabled) {
+      const threshold = drag.width * SWIPE_THRESHOLD_RATIO;
+      if (dragX >= threshold && swipeCompleteEnabled) {
         onSwipeComplete!();
-      } else if (dragX <= -SWIPE_THRESHOLD) {
+      } else if (dragX <= -threshold) {
         onMove();
       }
     }
@@ -251,6 +280,27 @@ export function ActionCard({
       )}
     </>
   );
+
+  if (isCompactDone) {
+    return (
+      <div className="action-card action-card-resolved">
+        <span className="badge badge-resolved">Résolu</span>
+        <span className="action-title action-card-resolved-title">{action.title}</span>
+        {assignedMembers && assignedMembers.length > 0 && (
+          <span
+            className="meta-chip"
+            aria-label={`Responsable${assignedMembers.length > 1 ? "s" : ""} : ${assignedMembers.map((m) => m.displayName).join(", ")}`}
+          >
+            {assignedMembers
+              .slice(0, 2)
+              .map((m) => memberInitials(m.displayName))
+              .join(" ")}
+            {assignedMembers.length > 2 ? ` +${assignedMembers.length - 2}` : ""}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   if (isKanban) {
     const kanbanInfo = (
@@ -377,6 +427,12 @@ export function ActionCard({
               onClick={onCycleStatus}
             >
               <StatusCheckIcon status={action.status} />
+              {/* Équivalent non-geste du swipe, toujours visible et identique desktop/mobile (v2.2 §4) — aria-label ci-dessus porte déjà le libellé accessible complet, ce texte est purement visuel. */}
+              {!isDone && (
+                <span className="status-check-label" aria-hidden="true">
+                  Traiter
+                </span>
+              )}
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>

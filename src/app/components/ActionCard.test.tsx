@@ -193,6 +193,179 @@ describe("ActionCard — swipe (terminer / replanifier)", () => {
   });
 });
 
+describe("ActionCard — seuil de swipe en % de la largeur (v2.2 §4)", () => {
+  function mockCardWidth(element: Element, width: number) {
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+      width,
+      height: 0,
+      top: 0,
+      left: 0,
+      right: width,
+      bottom: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+  }
+
+  it("sur une carte large (400px), un swipe à 120px (30%, sous 35%) ne déclenche rien", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockCardWidth(content, 400);
+    swipe(content, 120);
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+  });
+
+  it("sur la même carte large (400px), un swipe à 160px (40%, au-delà de 35%) déclenche onSwipeComplete", () => {
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockCardWidth(content, 400);
+    swipe(content, 160);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("un swipe amorcé sur un bouton (checkbox de statut) n'est jamais capturé comme un geste de carte", () => {
+    const onSwipeComplete = vi.fn();
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={onCycleStatus}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const checkbox = screen.getByRole("checkbox");
+    fireEvent(checkbox, new MouseEvent("pointerdown", { clientX: 0, clientY: 0, bubbles: true }));
+    fireEvent(checkbox, new MouseEvent("pointermove", { clientX: 120, clientY: 0, bubbles: true }));
+    fireEvent(checkbox, new MouseEvent("pointerup", { clientX: 120, clientY: 0, bubbles: true }));
+    expect(onSwipeComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe("ActionCard — bouton \"Traiter\" (v2.2 §3/§4, équivalent non-geste du swipe)", () => {
+  it("affiche le libellé visible \"Traiter\" sur une action active", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Traiter")).toBeInTheDocument();
+  });
+
+  it("le bouton \"Traiter\" fonctionne à l'identique sans swipe (desktop simulé : pas d'événement pointeur)", async () => {
+    const user = userEvent.setup();
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={onCycleStatus}
+      />
+    );
+    await user.click(screen.getByRole("checkbox"));
+    expect(onCycleStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("n'affiche pas \"Traiter\" sur une action déjà terminée", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    expect(screen.queryByText("Traiter")).not.toBeInTheDocument();
+  });
+});
+
+describe("ActionCard — densité compacte \"Résolu\" (v2.2 §3, RUN uniquement)", () => {
+  it("avec compact et une action terminée, n'affiche que le badge Résolu, le titre et le responsable", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done", phaseId: "conception", priority: "high" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        compact
+        assignedMembers={[
+          { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },
+        ]}
+      />
+    );
+    expect(screen.getByText("Résolu")).toBeInTheDocument();
+    expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
+    expect(screen.getByLabelText("Responsable : Koffi")).toBeInTheDocument();
+    // Aucune des chips/métadonnées de la carte active (phase, priorité, checkbox, menu…).
+    expect(screen.queryByText("Conception")).not.toBeInTheDocument();
+    expect(screen.queryByText("Prioritaire")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("avec compact mais une action non terminée, garde la carte complète (aucun effet)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "todo" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        compact
+      />
+    );
+    expect(screen.queryByText("Résolu")).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("une carte compacte Résolu ne propose plus de swipe", () => {
+    const onSwipeComplete = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={onMove}
+        onSwipeComplete={onSwipeComplete}
+        compact
+      />
+    );
+    const card = screen.getByText("Relancer le prestataire").closest(".action-card-resolved")!;
+    expect(card.querySelector(".action-card-swipe-bg")).not.toBeInTheDocument();
+  });
+});
+
 describe("ActionCard — menu d'actions unique", () => {
   it("n'affiche qu'un seul bouton visible par défaut (plus de rangée de boutons)", () => {
     render(
