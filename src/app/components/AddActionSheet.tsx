@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Priority, WorkItemType, WorkspaceKind } from "../../domain/types";
 import type { RecurrenceFrequency } from "../../recurrence/recurrence-engine";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, phaseLabel, PRIORITY_LABELS } from "../labels";
@@ -68,6 +68,33 @@ export function AddActionSheet({
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(
     defaultWorkspaceId ?? (destinationKind === "run" ? runOptions[0]?.id : projectOptions[0]?.id)
   );
+
+  // La création rapide (bouton central) peut s'ouvrir avant la fin de
+  // l'hydratation du store (Supabase) : `workspaceOptions` arrive alors vide
+  // au premier rendu, et l'initialisation ci-dessus (useState, exécutée une
+  // seule fois) fige `workspaceId` à `undefined`. Sans cette réconciliation,
+  // un espace qui apparaît ensuite (ex. le seul RUN existant) ne serait
+  // jamais sélectionné tant que l'utilisateur ne rebascule pas la radio.
+  useEffect(() => {
+    if (!hasDestinationPicker) return;
+    // Le type sélectionné peut se retrouver sans aucun espace disponible
+    // (ex. RUN choisi par défaut au montage puis résilié, ou l'inverse) alors
+    // que l'autre type en a désormais : suit la même heuristique qu'à
+    // l'initialisation plutôt que de laisser le radio pointer vers une liste
+    // vide jusqu'à un basculement manuel.
+    if (destinationKind === "project" && projectOptions.length === 0 && runOptions.length > 0) {
+      setDestinationKind("run");
+      return;
+    }
+    if (destinationKind === "run" && runOptions.length === 0 && projectOptions.length > 0) {
+      setDestinationKind("project");
+      return;
+    }
+    const options = destinationKind === "run" ? runOptions : projectOptions;
+    if (workspaceId && options.some((option) => option.id === workspaceId)) return;
+    setWorkspaceId(options[0]?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ne réagit qu'à l'arrivée/au changement des options ou du type choisi, pas à workspaceId (qu'il modifie lui-même)
+  }, [workspaceOptions, destinationKind]);
 
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("weekly");

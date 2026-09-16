@@ -1841,15 +1841,13 @@ a {
   display: block;
 }
 
-/* Équivalent texte de "Traiter" (v2.2 §3/§4) — l'icône seule restait
-   ambiguë ; ce libellé rend visible, sans geste, l'action que le swipe à
-   droite propose déjà. Masqué visuellement nulle part : c'est justement
-   l'alternative non-geste, elle doit être vue. */
-.status-check-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--color-accent);
+/* Bouton "Traiter" (v2.2 §3/§4) — équivalent non-geste EXACT du swipe à
+   droite (passe directement à "Terminé"), distinct de la checkbox de statut
+   qui cycle todo→doing→done sans jamais sauter d'étape. */
+.action-card-treat {
+  flex-shrink: 0;
   white-space: nowrap;
+  padding: 0 var(--space-3);
 }
 
 /* Carte compacte pour une action déjà "Résolu" en RUN (v2.2 §3) : badge +
@@ -1861,6 +1859,15 @@ a {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   min-height: var(--touch-target);
+}
+
+/* Titre résolu ouvrant le détail (finding revue Codex sur PR #48) : le
+   bouton `.action-card-open-detail` générique est `display:block;width:100%`
+   pour la carte active (flex-basis en colonne) — dans la carte résolue, en
+   ligne parmi badge/responsable/menu, il doit prendre l'espace restant. */
+.action-card-resolved-open {
+  flex: 1;
+  min-width: 0;
 }
 
 .action-card-resolved-title {

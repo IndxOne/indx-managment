@@ -242,6 +242,50 @@ describe("ActionCard — seuil de swipe en % de la largeur (v2.2 §4)", () => {
     expect(onSwipeComplete).toHaveBeenCalledTimes(1);
   });
 
+  it("sur une carte très large (700px, au-delà du cap absolu), le seuil reste atteignable (revue Codex PR #48)", () => {
+    // 700 × 35 % = 245px, mais le déplacement max est plafonné à 220px
+    // (SWIPE_MAX_CAP) : le seuil doit se plafonner lui aussi à 220px, sinon
+    // aucune distance de glissement ne pourrait jamais le satisfaire.
+    const onSwipeComplete = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockCardWidth(content, 700);
+    swipe(content, 220);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("un swipe amorcé sur le bouton d'ouverture du détail reste capturé comme un geste de carte (revue Codex PR #48)", () => {
+    // `onOpenDetail` recouvre le titre/métadonnées d'un bouton qui occupe
+    // presque toute la carte : seuls la checkbox/le menu doivent bloquer le
+    // départ d'un swipe, jamais cette grande surface de contenu.
+    const onSwipeComplete = vi.fn();
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={onSwipeComplete}
+        onOpenDetail={onOpenDetail}
+      />
+    );
+    const content = screen.getByText("Relancer le prestataire").closest(".action-card-swipe-content")!;
+    mockCardWidth(content, 400);
+    const detailButton = content.querySelector(".action-card-open-detail")!;
+    swipe(detailButton, 160);
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
   it("un swipe amorcé sur un bouton (checkbox de statut) n'est jamais capturé comme un geste de carte", () => {
     const onSwipeComplete = vi.fn();
     const onCycleStatus = vi.fn();
@@ -264,20 +308,30 @@ describe("ActionCard — seuil de swipe en % de la largeur (v2.2 §4)", () => {
 });
 
 describe("ActionCard — bouton \"Traiter\" (v2.2 §3/§4, équivalent non-geste du swipe)", () => {
-  it("affiche le libellé visible \"Traiter\" sur une action active", () => {
+  // Revue Codex (PR #48) : "Traiter" doit être l'équivalent EXACT du swipe
+  // à droite (passe directement à "Terminé"), pas un simple alias de la
+  // checkbox de statut qui cycle todo→doing→done sans jamais sauter d'étape
+  // — les deux boutons coexistent et ont des rôles distincts.
+  it("affiche \"Traiter\" et l'action passe directement à Terminé, sans passer par la checkbox de statut", async () => {
+    const user = userEvent.setup();
+    const onCycleStatus = vi.fn();
+    const onSwipeComplete = vi.fn();
     render(
       <ActionCard
         action={baseAction()}
         timezone="Europe/Paris"
         statusLabels={STATUS_LABELS_DEFAULT}
         onMove={vi.fn()}
-        onCycleStatus={vi.fn()}
+        onCycleStatus={onCycleStatus}
+        onSwipeComplete={onSwipeComplete}
       />
     );
-    expect(screen.getByText("Traiter")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Traiter" }));
+    expect(onSwipeComplete).toHaveBeenCalledTimes(1);
+    expect(onCycleStatus).not.toHaveBeenCalled();
   });
 
-  it("le bouton \"Traiter\" fonctionne à l'identique sans swipe (desktop simulé : pas d'événement pointeur)", async () => {
+  it("la checkbox de statut continue de cycler indépendamment de \"Traiter\"", async () => {
     const user = userEvent.setup();
     const onCycleStatus = vi.fn();
     render(
@@ -287,6 +341,7 @@ describe("ActionCard — bouton \"Traiter\" (v2.2 §3/§4, équivalent non-geste
         statusLabels={STATUS_LABELS_DEFAULT}
         onMove={vi.fn()}
         onCycleStatus={onCycleStatus}
+        onSwipeComplete={vi.fn()}
       />
     );
     await user.click(screen.getByRole("checkbox"));
@@ -297,6 +352,20 @@ describe("ActionCard — bouton \"Traiter\" (v2.2 §3/§4, équivalent non-geste
     render(
       <ActionCard
         action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        onSwipeComplete={vi.fn()}
+      />
+    );
+    expect(screen.queryByText("Traiter")).not.toBeInTheDocument();
+  });
+
+  it("n'affiche pas \"Traiter\" quand aucune complétion directe n'est câblée (onSwipeComplete absent)", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
         timezone="Europe/Paris"
         statusLabels={STATUS_LABELS_DEFAULT}
         onMove={vi.fn()}
@@ -326,11 +395,46 @@ describe("ActionCard — densité compacte \"Résolu\" (v2.2 §3, RUN uniquement
     expect(screen.getByText("Résolu")).toBeInTheDocument();
     expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
     expect(screen.getByLabelText("Responsable : Koffi")).toBeInTheDocument();
-    // Aucune des chips/métadonnées de la carte active (phase, priorité, checkbox, menu…).
+    // Aucune des chips/métadonnées de la carte active (phase, priorité, checkbox…).
     expect(screen.queryByText("Conception")).not.toBeInTheDocument();
     expect(screen.queryByText("Prioritaire")).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    // Le menu "•••" reste accessible (revue Codex PR #48) : compacter la
+    // carte ne doit pas priver l'utilisateur d'éditer/supprimer/rouvrir une
+    // action résolue depuis la liste RUN elle-même.
+    expect(screen.getByRole("button", { name: /Actions pour/ })).toBeInTheDocument();
+  });
+
+  it("avec compact et onOpenDetail, le titre résolu reste cliquable pour ouvrir le détail (revue Codex PR #48)", () => {
+    const onOpenDetail = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        onOpenDetail={onOpenDetail}
+        compact
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Relancer le prestataire" }));
+    expect(onOpenDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it("avec compact et un statut de synchronisation en attente, garde le chip visible (revue Codex PR #48)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        syncStatus="pending"
+        compact
+      />
+    );
+    expect(screen.getByText("En attente")).toBeInTheDocument();
   });
 
   it("avec compact mais une action non terminée, garde la carte complète (aucun effet)", () => {

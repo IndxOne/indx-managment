@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { AddActionSheet } from "./AddActionSheet";
+import { AddActionSheet, type AddActionSheetWorkspaceOption } from "./AddActionSheet";
 
 describe("AddActionSheet — comportement existant (écran d'espace, sans sélecteur de destination)", () => {
   it("crée une action sans exposer de sélecteur de destination (workspaceOptions absent)", async () => {
@@ -68,6 +68,26 @@ describe("AddActionSheet — création rapide globale (v2.2 §5, sélecteur Acti
     render(<AddActionSheet workspaceOptions={projectOnly} onCancel={vi.fn()} onCreate={vi.fn()} />);
     expect(screen.getByRole("radio", { name: "Action RUN" })).toBeDisabled();
     expect(screen.getByRole("radio", { name: "Tâche Projet" })).toBeChecked();
+  });
+
+  it("réconcilie la destination quand les espaces arrivent après l'ouverture (revue Codex PR #48 — hydratation Supabase tardive)", async () => {
+    // Le sheet peut s'ouvrir avant la fin du chargement du store : au premier
+    // rendu, `workspaceOptions` est vide, donc `workspaceId` reste `undefined`
+    // (fixé une seule fois par useState). Sans réconciliation, l'espace RUN
+    // qui arrive ensuite ne serait jamais sélectionné automatiquement.
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    const { rerender } = render(<AddActionSheet workspaceOptions={[]} onCancel={vi.fn()} onCreate={onCreate} />);
+
+    const hydrated: AddActionSheetWorkspaceOption[] = [{ id: "run-1", name: "Support quotidien", kind: "run" }];
+    rerender(<AddActionSheet workspaceOptions={hydrated} onCancel={vi.fn()} onCreate={onCreate} />);
+
+    expect(screen.getByRole("radio", { name: "Action RUN" })).toBeChecked();
+    await user.type(screen.getByLabelText("Titre"), "Investiguer un incident");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+
+    expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(onCreate.mock.calls[0]?.[0]).toMatchObject({ workspaceId: "run-1" });
   });
 
   it("sans aucun espace du tout, refuse la création avec un message explicite", async () => {

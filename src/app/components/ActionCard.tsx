@@ -99,9 +99,14 @@ export function ActionCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean; width: number } | null>(
-    null
-  );
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    committed: boolean;
+    width: number;
+    max: number;
+  } | null>(null);
   // Un swipe committed (list) ou un drag HTML5 (kanban) synthétise parfois
   // quand même un "click" natif au relâchement — sans ce garde-fou, ouvrir
   // le détail au clic sur le titre ouvrirait aussi le détail après un
@@ -139,15 +144,24 @@ export function ActionCard({
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!swipeEnabled || menuOpen) return;
-    // Un geste amorcé sur un élément interactif (checkbox de statut, menu
-    // "•••", futur bouton "Traiter") ne doit jamais être capturé comme un
-    // swipe : l'utilisateur voulait taper ce bouton, pas glisser la carte.
-    if ((event.target as HTMLElement).closest?.("button, a, input, select, textarea")) return;
+    const targetEl = event.target as HTMLElement;
+    // Le bouton "ouvrir le détail" recouvre presque toute la carte (titre +
+    // métadonnées) : il doit rester une surface de départ valide pour le
+    // swipe (le clic de synthèse qui suivrait un drag committed est déjà
+    // neutralisé par suppressClickRef, cf. handleOpenDetailClick) — sinon un
+    // geste amorcé sur un élément vraiment interactif (checkbox de statut,
+    // "Traiter", menu "•••") ne doit jamais être capturé comme un swipe :
+    // l'utilisateur voulait taper ce bouton, pas glisser la carte.
+    if (!targetEl.closest?.(".action-card-open-detail") && targetEl.closest?.("button, a, input, select, textarea")) return;
     // Largeur mesurée une seule fois, au début du geste : la carte ne
     // change pas de taille pendant qu'on la fait glisser, pas besoin de la
-    // remesurer à chaque pointermove.
+    // remesurer à chaque pointermove. `max` est dérivé de cette même largeur
+    // et figé ici pour que le seuil de relâchement (handlePointerUp) reste
+    // toujours atteignable, y compris sur les cartes très larges où le cap
+    // absolu (SWIPE_MAX_CAP) serait sinon plus restrictif que le seuil.
     const width = event.currentTarget.getBoundingClientRect().width || SWIPE_FALLBACK_WIDTH;
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false, width };
+    const max = Math.min(width * SWIPE_MAX_RATIO, SWIPE_MAX_CAP);
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false, width, max };
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -168,8 +182,7 @@ export function ActionCard({
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }
     event.preventDefault();
-    const max = Math.min(drag.width * SWIPE_MAX_RATIO, SWIPE_MAX_CAP);
-    const clamped = Math.max(-max, Math.min(max, deltaX));
+    const clamped = Math.max(-drag.max, Math.min(drag.max, deltaX));
     setDragX(swipeCompleteEnabled ? clamped : Math.min(clamped, 0));
   }
 
@@ -179,7 +192,11 @@ export function ActionCard({
     dragRef.current = null;
     setIsDragging(false);
     if (drag.committed) {
-      const threshold = drag.width * SWIPE_THRESHOLD_RATIO;
+      // Le seuil ne doit jamais dépasser la distance de glissement
+      // effectivement atteignable (drag.max) : sur une carte large où
+      // largeur × 35 % > cap absolu, un seuil non plafonné rendrait le
+      // geste impossible à valider quelle que soit la distance parcourue.
+      const threshold = Math.min(drag.width * SWIPE_THRESHOLD_RATIO, drag.max);
       if (dragX >= threshold && swipeCompleteEnabled) {
         onSwipeComplete!();
       } else if (dragX <= -threshold) {
@@ -282,10 +299,20 @@ export function ActionCard({
   );
 
   if (isCompactDone) {
+    const resolvedTitle = <span className="action-title action-card-resolved-title">{action.title}</span>;
     return (
       <div className="action-card action-card-resolved">
         <span className="badge badge-resolved">Résolu</span>
-        <span className="action-title action-card-resolved-title">{action.title}</span>
+        {/* Compacter la carte ne doit pas retirer l'accès au détail/menu — une
+            action résolue reste consultable (notes, lien) et corrigible
+            (rouvrir, éditer, supprimer) depuis la liste RUN elle-même. */}
+        {onOpenDetail ? (
+          <button type="button" className="action-card-open-detail action-card-resolved-open" onClick={handleOpenDetailClick}>
+            {resolvedTitle}
+          </button>
+        ) : (
+          resolvedTitle
+        )}
         {assignedMembers && assignedMembers.length > 0 && (
           <span
             className="meta-chip"
@@ -298,6 +325,16 @@ export function ActionCard({
             {assignedMembers.length > 2 ? ` +${assignedMembers.length - 2}` : ""}
           </span>
         )}
+        {/* Une complétion pas encore confirmée (hors-ligne) ne doit jamais
+            paraître définitivement synchronisée (principe repris de l'audit
+            mobile) : le badge "Résolu" seul l'aurait laissé croire. */}
+        {syncStatus && (
+          <span className={`meta-chip sync-chip sync-chip-${syncStatus}`} role="status">
+            {syncStatus === "conflict" ? "Conflit" : "En attente"}
+          </span>
+        )}
+        {menuButton}
+        {menu}
       </div>
     );
   }
@@ -427,12 +464,19 @@ export function ActionCard({
               onClick={onCycleStatus}
             >
               <StatusCheckIcon status={action.status} />
-              {/* Équivalent non-geste du swipe, toujours visible et identique desktop/mobile (v2.2 §4) — aria-label ci-dessus porte déjà le libellé accessible complet, ce texte est purement visuel. */}
-              {!isDone && (
-                <span className="status-check-label" aria-hidden="true">
-                  Traiter
-                </span>
-              )}
+            </button>
+          )}
+          {/* "Traiter" (v2.2 §4) : équivalent non-geste EXACT du swipe à droite
+              (passe directement à "Terminé"), toujours visible et identique
+              desktop/mobile — distinct de la checkbox de statut ci-dessus, qui
+              cycle todo→doing→done sans jamais sauter d'étape. Un bouton
+              unique aurait fallu soit renommer la checkbox de façon trompeuse
+              (elle ne termine pas toujours en un clic), soit changer son
+              comportement historique de cycle — les deux cassaient un usage
+              existant plutôt que d'ajouter l'équivalent promis par le swipe. */}
+          {swipeCompleteEnabled && (
+            <button type="button" className="btn action-card-treat tap-target" onClick={onSwipeComplete}>
+              Traiter
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
