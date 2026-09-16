@@ -21,6 +21,31 @@ describe("AddActionSheet — comportement existant (écran d'espace, sans sélec
   });
 });
 
+describe("AddActionSheet — Échéance (réalignement prototype v2.2 §3)", () => {
+  it("champ Échéance optionnel : absent de l'input si non renseigné (comportement inchangé)", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    render(<AddActionSheet onCancel={vi.fn()} onCreate={onCreate} />);
+
+    await user.type(screen.getByLabelText("Titre"), "Sans échéance");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+
+    expect(onCreate.mock.calls[0]?.[0]).toMatchObject({ title: "Sans échéance", dueDate: undefined });
+  });
+
+  it("Échéance renseignée : transmise telle quelle (YYYY-MM-DD) dans AddActionInput", async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn();
+    render(<AddActionSheet onCancel={vi.fn()} onCreate={onCreate} />);
+
+    await user.type(screen.getByLabelText("Titre"), "Avec échéance");
+    await user.type(screen.getByLabelText("Échéance"), "2026-09-20");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+
+    expect(onCreate.mock.calls[0]?.[0]).toMatchObject({ title: "Avec échéance", dueDate: "2026-09-20" });
+  });
+});
+
 describe("AddActionSheet — création rapide globale (v2.2 §5, sélecteur Action RUN / Tâche Projet)", () => {
   const options = [
     { id: "run-1", name: "Support quotidien", kind: "run" as const },

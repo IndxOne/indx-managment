@@ -24,6 +24,8 @@ export interface AddActionInput {
   phaseId?: string;
   /** Présent uniquement quand `workspaceOptions` est fourni (création rapide globale, v2.2) — absent dans les écrans d'espace, où l'espace de destination est déjà connu du contexte appelant. */
   workspaceId?: string;
+  /** Échéance optionnelle (v2.2, champ "Échéance" du prototype) — YYYY-MM-DD, ou absent si non renseignée. Ignoré côté appelant quand `repeat` est présent (la récurrence porte sa propre date de départ). */
+  dueDate?: string;
   /** Présent seulement si "Répéter cette action" est activé. */
   repeat?: {
     frequency: RecurrenceFrequency;
@@ -52,6 +54,7 @@ export function AddActionSheet({
   onCreate: (input: AddActionInput) => void;
 }) {
   const [title, setTitle] = useState(initialTitle ?? "");
+  const [dueDate, setDueDate] = useState("");
   const [itemType, setItemType] = useState<WorkItemType>("task");
   const [priority, setPriority] = useState<Priority>("normal");
   const [phaseId, setPhaseId] = useState<string | undefined>(defaultPhaseId ?? phaseOptions?.[0]);
@@ -121,6 +124,7 @@ export function AddActionSheet({
       itemType,
       priority,
       phaseId,
+      dueDate: dueDate || undefined,
       repeat: repeatEnabled
         ? {
             frequency,
@@ -241,6 +245,16 @@ export function AddActionSheet({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="field">
+        <label htmlFor="new-action-due-date">Échéance</label>
+        <input
+          id="new-action-due-date"
+          type="date"
+          value={dueDate}
+          onChange={(event) => setDueDate(event.target.value)}
+        />
       </div>
 
       <div className="field">

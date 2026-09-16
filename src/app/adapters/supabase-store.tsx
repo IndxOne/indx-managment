@@ -413,7 +413,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               itemType: input.itemType,
               phaseId: input.phaseId,
               sourceNoteId: input.sourceNoteId,
-              schedule: { granularity: "none" },
+              schedule: input.schedule ?? { granularity: "none" },
               assigneeIds: [],
               tags: [],
               createdAt: now,

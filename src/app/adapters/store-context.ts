@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { Action, ActionStatus, CollaborationMode, Priority, WorkItemType } from "../../domain/types";
+import type { Action, ActionStatus, CollaborationMode, Priority, Schedule, WorkItemType } from "../../domain/types";
 import type { ActionContentEdit } from "../../domain/edit-action";
 import type { Member } from "../../domain/member";
 import type { MoveDestination } from "../../domain/move-action";
@@ -65,6 +65,8 @@ export interface NewActionInput {
   status?: ActionStatus;
   /** Présent quand l'action provient d'une note du Carnet convertie. */
   sourceNoteId?: string;
+  /** Échéance choisie à la création (v2.2, champ "Échéance" d'AddActionSheet). Absent = comportement inchangé ({ granularity: "none" }). */
+  schedule?: Schedule;
 }
 
 export interface NewRecurrenceRuleInput {

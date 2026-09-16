@@ -260,11 +260,15 @@ export function ProjectWorkspaceScreen({
           defaultPhaseId={currentPhase}
           initialTitle={addSheetDraftTitle}
           onCancel={() => setAddSheetOpen(false)}
-          onCreate={({ repeat, ...input }) => {
+          onCreate={({ repeat, dueDate, ...input }) => {
             if (repeat) {
               createRecurringRule({ workspaceId: workspace.id, ...input, ...repeat });
             } else {
-              createAction({ workspaceId: workspace.id, ...input });
+              createAction({
+                workspaceId: workspace.id,
+                ...input,
+                schedule: dueDate ? { granularity: "day", value: dueDate } : undefined,
+              });
             }
             setAddSheetOpen(false);
           }}

@@ -108,7 +108,7 @@ export function appReducer(state: AppState, event: AppEvent): AppState {
         itemType: event.input.itemType,
         phaseId: event.input.phaseId,
         sourceNoteId: event.input.sourceNoteId,
-        schedule: { granularity: "none" },
+        schedule: event.input.schedule ?? { granularity: "none" },
         assigneeIds: [],
         tags: [],
         createdAt: event.now,
