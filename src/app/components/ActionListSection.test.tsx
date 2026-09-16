@@ -145,3 +145,37 @@ describe("ActionListSection — vue transversale (resolveWorkspace)", () => {
     expect(screen.getByText("RUN")).toBeInTheDocument();
   });
 });
+
+describe("ActionListSection — densité compacte \"Résolu\" (v2.2 §3, propagation compactDone)", () => {
+  it("avec compactDone, une action terminée rend en carte compacte (badge Résolu, pas de checkbox)", () => {
+    render(
+      <ActionListSection
+        id="section-test"
+        title="Aujourd'hui"
+        actions={[makeAction({ id: "a1", title: "Livrer le rapport", status: "done" })]}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        compactDone
+        {...noop}
+      />
+    );
+    expect(screen.getByText("Résolu")).toBeInTheDocument();
+    expect(screen.getByText("Livrer le rapport")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("sans compactDone, une action terminée garde la carte complète (comportement inchangé)", () => {
+    render(
+      <ActionListSection
+        id="section-test"
+        title="Aujourd'hui"
+        actions={[makeAction({ id: "a1", title: "Livrer le rapport", status: "done" })]}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        {...noop}
+      />
+    );
+    expect(screen.queryByText("Résolu")).not.toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+});

@@ -26,6 +26,7 @@ export function ActionListSection({
   onOpenDetail,
   phaseOptions,
   members,
+  compactDone,
 }: {
   id: string;
   title: string;
@@ -57,6 +58,8 @@ export function ActionListSection({
   phaseOptions?: string[];
   /** Membres de l'espace (Lot 8B) — résolus par action pour l'indicateur compact de la carte. Fourni uniquement en mode Équipe. */
   members?: Member[];
+  /** Densité "Résolu" (v2.2 §3, RUN uniquement) : les actions terminées de cette section rendent en carte compacte (badge + titre + responsable) au lieu de la carte complète atténuée. Absent/faux = comportement inchangé. */
+  compactDone?: boolean;
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -118,6 +121,7 @@ export function ActionListSection({
               onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
               phaseOptions={phaseOptions}
               assignedMembers={members ? resolveAssignees(members, action.assigneeIds) : undefined}
+              compact={compactDone}
             />
             );
           })}

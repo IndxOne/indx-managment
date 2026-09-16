@@ -173,6 +173,7 @@ export function RunWorkspaceScreen({
               onOpenLink={(action) => setLinkingActionId(action.id)}
               onOpenDetail={(action) => setDetailActionId(action.id)}
               members={members}
+              compactDone
             />
 
             <ActionListSection
@@ -193,6 +194,7 @@ export function RunWorkspaceScreen({
               onOpenLink={(action) => setLinkingActionId(action.id)}
               onOpenDetail={(action) => setDetailActionId(action.id)}
               members={members}
+              compactDone
             />
 
             <ActionListSection
@@ -212,6 +214,7 @@ export function RunWorkspaceScreen({
               onOpenLink={(action) => setLinkingActionId(action.id)}
               onOpenDetail={(action) => setDetailActionId(action.id)}
               members={members}
+              compactDone
             />
           </>
         )}
