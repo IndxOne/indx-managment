@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { App } from "../App";
 import { useStore } from "./store-context";
 import { SupabaseStoreProvider } from "./supabase-store";
@@ -129,11 +129,23 @@ vi.mock("./supabase/user-hash", () => ({
   getOrCreateUserHash: () => "test-hash",
 }));
 
-// Auth non branchée dans ces scénarios (cf. supabase-store.tsx) : aucune session active.
+/**
+ * Contrôlable par test (voir describe "owner_id / bootstrap Auth" plus
+ * bas) : par défaut, résolution immédiate sans session (comportement de
+ * tous les scénarios ci-dessus, non concernés par owner_id).
+ */
+const getCurrentAuthUserIdMock = vi.fn(async () => null as string | null);
+const onAuthStateChangeMock = vi.fn((_callback: (id: string | null) => void) => () => {});
+
 vi.mock("./supabase/auth", () => ({
-  getCurrentAuthUserId: async () => null,
-  onAuthStateChange: () => () => {},
+  getCurrentAuthUserId: () => getCurrentAuthUserIdMock(),
+  onAuthStateChange: (callback: (id: string | null) => void) => onAuthStateChangeMock(callback),
 }));
+
+afterEach(() => {
+  getCurrentAuthUserIdMock.mockReset().mockResolvedValue(null);
+  onAuthStateChangeMock.mockReset().mockReturnValue(() => {});
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- réassigné avant chaque test par makeMockClient()
 let mockClientInstance: any;
@@ -550,5 +562,189 @@ describe("SupabaseStoreProvider — création (insert)", () => {
     expect(inserted).toHaveLength(1);
     expect(inserted[0]!.table).toBe("projets_workspaces");
     expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", name: "Nouvel espace" });
+  });
+});
+
+/**
+ * Lot rattachement Auth (routing/bootstrap) : owner_id doit refléter l'état
+ * Auth réel au moment de l'écriture, jamais un state React périmé — voir
+ * `resolveOwnerId()` dans supabase-store.tsx. `user_hash` reste toujours
+ * présent (mécanisme legacy jamais désactivé).
+ */
+describe("SupabaseStoreProvider — owner_id / bootstrap Auth", () => {
+  function makeInsertCapturingClient() {
+    const inserted: { table: string; row: Record<string, unknown> }[] = [];
+    const client = {
+      from(table: string) {
+        return {
+          select: () => ({
+            order: async () => ({ data: [], error: null }),
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+          insert: (row: Record<string, unknown>) => {
+            inserted.push({ table, row });
+            return Promise.resolve({ error: null });
+          },
+        };
+      },
+    };
+    return { client, inserted };
+  }
+
+  function CreateWorkspaceConsumer() {
+    const { createWorkspaceAction } = useStore();
+    return (
+      <button
+        type="button"
+        onClick={() => createWorkspaceAction({ name: "Nouvel espace", kind: "project", approach: "simple" })}
+      >
+        créer
+      </button>
+    );
+  }
+
+  it("owner_id = null sans session (comportement inchangé, legacy user_hash toujours présent)", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    const { client, inserted } = makeInsertCapturingClient();
+    mockClientInstance = client;
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", owner_id: null });
+  });
+
+  it("owner_id = session.user.id après login (session déjà active à l'ouverture)", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue("auth-uid-1");
+    const { client, inserted } = makeInsertCapturingClient();
+    mockClientInstance = client;
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", owner_id: "auth-uid-1" });
+  });
+
+  it("aucune écriture ne part avant que l'état Auth initial soit résolu : owner_id reflète la session même si l'écriture est déclenchée avant la résolution", async () => {
+    let resolveSession: (id: string | null) => void = () => {};
+    getCurrentAuthUserIdMock.mockReturnValue(
+      new Promise<string | null>((resolve) => {
+        resolveSession = resolve;
+      })
+    );
+    const { client, inserted } = makeInsertCapturingClient();
+    mockClientInstance = client;
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    // Déclenchée avant que getCurrentAuthUserId() ait résolu : ne doit
+    // jamais capturer `null` par race, doit attendre la résolution.
+    await act(async () => {
+      button.click();
+    });
+    expect(inserted).toHaveLength(0); // toujours en attente de la résolution Auth
+
+    await act(async () => {
+      resolveSession("auth-uid-tardif");
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.row).toMatchObject({ owner_id: "auth-uid-tardif" });
+  });
+
+  it("transition anonymous -> authenticated : une écriture après un événement onAuthStateChange utilise le nouvel owner_id", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    const { client, inserted } = makeInsertCapturingClient();
+    mockClientInstance = client;
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    await act(async () => {
+      await Promise.resolve(); // laisse la résolution initiale (anonyme) se terminer
+    });
+
+    const handler = onAuthStateChangeMock.mock.calls[0]![0] as (id: string | null) => void;
+    await act(async () => {
+      handler("auth-uid-login");
+    });
+
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", owner_id: "auth-uid-login" });
+  });
+
+  it("transition authenticated -> anonymous (logout) : une écriture après déconnexion repasse à owner_id = null", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue("auth-uid-1");
+    const { client, inserted } = makeInsertCapturingClient();
+    mockClientInstance = client;
+
+    render(
+      <SupabaseStoreProvider>
+        <CreateWorkspaceConsumer />
+      </SupabaseStoreProvider>
+    );
+
+    const button = await screen.findByRole("button", { name: "créer" });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const handler = onAuthStateChangeMock.mock.calls[0]![0] as (id: string | null) => void;
+    await act(async () => {
+      handler(null); // déconnexion
+    });
+
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.row).toMatchObject({ user_hash: "test-hash", owner_id: null });
   });
 });

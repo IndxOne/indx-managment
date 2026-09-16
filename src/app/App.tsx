@@ -14,6 +14,7 @@ import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
+import { AuthScreen } from "./screens/AuthScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -39,7 +40,8 @@ type Route =
   | { screen: "roles" }
   | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "search" }
-  | { screen: "app-settings" };
+  | { screen: "app-settings" }
+  | { screen: "auth" };
 
 function routeToTab(route: Route): NavTab {
   switch (route.screen) {
@@ -56,6 +58,7 @@ function routeToTab(route: Route): NavTab {
     case "actions-by-status":
     case "search":
     case "app-settings":
+    case "auth":
       return "more";
     default:
       return "spaces";
@@ -252,7 +255,29 @@ function AppShell() {
         )}
 
         {route.screen === "app-settings" && (
-          <AppSettingsScreen onNavigate={(destination) => setRoute({ screen: destination })} />
+          <AppSettingsScreen
+            onNavigate={(destination) => setRoute({ screen: destination })}
+            onOpenAuth={() => setRoute({ screen: "auth" })}
+          />
+        )}
+
+        {route.screen === "auth" && (
+          <div>
+            <div className="top-bar">
+              <h1>Connexion</h1>
+            </div>
+            <div className="app-main">
+              <AuthScreen />
+              <button
+                type="button"
+                className="btn btn-block tap-target"
+                style={{ marginTop: 16 }}
+                onClick={() => setRoute({ screen: "app-settings" })}
+              >
+                Retour aux réglages
+              </button>
+            </div>
+          </div>
         )}
           </div>
         )}

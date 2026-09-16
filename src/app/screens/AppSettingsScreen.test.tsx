@@ -11,7 +11,7 @@ describe("AppSettingsScreen", () => {
     // seule la branche "persistance locale" est atteignable ici.
     render(
       <TemporaryStoreProvider>
-        <AppSettingsScreen onNavigate={() => {}} />
+        <AppSettingsScreen onNavigate={() => {}} onOpenAuth={() => {}} />
       </TemporaryStoreProvider>
     );
     expect(screen.getByText("Persistance locale uniquement")).toBeInTheDocument();

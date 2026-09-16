@@ -84,22 +84,43 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   /**
    * `owner_id` (Lot rattachement Auth) : `null` tant qu'aucune session
    * Supabase Auth active n'existe, ce qui est le cas de tous les
-   * utilisateurs actuels (AuthScreen — Lot 1A — reste isolé, non routé).
-   * Aucune régression : les écritures se comportent exactement comme avant
-   * (owner_id absent), la colonne étant nullable côté base.
+   * utilisateurs actuels (AuthScreen reste routable mais optionnel).
+   * Aucune régression : sans session, les écritures se comportent
+   * exactement comme avant (owner_id absent), la colonne étant nullable.
+   *
+   * Suivi par ref plutôt que par state React : une mutation déclenchée
+   * avant la résolution de la session initiale ne doit jamais capturer
+   * `null` par effet de bord (state pas encore mis à jour) alors qu'une
+   * session existe déjà côté Supabase. `resolveOwnerId()` élimine cette
+   * course : toute écriture attend d'abord la résolution initiale (ref +
+   * promesse), jamais un state React potentiellement périmé. L'état de
+   * connexion visible à l'écran (Réglages) vit dans AuthScreen lui-même,
+   * qui a sa propre souscription à `onAuthStateChange` — pas de source
+   * partagée nécessaire pour ce lot (aucun écran ne dépend ici de savoir
+   * si l'utilisateur est connecté, seulement de owner_id au moment d'écrire).
    */
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const authUserIdRef = useRef<string | null>(null);
+  const authReadyRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void getCurrentAuthUserId().then((id) => {
-      if (!cancelled) setAuthUserId(id);
+    authReadyRef.current = getCurrentAuthUserId().then((id) => {
+      if (cancelled) return;
+      authUserIdRef.current = id;
     });
-    const unsubscribe = onAuthStateChange((id) => setAuthUserId(id));
+    const unsubscribe = onAuthStateChange((id) => {
+      authUserIdRef.current = id;
+    });
     return () => {
       cancelled = true;
       unsubscribe();
     };
+  }, []);
+
+  /** Jamais d'écriture distante avant que l'état Auth initial soit connu. */
+  const resolveOwnerId = useCallback(async (): Promise<string | null> => {
+    if (authReadyRef.current) await authReadyRef.current;
+    return authUserIdRef.current;
   }, []);
 
   const load = useCallback(async () => {
@@ -332,7 +353,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         };
         const workspace = createWorkspace(withId);
         dispatchAndPersist({ type: "workspace/create", input: withId }, async () => {
-          const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash, authUserId));
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash, ownerId));
           if (error) throw error;
         });
         return workspace;
@@ -398,7 +420,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               updatedAt: now,
             },
             userHash,
-            authUserId
+            await resolveOwnerId()
           );
           const { error } = await client.from("projets_actions").insert(row);
           if (error) throw error;
@@ -408,7 +430,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       createCarnetNote: (text) => {
         const note = { id: generateId(), text, createdAt: new Date().toISOString() };
         dispatchAndPersist({ type: "carnet/create", note }, async () => {
-          const { error } = await client.from("projets_carnet_notes").insert(carnetNoteToRow(note, userHash, authUserId));
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_carnet_notes").insert(carnetNoteToRow(note, userHash, ownerId));
           if (error) throw error;
         });
         return note;
@@ -427,9 +450,10 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         return trackPersist({
           key: "hub-settings",
           persist: async () => {
+            const ownerId = await resolveOwnerId();
             const { error } = await client
               .from("projets_hub_settings")
-              .upsert(hubSettingsToRow(settings, userHash, now, authUserId), { onConflict: "user_hash" });
+              .upsert(hubSettingsToRow(settings, userHash, now, ownerId), { onConflict: "user_hash" });
             if (error) throw error;
           },
         });
@@ -456,7 +480,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               updatedAt: now,
             },
             userHash,
-            authUserId
+            await resolveOwnerId()
           );
           const { error: insertError } = await client.from("projets_actions").insert(row);
           if (insertError) throw insertError;
@@ -470,16 +494,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         const today = new Date().toISOString().slice(0, 10);
         const window = defaultMaterializationWindow(rule, today);
         dispatchAndPersist({ type: "recurrence/create", rule, window }, async () => {
+          const ownerId = await resolveOwnerId();
           const { error: ruleError } = await client
             .from("projets_recurrence_rules")
-            .insert(recurrenceRuleToRow(rule, userHash, authUserId));
+            .insert(recurrenceRuleToRow(rule, userHash, ownerId));
           if (ruleError) throw ruleError;
 
           const occurrences = generateRecurringOccurrences(rule, window);
           if (occurrences.length > 0) {
             const { error } = await client
               .from("projets_actions")
-              .insert(occurrences.map((occurrence) => actionToRow(occurrence, userHash, authUserId)));
+              .insert(occurrences.map((occurrence) => actionToRow(occurrence, userHash, ownerId)));
             if (error) throw error;
           }
         });
@@ -510,14 +535,16 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const moved = appReducer(state, { type: "action/move", workspaceId, actionId, destination })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!moved) return;
-          const { error } = await client.from("projets_actions").update(actionToRow(moved, userHash, authUserId)).eq("id", actionId);
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_actions").update(actionToRow(moved, userHash, ownerId)).eq("id", actionId);
           if (error) throw error;
         });
       },
 
       restoreAction: (workspaceId, action) => {
         dispatchAndPersistAction(action.id, { type: "action/restore", workspaceId, action }, async () => {
-          const { error } = await client.from("projets_actions").update(actionToRow(action, userHash, authUserId)).eq("id", action.id);
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_actions").update(actionToRow(action, userHash, ownerId)).eq("id", action.id);
           if (error) throw error;
         });
       },
@@ -578,7 +605,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const updated = appReducer(state, { type: "action/edit", workspaceId, actionId, edit, now })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
-          const { error } = await client.from("projets_actions").update(actionToRow(updated, userHash, authUserId)).eq("id", actionId);
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_actions").update(actionToRow(updated, userHash, ownerId)).eq("id", actionId);
           if (error) throw error;
         });
       },
@@ -642,7 +670,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
       undoDeleteAction: (workspaceId, action, index) => {
         dispatchAndPersistAction(action.id, { type: "action/undoDelete", workspaceId, action, index }, async () => {
-          const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash, authUserId));
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash, ownerId));
           if (error) throw error;
         });
       },
@@ -650,7 +679,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       createMember: (input) => {
         const member = createMember({ ...input, id: generateId() });
         dispatchAndPersist({ type: "member/create", member }, async () => {
-          const { error } = await client.from("projets_members").insert(memberToRow(member, userHash, authUserId));
+          const ownerId = await resolveOwnerId();
+          const { error } = await client.from("projets_members").insert(memberToRow(member, userHash, ownerId));
           if (error) throw error;
         });
         return member;
@@ -683,7 +713,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       conflicts,
       client,
       userHash,
-      authUserId,
+      resolveOwnerId,
       dispatchAndPersist,
       dispatchAndPersistAction,
       queueActionPersist,
