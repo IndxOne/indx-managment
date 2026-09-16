@@ -307,6 +307,7 @@ export function RunWorkspaceScreen({
       {addSheetOpen && (
         <AddActionSheet
           initialTitle={addSheetDraftTitle}
+          members={members}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={({ repeat, ...input }) => {
             if (repeat) {

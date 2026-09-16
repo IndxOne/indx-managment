@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { Priority, WorkItemType } from "../../domain/types";
+import type { Priority, Schedule, WorkItemType } from "../../domain/types";
+import type { Member } from "../../domain/member";
 import type { RecurrenceFrequency } from "../../recurrence/recurrence-engine";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, phaseLabel, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
@@ -16,6 +17,10 @@ export interface AddActionInput {
   itemType: WorkItemType;
   priority: Priority;
   phaseId?: string;
+  /** Échéance choisie (jour précis) — absente si laissée vide, comme avant (Lot B). */
+  schedule?: Schedule;
+  /** Responsable(s) choisis — fourni uniquement quand `members` est passé au composant (mode Équipe). */
+  assigneeIds?: string[];
   /** Présent seulement si "Répéter cette action" est activé. */
   repeat?: {
     frequency: RecurrenceFrequency;
@@ -29,12 +34,15 @@ export function AddActionSheet({
   phaseOptions,
   defaultPhaseId,
   initialTitle,
+  members,
   onCancel,
   onCreate,
 }: {
   phaseOptions?: string[];
   defaultPhaseId?: string;
   initialTitle?: string;
+  /** Membres de l'espace cible (mode Équipe uniquement, Lot B) — fait apparaître le choix de responsable. Absent = pas de ligne "Responsable" (Solo ou espace non-équipe), comportement inchangé. */
+  members?: Member[];
   onCancel: () => void;
   onCreate: (input: AddActionInput) => void;
 }) {
@@ -42,6 +50,8 @@ export function AddActionSheet({
   const [itemType, setItemType] = useState<WorkItemType>("task");
   const [priority, setPriority] = useState<Priority>("normal");
   const [phaseId, setPhaseId] = useState<string | undefined>(defaultPhaseId ?? phaseOptions?.[0]);
+  const [dueDate, setDueDate] = useState("");
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [repeatEnabled, setRepeatEnabled] = useState(false);
@@ -65,6 +75,8 @@ export function AddActionSheet({
       itemType,
       priority,
       phaseId,
+      schedule: dueDate ? { granularity: "day", value: dueDate } : undefined,
+      assigneeIds: members ? assigneeIds : undefined,
       repeat: repeatEnabled
         ? {
             frequency,
@@ -129,6 +141,40 @@ export function AddActionSheet({
             ))}
           </select>
         </div>
+      )}
+
+      <div className="field">
+        <label htmlFor="new-action-due-date">Échéance (optionnel)</label>
+        <input
+          id="new-action-due-date"
+          type="date"
+          value={dueDate}
+          onChange={(event) => setDueDate(event.target.value)}
+        />
+      </div>
+
+      {members && members.length > 0 && (
+        <fieldset className="field" style={{ border: "none", padding: 0 }}>
+          <legend style={{ fontWeight: 600, marginBottom: 8 }}>Responsable</legend>
+          <div className="choice-group" style={{ marginBottom: 8 }}>
+            {members
+              .filter((member) => member.active)
+              .map((member) => (
+                <label key={member.id} className="choice-option">
+                  <input
+                    type="checkbox"
+                    checked={assigneeIds.includes(member.id)}
+                    onChange={() =>
+                      setAssigneeIds((current) =>
+                        current.includes(member.id) ? current.filter((id) => id !== member.id) : [...current, member.id]
+                      )
+                    }
+                  />
+                  {member.displayName}
+                </label>
+              ))}
+          </div>
+        </fieldset>
       )}
 
       <div className="choice-group" style={{ marginBottom: 8 }}>
