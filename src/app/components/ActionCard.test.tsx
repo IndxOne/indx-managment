@@ -376,6 +376,100 @@ describe("ActionCard — bouton \"Traiter\" (v2.2 §3/§4, équivalent non-geste
   });
 });
 
+describe("ActionCard — hideStatusCheck (réalignement prototype v2.2, RUN actif)", () => {
+  it("avec hideStatusCheck, masque la checkbox de cycle mais garde \"Traiter\" seul en avant", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        hideStatusCheck
+      />
+    );
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Traiter" })).toBeInTheDocument();
+  });
+
+  it("sans hideStatusCheck (Kanban/Projet, comportement inchangé), la checkbox reste affichée", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("onCycleStatus reste fourni au composant même quand hideStatusCheck masque la checkbox (aucune capacité perdue, cf. \"Déplacer\")", () => {
+    const onCycleStatus = vi.fn();
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={onCycleStatus}
+        hideStatusCheck
+      />
+    );
+    // Le menu "•••" reste le point d'entrée du changement de statut restant
+    // (cf. ActionMenuSheet "Déplacer") — la checkbox seule disparaît de cette
+    // carte, pas la capacité de cycler le statut.
+    expect(screen.getByRole("button", { name: /Actions pour/ })).toBeInTheDocument();
+  });
+});
+
+describe("ActionCard — description courte (réalignement prototype v2.2, RUN actif)", () => {
+  it("avec showDescription et une description, l'affiche sous le titre (2 lignes max)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ description: "Les utilisateurs rencontrent une erreur 500 à la connexion." })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        showDescription
+      />
+    );
+    expect(screen.getByText("Les utilisateurs rencontrent une erreur 500 à la connexion.")).toHaveClass(
+      "action-card-desc"
+    );
+  });
+
+  it("sans showDescription, n'affiche jamais la description même si présente sur l'action (comportement inchangé)", () => {
+    render(
+      <ActionCard
+        action={baseAction({ description: "Description jamais montrée ici." })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+      />
+    );
+    expect(screen.queryByText("Description jamais montrée ici.")).not.toBeInTheDocument();
+  });
+
+  it("avec showDescription mais sans description sur l'action, n'affiche rien (pas de paragraphe vide)", () => {
+    render(
+      <ActionCard
+        action={baseAction()}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onCycleStatus={vi.fn()}
+        showDescription
+      />
+    );
+    expect(document.querySelector(".action-card-desc")).not.toBeInTheDocument();
+  });
+});
+
 describe("ActionCard — densité compacte \"Résolu\" (v2.2 §3, RUN uniquement)", () => {
   it("avec compact et une action terminée, n'affiche que le badge Résolu, le titre et le responsable", () => {
     render(
@@ -450,6 +544,45 @@ describe("ActionCard — densité compacte \"Résolu\" (v2.2 §3, RUN uniquement
     );
     expect(screen.queryByText("Résolu")).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox")).toBeInTheDocument();
+  });
+
+  it("réalignement prototype v2.2 : affiche le nom en clair du responsable, pas des initiales en cercle", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        compact
+        assignedMembers={[
+          { id: "m1", workspaceId: "w1", displayName: "Sophie Dubois", active: true, createdAt: "x", updatedAt: "x" },
+        ]}
+      />
+    );
+    expect(screen.getByText("Sophie Dubois")).toBeInTheDocument();
+    // Pas d'initiales seules ("SD") comme sur la carte active — le nom
+    // complet est le texte visible ici (prototype : ligne "RÉSOLU" simple).
+    expect(screen.queryByText("SD")).not.toBeInTheDocument();
+  });
+
+  it("réalignement prototype v2.2 : plusieurs responsables — affiche le premier nom + \"+N\"", () => {
+    render(
+      <ActionCard
+        action={baseAction({ status: "done" })}
+        timezone="Europe/Paris"
+        statusLabels={STATUS_LABELS_DEFAULT}
+        onMove={vi.fn()}
+        onSwipeComplete={vi.fn()}
+        compact
+        assignedMembers={[
+          { id: "m1", workspaceId: "w1", displayName: "Sophie Dubois", active: true, createdAt: "x", updatedAt: "x" },
+          { id: "m2", workspaceId: "w1", displayName: "Marc T.", active: true, createdAt: "x", updatedAt: "x" },
+        ]}
+      />
+    );
+    expect(screen.getByText("Sophie Dubois +1")).toBeInTheDocument();
+    expect(screen.getByLabelText("Responsables : Sophie Dubois, Marc T.")).toBeInTheDocument();
   });
 
   it("une carte compacte Résolu ne propose plus de swipe", () => {

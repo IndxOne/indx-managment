@@ -62,6 +62,8 @@ export function ActionCard({
   phaseOptions,
   assignedMembers,
   compact,
+  hideStatusCheck,
+  showDescription,
 }: {
   action: Action;
   timezone: string;
@@ -95,6 +97,10 @@ export function ActionCard({
   assignedMembers?: Member[];
   /** Densité "Résolu" (v2.2, RUN uniquement) : quand vrai ET l'action est terminée, remplace la carte complète par un format compact — badge "Résolu", titre, responsable. Sans effet sur une action non terminée, ni en variant "kanban" (jamais compacté, le Kanban a son propre chip de statut). Absent/faux = comportement inchangé (carte complète, juste atténuée). */
   compact?: boolean;
+  /** Réalignement prototype (v2.2, RUN actif uniquement) : masque la checkbox de cycle todo→doing→done pour ne laisser que "Traiter" en avant, comme le prototype. `onCycleStatus` reste fourni et fonctionnel (le cycle rapide reste joignable via "Déplacer" dans le menu "•••") — aucune capacité perdue, seulement décluttée visuellement sur cet écran précis. Sans effet en variant "kanban" ni sur une carte compacte "Résolu" (jamais de checkbox là). */
+  hideStatusCheck?: boolean;
+  /** Réalignement prototype (v2.2, RUN actif) : affiche `action.description` (si présente) sur 2 lignes maximum sous le titre, comme la carte active du prototype. Absent/faux = comportement inchangé (pas de description affichée). */
+  showDescription?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
@@ -314,15 +320,15 @@ export function ActionCard({
           resolvedTitle
         )}
         {assignedMembers && assignedMembers.length > 0 && (
+          // Prototype (v2.2) : nom en clair sur la ligne compacte "Résolu",
+          // pas d'initiales en cercle (réservées à la carte active). Même
+          // troncature multi-responsables que le chip complet ci-dessus.
           <span
-            className="meta-chip"
+            className="meta-chip action-card-resolved-assignee"
             aria-label={`Responsable${assignedMembers.length > 1 ? "s" : ""} : ${assignedMembers.map((m) => m.displayName).join(", ")}`}
           >
-            {assignedMembers
-              .slice(0, 2)
-              .map((m) => memberInitials(m.displayName))
-              .join(" ")}
-            {assignedMembers.length > 2 ? ` +${assignedMembers.length - 2}` : ""}
+            {assignedMembers[0]!.displayName}
+            {assignedMembers.length > 1 ? ` +${assignedMembers.length - 1}` : ""}
           </span>
         )}
         {/* Une complétion pas encore confirmée (hors-ligne) ne doit jamais
@@ -400,6 +406,7 @@ export function ActionCard({
   const listInfo = (
     <>
       {title}
+      {showDescription && action.description && <p className="action-card-desc">{action.description}</p>}
       <div className="action-sub">
         <span>
           {workspaceName ? `${workspaceName} · ` : ""}
@@ -454,7 +461,7 @@ export function ActionCard({
           </div>
         )}
         <div className="action-card-body">
-          {onCycleStatus && (
+          {onCycleStatus && !hideStatusCheck && (
             <button
               type="button"
               className="status-check"

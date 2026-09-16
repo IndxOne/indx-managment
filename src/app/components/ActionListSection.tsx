@@ -27,6 +27,8 @@ export function ActionListSection({
   phaseOptions,
   members,
   compactDone,
+  hideStatusCheck,
+  showDescription,
 }: {
   id: string;
   title: string;
@@ -60,6 +62,10 @@ export function ActionListSection({
   members?: Member[];
   /** Densité "Résolu" (v2.2 §3, RUN uniquement) : les actions terminées de cette section rendent en carte compacte (badge + titre + responsable) au lieu de la carte complète atténuée. Absent/faux = comportement inchangé. */
   compactDone?: boolean;
+  /** Réalignement prototype (v2.2, RUN actif) : masque la checkbox de cycle sur les cartes actives de cette section (cf. ActionCard). Absent/faux = comportement inchangé. */
+  hideStatusCheck?: boolean;
+  /** Réalignement prototype (v2.2, RUN actif) : affiche la description courte (2 lignes) sur les cartes actives de cette section (cf. ActionCard). Absent/faux = comportement inchangé. */
+  showDescription?: boolean;
 }) {
   const [hideDone, setHideDone] = useState(false);
   const doneCount = actions.filter((action) => action.status === "done").length;
@@ -122,6 +128,8 @@ export function ActionListSection({
               phaseOptions={phaseOptions}
               assignedMembers={members ? resolveAssignees(members, action.assigneeIds) : undefined}
               compact={compactDone}
+              hideStatusCheck={hideStatusCheck}
+              showDescription={showDescription}
             />
             );
           })}
