@@ -5,6 +5,7 @@ import { AnnouncerProvider } from "./a11y/announcer";
 import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
+import { AddActionSheet } from "./components/AddActionSheet";
 import { BottomNav, type NavTab } from "./components/BottomNav";
 import { IconMore } from "./components/Icons";
 import { ErrorState, LoadingState, OfflineBanner } from "./components/StateBlocks";
@@ -29,7 +30,8 @@ import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
 type Route =
   | { screen: "today" }
   | { screen: "week" }
-  | { screen: "spaces-list" }
+  /** kindFilter="run" : liste restreinte aux espaces RUN (onglet "RUN" de la barre basse quand il en existe plusieurs, cf. handleNavChange). Absent = comportement inchangé (tous les espaces). */
+  | { screen: "spaces-list"; kindFilter?: Workspace["kind"] }
   | { screen: "spaces-create" }
   | { screen: "workspace-detail"; workspaceId: string }
   | { screen: "workspace-settings"; workspaceId: string }
@@ -43,7 +45,12 @@ type Route =
   | { screen: "app-settings" }
   | { screen: "auth" };
 
-function routeToTab(route: Route): NavTab {
+/**
+ * L'onglet actif dépend parfois du genre de l'espace ouvert (un
+ * `workspace-detail` sur un espace RUN doit surligner "RUN", pas "Projets")
+ * — d'où le second paramètre, absent quand la route ne porte pas d'espace.
+ */
+function routeToTab(route: Route, workspaceKind?: Workspace["kind"]): NavTab {
   switch (route.screen) {
     case "today":
       return "today";
@@ -51,15 +58,21 @@ function routeToTab(route: Route): NavTab {
       return "week";
     case "reminders":
       return "reminders";
+    case "app-settings":
+    case "auth":
+      return "settings";
     case "more":
     case "carnet":
     case "hub":
     case "roles":
     case "actions-by-status":
     case "search":
-    case "app-settings":
-    case "auth":
       return "more";
+    case "workspace-detail":
+    case "workspace-settings":
+      return workspaceKind === "run" ? "run" : "spaces";
+    case "spaces-list":
+      return route.kindFilter === "run" ? "run" : "spaces";
     default:
       return "spaces";
   }
@@ -81,7 +94,7 @@ function useOnlineStatus(): boolean {
 }
 
 function AppShell() {
-  const { state, isLoading } = useStore();
+  const { state, isLoading, createAction, createRecurringRule } = useStore();
   // Accueil (Home) est la route initiale : ouvrir l'app sur ce qui nécessite
   // une action immédiate, pas sur la liste des projets (décision produit
   // validée). HomeScreen (Lot 7) : Aujourd'hui / En retard / Bloqué / Cette
@@ -91,11 +104,14 @@ function AppShell() {
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
   // Sur desktop, l'accès au menu secondaire vit dans la sidebar de BottomNav
-  // (bouton "Plus" existant) : le bouton d'en-tête ci-dessous est réservé au
-  // mobile, où la barre basse est strictement limitée à 4 destinations
-  // (cadrage renouveau produit, Lot 1.1).
+  // (bouton "Plus" existant) : le bouton d'en-tête ci-dessous ("•••") reste
+  // réservé au mobile, où la barre basse est strictement limitée à 5
+  // destinations (Aujourd'hui/RUN/création rapide/Projets/Réglages,
+  // renouveau produit v2.2) — Carnet/Hub/Approches métier/Recherche restent
+  // joignables par ce bouton, sans jamais rejoindre la barre basse.
   const isDesktop = useIsDesktop();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
   // premier rendu committé (état "chargement" honnête, sans donnée fictive).
@@ -111,8 +127,24 @@ function AppShell() {
     setRoute({ screen: "workspace-detail", workspaceId });
   }
 
+  /**
+   * Onglet "RUN" (v2.2) : va directement sur l'unique espace RUN s'il n'y
+   * en a qu'un ; sinon (0 ou plusieurs) ouvre la liste des espaces filtrée
+   * sur RUN — jamais de perte d'accès dans le cas 0 (état vide + CTA
+   * création, cf. WorkspaceListScreen) ni dans le cas multi-RUN (liste
+   * complète, un tap pour choisir).
+   */
   function handleNavChange(tab: NavTab) {
     if (tab === "spaces") setRoute({ screen: "spaces-list" });
+    else if (tab === "run") {
+      const runWorkspaces = state.workspaces.filter((candidate) => candidate.kind === "run");
+      const [onlyRunWorkspace] = runWorkspaces;
+      if (runWorkspaces.length === 1 && onlyRunWorkspace) {
+        setRoute({ screen: "workspace-detail", workspaceId: onlyRunWorkspace.id });
+      } else {
+        setRoute({ screen: "spaces-list", kindFilter: "run" });
+      }
+    } else if (tab === "settings") setRoute({ screen: "app-settings" });
     else setRoute({ screen: tab });
   }
 
@@ -138,8 +170,9 @@ function AppShell() {
         </button>
       )}
       <BottomNav
-        active={routeToTab(route)}
+        active={routeToTab(route, workspace?.kind)}
         onChange={handleNavChange}
+        onQuickAdd={() => setQuickAddOpen(true)}
         workspaces={state.workspaces}
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
@@ -171,6 +204,7 @@ function AppShell() {
         {route.screen === "spaces-list" && (
           <WorkspaceListScreen
             timezone={timezone}
+            kindFilter={route.kindFilter}
             onSelect={goToWorkspace}
             onCreate={() => setRoute({ screen: "spaces-create" })}
           />
@@ -282,6 +316,26 @@ function AppShell() {
           </div>
         )}
       </main>
+
+      {quickAddOpen && (
+        <AddActionSheet
+          workspaceOptions={state.workspaces.map((candidate) => ({
+            id: candidate.id,
+            name: candidate.name,
+            kind: candidate.kind,
+          }))}
+          onCancel={() => setQuickAddOpen(false)}
+          onCreate={({ repeat, workspaceId, ...input }) => {
+            if (!workspaceId) return;
+            if (repeat) {
+              createRecurringRule({ workspaceId, ...input, ...repeat });
+            } else {
+              createAction({ workspaceId, ...input });
+            }
+            setQuickAddOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

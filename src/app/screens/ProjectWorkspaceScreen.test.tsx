@@ -18,7 +18,7 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /Aujourd.hui/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     await screen.findByText("Aucun espace pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un espace" }));

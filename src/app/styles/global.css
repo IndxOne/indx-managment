@@ -656,6 +656,14 @@ a {
   cursor: pointer;
 }
 
+/* Densité "Résolu" (v2.2 §3) : neutre, volontairement moins saillant que
+   badge-run/badge-project (une action terminée n'a plus besoin d'attirer
+   l'œil). */
+.badge-resolved {
+  background: var(--color-fill);
+  color: var(--color-text-tertiary);
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .badge-run {
     color: #30d158;
@@ -1168,6 +1176,29 @@ a {
 .bottom-nav-item[aria-current="page"] {
   color: var(--color-accent);
   font-weight: 600;
+}
+
+/* Bouton central de création rapide (Lot 4, v2.2) : légèrement surélevé au
+   milieu de la barre basse mobile, jamais rendu sur desktop (cf.
+   BottomNav.tsx — remplacé côté sidebar par l'entrée "Nouvelle action"). */
+.bottom-nav-fab {
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.bottom-nav-fab-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  transform: translateY(-10px);
+  box-shadow: var(--shadow-thumb);
 }
 
 /* Liste des espaces + création rapide : rendue uniquement à partir de
@@ -1800,10 +1831,48 @@ a {
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--touch-target);
 }
 
 .status-check svg {
   display: block;
+}
+
+/* Équivalent texte de "Traiter" (v2.2 §3/§4) — l'icône seule restait
+   ambiguë ; ce libellé rend visible, sans geste, l'action que le swipe à
+   droite propose déjà. Masqué visuellement nulle part : c'est justement
+   l'alternative non-geste, elle doit être vue. */
+.status-check-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+/* Carte compacte pour une action déjà "Résolu" en RUN (v2.2 §3) : badge +
+   titre + responsable seulement, plus aucune des chips/métadonnées de la
+   carte active — c'est le point du format, pas un oubli. */
+.action-card-resolved {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--touch-target);
+}
+
+.action-card-resolved-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: line-through;
+  text-decoration-color: var(--color-text-tertiary);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
 }
 
 .section-title {

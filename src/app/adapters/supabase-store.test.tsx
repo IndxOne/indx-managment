@@ -160,16 +160,19 @@ describe("App — chargement Supabase", () => {
 
     const loadingLabel = await screen.findByText("Chargement des espaces…");
     expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
-    const weekTab = screen.getByRole("button", { name: "Cette semaine" });
-    await user.click(weekTab);
-    expect(weekTab).toHaveAttribute("aria-current", "page");
+    // "Cette semaine" a rejoint le menu secondaire (renouveau produit v2.2) :
+    // "Réglages" est désormais une destination mobile primaire, on l'utilise
+    // pour vérifier que la barre basse reste interactive pendant le skeleton.
+    const settingsTab = screen.getByRole("button", { name: "Réglages" });
+    await user.click(settingsTab);
+    expect(settingsTab).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();
 
     await act(async () => {
       pendingClient.resolveLoad();
     });
 
-    expect(await screen.findByRole("heading", { name: "Cette semaine" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Réglages" })).toBeInTheDocument();
   });
 });
 

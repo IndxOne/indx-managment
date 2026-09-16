@@ -28,26 +28,32 @@ function stubDesktop() {
 }
 
 describe("BottomNav", () => {
-  it("affiche exactement les 4 destinations primaires sur mobile, sans Plus (cadrage renouveau produit Lot 1.1)", () => {
+  it("affiche exactement les 5 destinations mobiles (Aujourd'hui, RUN, création rapide, Projets, Réglages — renouveau produit v2.2)", () => {
     // jsdom sans matchMedia stubbé = mobile (cf. useIsDesktop).
     render(
       <BottomNav
         active="today"
         onChange={() => {}}
+        onQuickAdd={() => {}}
         workspaces={[]}
         onSelectWorkspace={() => {}}
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Aujourd'hui/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^RUN$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Créer une action ou un projet" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
+    // Cette semaine / Rappels / Plus ne sont plus des destinations mobiles primaires
+    // (elles rejoignent le menu secondaire, cf. more-links.ts) : plus dans cette barre.
+    expect(screen.queryByRole("button", { name: /Cette semaine/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Plus$/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(4);
+    expect(screen.getAllByRole("button")).toHaveLength(5);
   });
 
-  it("conserve un accès Plus au menu secondaire dans la sidebar desktop", () => {
+  it("conserve un accès complet (Aujourd'hui/RUN/Projets/Semaine/Rappels/Réglages/Plus) dans la sidebar desktop", () => {
     stubDesktop();
     render(
       <BottomNav
@@ -58,7 +64,30 @@ describe("BottomNav", () => {
         onCreateWorkspace={() => {}}
       />
     );
+    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^RUN$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("n'affiche aucun bouton central de création rapide sur desktop (remplacé par 'Nouvelle action' dans la sidebar)", () => {
+    stubDesktop();
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        onQuickAdd={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Créer une action ou un projet" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nouvelle action" })).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
 
@@ -73,10 +102,24 @@ describe("BottomNav", () => {
       />
     );
     expect(screen.getByRole("button", { name: /Projets/ })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: /Accueil/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Aujourd'hui/ })).not.toHaveAttribute("aria-current");
   });
 
-  it("marque Rappels actif quand la route courante est reminders", () => {
+  it("marque RUN actif quand la route courante est run", () => {
+    render(
+      <BottomNav
+        active="run"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /^RUN$/ })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("marque Rappels actif sur desktop quand la route courante est reminders", () => {
+    stubDesktop();
     render(
       <BottomNav
         active="reminders"
@@ -87,6 +130,7 @@ describe("BottomNav", () => {
       />
     );
     expect(screen.getByRole("button", { name: /Rappels/ })).toHaveAttribute("aria-current", "page");
+    vi.unstubAllGlobals();
   });
 
   it("chaque cible tactile respecte le minimum 44px (classe tap-target)", () => {
@@ -94,6 +138,7 @@ describe("BottomNav", () => {
       <BottomNav
         active="today"
         onChange={() => {}}
+        onQuickAdd={() => {}}
         workspaces={[]}
         onSelectWorkspace={() => {}}
         onCreateWorkspace={() => {}}
@@ -117,12 +162,29 @@ describe("BottomNav", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Cette semaine/ }));
-    expect(onChange).toHaveBeenCalledWith("week");
+    await user.click(screen.getByRole("button", { name: /^RUN$/ }));
+    expect(onChange).toHaveBeenCalledWith("run");
 
-    screen.getByRole("button", { name: /Rappels/ }).focus();
+    screen.getByRole("button", { name: /Réglages/ }).focus();
     await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith("reminders");
+    expect(onChange).toHaveBeenCalledWith("settings");
+  });
+
+  it("le bouton central appelle onQuickAdd (création rapide, v2.2 §5)", async () => {
+    const user = userEvent.setup();
+    const onQuickAdd = vi.fn();
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        onQuickAdd={onQuickAdd}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Créer une action ou un projet" }));
+    expect(onQuickAdd).toHaveBeenCalledTimes(1);
   });
 
   it("desktop : le bouton Plus de la sidebar appelle onChange au clic et au clavier", async () => {
