@@ -8,9 +8,12 @@ import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { deriveHomeBuckets } from "../utils/home-buckets";
+import { deriveHomeMetrics, selectNearestProjectMilestone, selectUrgentRunAction } from "../utils/home-metrics";
+import { ActionCard } from "../components/ActionCard";
 import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { EditActionSheet } from "../components/EditActionSheet";
+import { IconPlus } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -37,10 +40,16 @@ export function HomeScreen({
   timezone,
   onNavigateToWorkspace,
   onOpenWeek,
+  onOpenRun,
+  onQuickAdd,
 }: {
   timezone: string;
   onNavigateToWorkspace: (workspaceId: string) => void;
   onOpenWeek: () => void;
+  /** "Traiter" du focus RUN (prototype) : ouvre l'onglet RUN — même navigation que le tab BottomNav. Optionnel pour ne pas casser un appelant qui ne le fournirait pas (tests existants). */
+  onOpenRun?: () => void;
+  /** "+ Créer" de l'en-tête (prototype, réalignement v2.2) — ouvre la même création rapide globale que le bouton sidebar desktop. Optionnel : absent = bouton non rendu (comportement inchangé). */
+  onQuickAdd?: () => void;
 }) {
   const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
     useStore();
@@ -71,6 +80,15 @@ export function HomeScreen({
   );
 
   const buckets = useMemo(() => deriveHomeBuckets(allActions, timezone), [allActions, timezone]);
+  const metrics = useMemo(
+    () => deriveHomeMetrics(allActions, state.workspaces, buckets, timezone),
+    [allActions, state.workspaces, buckets, timezone]
+  );
+  const urgentRunAction = useMemo(() => selectUrgentRunAction(state.workspaces, buckets), [state.workspaces, buckets]);
+  const nearestMilestone = useMemo(
+    () => selectNearestProjectMilestone(state.workspaces, buckets),
+    [state.workspaces, buckets]
+  );
 
   function presetFor(workspaceId: string) {
     const workspace = state.workspaces.find((candidate) => candidate.id === workspaceId);
@@ -125,9 +143,92 @@ export function HomeScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Accueil</h1>
+        <h1>Aujourd'hui</h1>
+        {/* "+ Créer" (prototype v2.2) : seul déclencheur mobile de la création
+            rapide globale, en en-tête de l'écran Aujourd'hui (remplace
+            l'ancien bouton central de BottomNav). */}
+        {onQuickAdd && (
+          <button type="button" className="btn btn-primary tap-target home-quick-create" onClick={onQuickAdd}>
+            <IconPlus width={16} height={16} strokeWidth={2.2} /> Créer
+          </button>
+        )}
       </div>
       <div className="app-main">
+        <div className="stat-grid home-metrics-grid">
+          <div className="stat-tile">
+            <div className="stat-tile-value">{metrics.runActiveCount}</div>
+            <div className="stat-tile-label">RUN Actifs</div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-value" style={{ color: "var(--chip-green-text)" }}>
+              {metrics.resolvedTodayCount}
+            </div>
+            <div className="stat-tile-label">Résolus aujourd'hui</div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-value" style={{ color: "var(--color-warning-text)" }}>
+              {metrics.upcomingDeadlineCount}
+            </div>
+            <div className="stat-tile-label">Échéances proches</div>
+          </div>
+          <div className="stat-tile">
+            <div className="stat-tile-value" style={{ color: "var(--color-accent)" }}>
+              {metrics.progressRatio === null ? "—" : `${Math.round(metrics.progressRatio * 100)}%`}
+            </div>
+            <div className="stat-tile-label">Progression</div>
+          </div>
+        </div>
+
+        {(urgentRunAction || nearestMilestone) && (
+          <div className="home-focus-grid">
+            {urgentRunAction && (
+              <section aria-labelledby="section-home-focus-run">
+                <h2 id="section-home-focus-run" className="section-title" style={{ margin: "0 0 var(--space-2)" }}>
+                  Focus RUN Immédiat
+                </h2>
+                <div className="action-card-list">
+                  <ActionCard
+                    action={urgentRunAction}
+                    timezone={timezone}
+                    statusLabels={resolveStatusLabels(urgentRunAction)}
+                    workspaceName={resolveWorkspace(urgentRunAction)?.name}
+                    workspaceKind={resolveWorkspace(urgentRunAction)?.kind}
+                    onOpenWorkspace={() => onNavigateToWorkspace(urgentRunAction.workspaceId)}
+                    onMove={() => setMovingAction(urgentRunAction)}
+                    // "Traiter" du prototype, sur CETTE carte de synthèse précisément,
+                    // navigue vers RUN (switchTab('run')) au lieu de terminer l'action —
+                    // onSwipeComplete est le seul point d'entrée du bouton/geste "Traiter"
+                    // d'ActionCard, réutilisé ici avec cette sémantique de navigation.
+                    onSwipeComplete={onOpenRun}
+                    onOpenDetail={() => setDetailActionId(urgentRunAction.id)}
+                    hideStatusCheck
+                  />
+                </div>
+              </section>
+            )}
+            {nearestMilestone && (
+              <section aria-labelledby="section-home-focus-milestone">
+                <h2 id="section-home-focus-milestone" className="section-title" style={{ margin: "0 0 var(--space-2)" }}>
+                  Jalons Projet
+                </h2>
+                <div className="action-card-list">
+                  <ActionCard
+                    action={nearestMilestone}
+                    timezone={timezone}
+                    statusLabels={resolveStatusLabels(nearestMilestone)}
+                    workspaceName={resolveWorkspace(nearestMilestone)?.name}
+                    workspaceKind={resolveWorkspace(nearestMilestone)?.kind}
+                    onOpenWorkspace={() => onNavigateToWorkspace(nearestMilestone.workspaceId)}
+                    onMove={() => setMovingAction(nearestMilestone)}
+                    onOpenDetail={() => setDetailActionId(nearestMilestone.id)}
+                    hideStatusCheck
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
         {nothingToShow ? (
           <EmptyState title="Rien à afficher" description="Aucune action urgente pour l'instant." />
         ) : (

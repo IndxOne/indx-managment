@@ -1178,29 +1178,6 @@ a {
   font-weight: 600;
 }
 
-/* Bouton central de création rapide (Lot 4, v2.2) : légèrement surélevé au
-   milieu de la barre basse mobile, jamais rendu sur desktop (cf.
-   BottomNav.tsx — remplacé côté sidebar par l'entrée "Nouvelle action"). */
-.bottom-nav-fab {
-  justify-content: flex-start;
-  padding-top: 2px;
-}
-
-.bottom-nav-fab-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 999px;
-  background: var(--color-accent);
-  color: #fff;
-  transform: translateY(-10px);
-  box-shadow: var(--shadow-thumb);
-}
-
 /* Liste des espaces + création rapide : rendue uniquement à partir de
    1024px (cf. useIsDesktop dans BottomNav.tsx, même seuil que la barre
    latérale ci-dessous) — jamais montée sur mobile, où la même information
@@ -1282,6 +1259,26 @@ a {
   .sidebar-workspace-create {
     transition: none;
   }
+}
+
+/* "+ Nouvelle tâche" (prototype v2.2, bouton pinné hors <main>) : toujours
+   épinglé en bas de la sidebar (mt-auto) via margin-top: auto sur ce flex
+   column, quel que soit le nombre d'espaces listés au-dessus. */
+.sidebar-quick-create {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: auto var(--space-5) var(--space-5);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .top-bar {
@@ -1930,6 +1927,46 @@ a {
   margin-top: 2px;
 }
 
+/* Grille de métriques "Aujourd'hui" (prototype v2.2 §5) : 2x2 mobile, passe
+   en 1x4 à partir du desktop (cf. @media 1024px plus bas) — mêmes classes
+   .stat-grid/.stat-tile que HubScreen, aucune duplication de style. */
+.home-metrics-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* "Focus RUN Immédiat" + "Jalons Projet" (prototype) : empilés sur mobile,
+   côte à côte en 2 colonnes à partir du desktop (cf. @media 1024px). */
+.home-focus-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.home-quick-create {
+  width: auto;
+  padding: 0 var(--space-4);
+}
+
+/* Description courte 2 lignes (prototype, carte RUN active) — troncature
+   visuelle uniquement, le texte complet reste dans le détail de l'action. */
+.action-card-desc {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.action-card-resolved-assignee {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40%;
+}
+
 .confirm-diff {
   background: var(--color-fill);
   border-radius: var(--radius);
@@ -2178,6 +2215,14 @@ a {
     align-items: center;
     justify-content: center;
     min-height: calc(100vh - 96px);
+  }
+
+  .home-metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .home-focus-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .bottom-nav {
