@@ -24,6 +24,9 @@ export function ActionListSection({
   onOpenNotes,
   onOpenLink,
   onOpenDetail,
+  onTreat,
+  treatLabel,
+  showDescription,
   phaseOptions,
   members,
 }: {
@@ -53,6 +56,12 @@ export function ActionListSection({
   onOpenLink: (action: Action) => void;
   /** Ouvre le détail unifié (Lot 5) au tap/clic sur le titre. Absent = comportement inchangé (écran pas encore migré). */
   onOpenDetail?: (action: Action) => void;
+  /** Alternative non gestuelle au swipe-pour-terminer, rendue dans un pied de carte séparé (cadrage "Swipe" du renouveau mobile). Absent = pas de bouton "Traiter" (comportement inchangé). */
+  onTreat?: (action: Action) => void;
+  /** Libellé du bouton "Traiter" (défaut porté par ActionCard). */
+  treatLabel?: string;
+  /** Affiche la description (1-2 lignes) sur chaque carte — réservé aux vues où la densité le permet (RUN actif, Home). */
+  showDescription?: boolean;
   /** Phases actuelles de l'espace, pour résoudre un phaseId legacy sur le chip de la carte (Lot 6). Fourni uniquement quand la section a un espace unique connu (ex. vue Semaine de ProjectWorkspaceScreen) — absent dans les vues transversales multi-espaces. */
   phaseOptions?: string[];
   /** Membres de l'espace (Lot 8B) — résolus par action pour l'indicateur compact de la carte. Fourni uniquement en mode Équipe. */
@@ -116,6 +125,9 @@ export function ActionListSection({
               onOpenNotes={() => onOpenNotes(action)}
               onOpenLink={() => onOpenLink(action)}
               onOpenDetail={onOpenDetail ? () => onOpenDetail(action) : undefined}
+              onTreat={onTreat ? () => onTreat(action) : undefined}
+              treatLabel={treatLabel}
+              showDescription={showDescription}
               phaseOptions={phaseOptions}
               assignedMembers={members ? resolveAssignees(members, action.assigneeIds) : undefined}
             />
