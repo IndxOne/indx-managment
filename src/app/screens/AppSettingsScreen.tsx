@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "../push/push-subscription";
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
+import { getCurrentAuthUserId } from "../adapters/supabase/auth";
 import { useStore } from "../adapters/store-context";
 import { buildExportPayload, downloadExport } from "../utils/export-data";
 import { getStoredThemePreference, setThemePreference, type ThemePreference } from "../utils/theme";
@@ -49,7 +50,7 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
     try {
       const client = getSupabaseClient();
       if (pushEnabled) await disablePush(client);
-      else await enablePush(client, currentCode);
+      else await enablePush(client, currentCode, await getCurrentAuthUserId());
       setPushEnabled(!pushEnabled);
     } catch (cause) {
       setPushError(cause instanceof Error ? cause.message : "Activation impossible.");

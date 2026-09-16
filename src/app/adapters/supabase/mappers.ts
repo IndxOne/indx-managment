@@ -26,6 +26,7 @@ import type { CarnetNote, HubSettings } from "../store-context";
 export interface WorkspaceRow {
   id: string;
   user_hash: string;
+  owner_id?: string | null;
   name: string;
   description: string | null;
   kind: string;
@@ -39,6 +40,7 @@ export interface WorkspaceRow {
 export interface ActionRow {
   id: string;
   user_hash: string;
+  owner_id?: string | null;
   workspace_id: string;
   title: string;
   description: string | null;
@@ -74,10 +76,11 @@ export function workspaceFromRow(row: WorkspaceRow): Workspace {
   };
 }
 
-export function workspaceToRow(workspace: Workspace, userHash: string): WorkspaceRow {
+export function workspaceToRow(workspace: Workspace, userHash: string, ownerId: string | null = null): WorkspaceRow {
   return {
     id: workspace.id,
     user_hash: userHash,
+    owner_id: ownerId,
     name: workspace.name,
     description: workspace.description ?? null,
     kind: workspace.kind,
@@ -92,6 +95,7 @@ export function workspaceToRow(workspace: Workspace, userHash: string): Workspac
 export interface RecurrenceRuleRow {
   id: string;
   user_hash: string;
+  owner_id?: string | null;
   workspace_id: string;
   frequency: string;
   interval: number;
@@ -123,10 +127,15 @@ export function recurrenceRuleFromRow(row: RecurrenceRuleRow): RecurrenceRule {
   };
 }
 
-export function recurrenceRuleToRow(rule: RecurrenceRule, userHash: string): Omit<RecurrenceRuleRow, "created_at"> {
+export function recurrenceRuleToRow(
+  rule: RecurrenceRule,
+  userHash: string,
+  ownerId: string | null = null
+): Omit<RecurrenceRuleRow, "created_at"> {
   return {
     id: rule.id,
     user_hash: userHash,
+    owner_id: ownerId,
     workspace_id: rule.workspaceId,
     frequency: rule.frequency,
     interval: rule.interval,
@@ -142,6 +151,7 @@ export function recurrenceRuleToRow(rule: RecurrenceRule, userHash: string): Omi
 export interface CarnetNoteRow {
   id: string;
   user_hash: string;
+  owner_id?: string | null;
   text: string;
   created_at: string;
 }
@@ -150,12 +160,13 @@ export function carnetNoteFromRow(row: CarnetNoteRow): CarnetNote {
   return { id: row.id, text: row.text, createdAt: row.created_at };
 }
 
-export function carnetNoteToRow(note: CarnetNote, userHash: string): CarnetNoteRow {
-  return { id: note.id, user_hash: userHash, text: note.text, created_at: note.createdAt };
+export function carnetNoteToRow(note: CarnetNote, userHash: string, ownerId: string | null = null): CarnetNoteRow {
+  return { id: note.id, user_hash: userHash, owner_id: ownerId, text: note.text, created_at: note.createdAt };
 }
 
 export interface HubSettingsRow {
   user_hash: string;
+  owner_id?: string | null;
   monthly_objective: number | null;
   daily_rate: number | null;
   treasury_forecast: number | null;
@@ -170,9 +181,15 @@ export function hubSettingsFromRow(row: HubSettingsRow): HubSettings {
   };
 }
 
-export function hubSettingsToRow(settings: HubSettings, userHash: string, now: string): HubSettingsRow {
+export function hubSettingsToRow(
+  settings: HubSettings,
+  userHash: string,
+  now: string,
+  ownerId: string | null = null
+): HubSettingsRow {
   return {
     user_hash: userHash,
+    owner_id: ownerId,
     monthly_objective: settings.monthlyObjective,
     daily_rate: settings.dailyRate,
     treasury_forecast: settings.treasuryForecast,
@@ -183,6 +200,7 @@ export function hubSettingsToRow(settings: HubSettings, userHash: string, now: s
 export interface MemberRow {
   id: string;
   user_hash: string;
+  owner_id?: string | null;
   workspace_id: string;
   display_name: string;
   email: string | null;
@@ -205,10 +223,11 @@ export function memberFromRow(row: MemberRow): Member {
   };
 }
 
-export function memberToRow(member: Member, userHash: string): MemberRow {
+export function memberToRow(member: Member, userHash: string, ownerId: string | null = null): MemberRow {
   return {
     id: member.id,
     user_hash: userHash,
+    owner_id: ownerId,
     workspace_id: member.workspaceId,
     display_name: member.displayName,
     email: member.email ?? null,
@@ -244,10 +263,11 @@ export function actionFromRow(row: ActionRow): Action {
   };
 }
 
-export function actionToRow(action: Action, userHash: string): ActionRow {
+export function actionToRow(action: Action, userHash: string, ownerId: string | null = null): ActionRow {
   return {
     id: action.id,
     user_hash: userHash,
+    owner_id: ownerId,
     workspace_id: action.workspaceId,
     title: action.title,
     description: action.description ?? null,

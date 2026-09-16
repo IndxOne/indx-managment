@@ -129,6 +129,12 @@ vi.mock("./supabase/user-hash", () => ({
   getOrCreateUserHash: () => "test-hash",
 }));
 
+// Auth non branchée dans ces scénarios (cf. supabase-store.tsx) : aucune session active.
+vi.mock("./supabase/auth", () => ({
+  getCurrentAuthUserId: async () => null,
+  onAuthStateChange: () => () => {},
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- réassigné avant chaque test par makeMockClient()
 let mockClientInstance: any;
 

@@ -27,6 +27,7 @@ import {
 } from "./supabase/mappers";
 import { createMember } from "../../domain/member";
 import { getOrCreateUserHash } from "./supabase/user-hash";
+import { getCurrentAuthUserId, onAuthStateChange } from "./supabase/auth";
 import { StoreContext, EMPTY_STATE, type AppState, type StoreContextValue, type SyncConflict } from "./store-context";
 
 /** Cherche une action tous espaces confondus (les mutations d'action ne connaissent que son id). */
@@ -80,6 +81,26 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
   const client = useMemo(() => getSupabaseClient(), []);
   const userHash = useMemo(() => getOrCreateUserHash(), []);
+  /**
+   * `owner_id` (Lot rattachement Auth) : `null` tant qu'aucune session
+   * Supabase Auth active n'existe, ce qui est le cas de tous les
+   * utilisateurs actuels (AuthScreen — Lot 1A — reste isolé, non routé).
+   * Aucune régression : les écritures se comportent exactement comme avant
+   * (owner_id absent), la colonne étant nullable côté base.
+   */
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getCurrentAuthUserId().then((id) => {
+      if (!cancelled) setAuthUserId(id);
+    });
+    const unsubscribe = onAuthStateChange((id) => setAuthUserId(id));
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -311,7 +332,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         };
         const workspace = createWorkspace(withId);
         dispatchAndPersist({ type: "workspace/create", input: withId }, async () => {
-          const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash));
+          const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash, authUserId));
           if (error) throw error;
         });
         return workspace;
@@ -376,7 +397,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               createdAt: now,
               updatedAt: now,
             },
-            userHash
+            userHash,
+            authUserId
           );
           const { error } = await client.from("projets_actions").insert(row);
           if (error) throw error;
@@ -386,7 +408,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       createCarnetNote: (text) => {
         const note = { id: generateId(), text, createdAt: new Date().toISOString() };
         dispatchAndPersist({ type: "carnet/create", note }, async () => {
-          const { error } = await client.from("projets_carnet_notes").insert(carnetNoteToRow(note, userHash));
+          const { error } = await client.from("projets_carnet_notes").insert(carnetNoteToRow(note, userHash, authUserId));
           if (error) throw error;
         });
         return note;
@@ -407,7 +429,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           persist: async () => {
             const { error } = await client
               .from("projets_hub_settings")
-              .upsert(hubSettingsToRow(settings, userHash, now), { onConflict: "user_hash" });
+              .upsert(hubSettingsToRow(settings, userHash, now, authUserId), { onConflict: "user_hash" });
             if (error) throw error;
           },
         });
@@ -433,7 +455,8 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
               createdAt: now,
               updatedAt: now,
             },
-            userHash
+            userHash,
+            authUserId
           );
           const { error: insertError } = await client.from("projets_actions").insert(row);
           if (insertError) throw insertError;
@@ -449,14 +472,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         dispatchAndPersist({ type: "recurrence/create", rule, window }, async () => {
           const { error: ruleError } = await client
             .from("projets_recurrence_rules")
-            .insert(recurrenceRuleToRow(rule, userHash));
+            .insert(recurrenceRuleToRow(rule, userHash, authUserId));
           if (ruleError) throw ruleError;
 
           const occurrences = generateRecurringOccurrences(rule, window);
           if (occurrences.length > 0) {
             const { error } = await client
               .from("projets_actions")
-              .insert(occurrences.map((occurrence) => actionToRow(occurrence, userHash)));
+              .insert(occurrences.map((occurrence) => actionToRow(occurrence, userHash, authUserId)));
             if (error) throw error;
           }
         });
@@ -487,14 +510,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const moved = appReducer(state, { type: "action/move", workspaceId, actionId, destination })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!moved) return;
-          const { error } = await client.from("projets_actions").update(actionToRow(moved, userHash)).eq("id", actionId);
+          const { error } = await client.from("projets_actions").update(actionToRow(moved, userHash, authUserId)).eq("id", actionId);
           if (error) throw error;
         });
       },
 
       restoreAction: (workspaceId, action) => {
         dispatchAndPersistAction(action.id, { type: "action/restore", workspaceId, action }, async () => {
-          const { error } = await client.from("projets_actions").update(actionToRow(action, userHash)).eq("id", action.id);
+          const { error } = await client.from("projets_actions").update(actionToRow(action, userHash, authUserId)).eq("id", action.id);
           if (error) throw error;
         });
       },
@@ -555,7 +578,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const updated = appReducer(state, { type: "action/edit", workspaceId, actionId, edit, now })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
-          const { error } = await client.from("projets_actions").update(actionToRow(updated, userHash)).eq("id", actionId);
+          const { error } = await client.from("projets_actions").update(actionToRow(updated, userHash, authUserId)).eq("id", actionId);
           if (error) throw error;
         });
       },
@@ -619,7 +642,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
 
       undoDeleteAction: (workspaceId, action, index) => {
         dispatchAndPersistAction(action.id, { type: "action/undoDelete", workspaceId, action, index }, async () => {
-          const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash));
+          const { error } = await client.from("projets_actions").insert(actionToRow(action, userHash, authUserId));
           if (error) throw error;
         });
       },
@@ -627,7 +650,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       createMember: (input) => {
         const member = createMember({ ...input, id: generateId() });
         dispatchAndPersist({ type: "member/create", member }, async () => {
-          const { error } = await client.from("projets_members").insert(memberToRow(member, userHash));
+          const { error } = await client.from("projets_members").insert(memberToRow(member, userHash, authUserId));
           if (error) throw error;
         });
         return member;
@@ -660,6 +683,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       conflicts,
       client,
       userHash,
+      authUserId,
       dispatchAndPersist,
       dispatchAndPersistAction,
       queueActionPersist,

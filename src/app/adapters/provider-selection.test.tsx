@@ -36,6 +36,11 @@ vi.mock("./supabase/user-hash", () => ({
   getOrCreateUserHash: () => "hash-de-test",
 }));
 
+vi.mock("./supabase/auth", () => ({
+  getCurrentAuthUserId: async () => null,
+  onAuthStateChange: () => () => {},
+}));
+
 describe("App — choix du provider selon isSupabaseConfigured()", () => {
   it("Supabase configuré : passe par SupabaseStoreProvider (skeleton de chargement affiché)", async () => {
     mockConfigured = true;

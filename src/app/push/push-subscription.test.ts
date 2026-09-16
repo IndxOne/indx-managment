@@ -40,8 +40,18 @@ describe("push-subscription", () => {
     expect(upsert).toHaveBeenCalledWith({
       endpoint: "https://push.example/abc",
       user_hash: "hash-1",
+      owner_id: null,
       subscription: { endpoint: "https://push.example/abc", keys: { p256dh: "p", auth: "a" } },
     });
+  });
+
+  it("pose owner_id quand une session Supabase Auth est active", async () => {
+    const { client, upsert } = fakeClient("AQID");
+    fakeRegistration(null);
+    await enablePush(client, "hash-1", "11111111-1111-1111-1111-111111111111");
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ owner_id: "11111111-1111-1111-1111-111111111111" })
+    );
   });
 
   it("refuse tant que le serveur n'a pas de clé VAPID", async () => {
