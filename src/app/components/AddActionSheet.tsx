@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Priority, WorkItemType } from "../../domain/types";
+import type { Priority, WorkItemType, WorkspaceKind } from "../../domain/types";
 import type { RecurrenceFrequency } from "../../recurrence/recurrence-engine";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, phaseLabel, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
@@ -11,11 +11,19 @@ const FREQUENCY_OPTIONS: { value: RecurrenceFrequency; label: string }[] = [
   { value: "monthly", label: "Mensuelle" },
 ];
 
+export interface AddActionSheetWorkspaceOption {
+  id: string;
+  name: string;
+  kind: WorkspaceKind;
+}
+
 export interface AddActionInput {
   title: string;
   itemType: WorkItemType;
   priority: Priority;
   phaseId?: string;
+  /** Présent uniquement quand `workspaceOptions` est fourni (création rapide globale, v2.2) — absent dans les écrans d'espace, où l'espace de destination est déjà connu du contexte appelant. */
+  workspaceId?: string;
   /** Présent seulement si "Répéter cette action" est activé. */
   repeat?: {
     frequency: RecurrenceFrequency;
@@ -29,12 +37,17 @@ export function AddActionSheet({
   phaseOptions,
   defaultPhaseId,
   initialTitle,
+  /** Création rapide globale (v2.2, bouton central de BottomNav) : quand fourni, affiche un sélecteur "Action RUN" / "Tâche Projet" + espace cible, et `onCreate` reçoit `workspaceId`. Absent = comportement inchangé (écrans d'espace, où la destination est déjà fixée). */
+  workspaceOptions,
+  defaultWorkspaceId,
   onCancel,
   onCreate,
 }: {
   phaseOptions?: string[];
   defaultPhaseId?: string;
   initialTitle?: string;
+  workspaceOptions?: AddActionSheetWorkspaceOption[];
+  defaultWorkspaceId?: string;
   onCancel: () => void;
   onCreate: (input: AddActionInput) => void;
 }) {
@@ -43,6 +56,18 @@ export function AddActionSheet({
   const [priority, setPriority] = useState<Priority>("normal");
   const [phaseId, setPhaseId] = useState<string | undefined>(defaultPhaseId ?? phaseOptions?.[0]);
   const [error, setError] = useState<string | null>(null);
+
+  const runOptions = workspaceOptions?.filter((option) => option.kind === "run") ?? [];
+  const projectOptions = workspaceOptions?.filter((option) => option.kind === "project") ?? [];
+  const hasDestinationPicker = Boolean(workspaceOptions);
+  const [destinationKind, setDestinationKind] = useState<WorkspaceKind>(() => {
+    const preset = workspaceOptions?.find((option) => option.id === defaultWorkspaceId);
+    if (preset) return preset.kind;
+    return runOptions.length > 0 ? "run" : "project";
+  });
+  const [workspaceId, setWorkspaceId] = useState<string | undefined>(
+    defaultWorkspaceId ?? (destinationKind === "run" ? runOptions[0]?.id : projectOptions[0]?.id)
+  );
 
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("weekly");
@@ -56,11 +81,15 @@ export function AddActionSheet({
       setError("Le titre est requis.");
       return;
     }
+    if (hasDestinationPicker && !workspaceId) {
+      setError("Choisis un espace de destination.");
+      return;
+    }
     if (repeatEnabled && !intervalValid) {
       setError("L'intervalle de répétition doit être un nombre entier >= 1.");
       return;
     }
-    onCreate({
+    const input: AddActionInput = {
       title: title.trim(),
       itemType,
       priority,
@@ -73,7 +102,13 @@ export function AddActionSheet({
             endDate: endDate || undefined,
           }
         : undefined,
-    });
+    };
+    // N'ajoute la clé que si un sélecteur de destination est affiché : sinon
+    // le spread `{...input}` des écrans d'espace (RunWorkspaceScreen,
+    // ProjectWorkspaceScreen) écraserait leur `workspaceId: workspace.id`
+    // avec `undefined`.
+    if (hasDestinationPicker) input.workspaceId = workspaceId;
+    onCreate(input);
   }
 
   return (
@@ -95,6 +130,80 @@ export function AddActionSheet({
           </p>
         )}
       </div>
+
+      {hasDestinationPicker && (
+        <fieldset className="field" style={{ border: "none", padding: 0 }}>
+          <legend style={{ fontWeight: 600, marginBottom: 8 }}>Destination</legend>
+          <div className="choice-group" role="radiogroup" aria-label="Destination">
+            <label className="choice-option">
+              <input
+                type="radio"
+                name="quick-add-destination-kind"
+                checked={destinationKind === "run"}
+                disabled={runOptions.length === 0}
+                onChange={() => {
+                  setDestinationKind("run");
+                  setWorkspaceId(runOptions[0]?.id);
+                }}
+              />
+              Action RUN
+            </label>
+            <label className="choice-option">
+              <input
+                type="radio"
+                name="quick-add-destination-kind"
+                checked={destinationKind === "project"}
+                disabled={projectOptions.length === 0}
+                onChange={() => {
+                  setDestinationKind("project");
+                  setWorkspaceId(projectOptions[0]?.id);
+                }}
+              />
+              Tâche Projet
+            </label>
+          </div>
+
+          {destinationKind === "run" &&
+            (runOptions.length === 0 ? (
+              <p className="action-sub">Aucun espace RUN pour l'instant.</p>
+            ) : runOptions.length > 1 ? (
+              <div className="field">
+                <label htmlFor="quick-add-run-target">Espace RUN</label>
+                <select
+                  id="quick-add-run-target"
+                  value={workspaceId}
+                  onChange={(event) => setWorkspaceId(event.target.value)}
+                >
+                  {runOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null)}
+
+          {destinationKind === "project" &&
+            (projectOptions.length === 0 ? (
+              <p className="action-sub">Aucun projet pour l'instant.</p>
+            ) : (
+              <div className="field">
+                <label htmlFor="quick-add-project-target">Projet cible</label>
+                <select
+                  id="quick-add-project-target"
+                  value={workspaceId}
+                  onChange={(event) => setWorkspaceId(event.target.value)}
+                >
+                  {projectOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+        </fieldset>
+      )}
 
       <div className="field">
         <label htmlFor="new-action-type">Type</label>
