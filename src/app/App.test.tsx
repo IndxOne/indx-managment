@@ -83,7 +83,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     expect(await screen.findByRole("heading", { name: "RUN quotidien" })).toBeInTheDocument();
   });
 
-  it("le bouton central de création rapide crée une action dans l'espace RUN par défaut (placeholder minimal, non un bouton mort)", async () => {
+  it("le bouton central de création rapide ouvre « Que voulez-vous créer ? » puis crée une action RUN (Lot B, plus un placeholder)", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -96,6 +96,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await user.click(screen.getByRole("button", { name: /Accueil/ }));
     await user.click(screen.getByRole("button", { name: "Créer une action" }));
+
+    // Un seul espace RUN existe : l'étape de sélection d'espace est sautée,
+    // directement le formulaire (même règle que RunHubScreen).
+    expect(await screen.findByText("Choisissez le type d'élément à créer")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Action RUN/ }));
     await user.type(screen.getByLabelText("Titre"), "Créée depuis le bouton central");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 
@@ -103,5 +108,28 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await user.click(screen.getByRole("button", { name: /^RUN/ }));
     expect(await screen.findByText("Créée depuis le bouton central")).toBeInTheDocument();
+  });
+
+  it("« Que voulez-vous créer ? » propose une Tâche Projet rattachée au bon espace PROJET", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.type(screen.getByLabelText("Nom de l'espace"), "Refonte site client");
+    await user.click(screen.getByLabelText(/Projet avec étapes/));
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+    await screen.findByRole("heading", { name: "Refonte site client" });
+
+    await user.click(screen.getByRole("button", { name: /Accueil/ }));
+    await user.click(screen.getByRole("button", { name: "Créer une action" }));
+
+    expect(await screen.findByText("Choisissez le type d'élément à créer")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Tâche Projet/ }));
+    await user.type(screen.getByLabelText("Titre"), "Rédiger le brief");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+
+    expect(await screen.findByText(/créée dans Refonte site client/)).toBeInTheDocument();
   });
 });

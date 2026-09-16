@@ -26,9 +26,8 @@ import { RunHubScreen } from "./screens/RunHubScreen";
 import { RunWorkspaceScreen } from "./screens/RunWorkspaceScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
-import { AddActionSheet } from "./components/AddActionSheet";
+import { QuickCreateSheet } from "./components/QuickCreateSheet";
 import { ToastProvider, useToast } from "./components/Toast";
-import { resolveQuickCreateWorkspace } from "./utils/quick-create-target";
 
 type Route =
   | { screen: "today" }
@@ -115,10 +114,10 @@ function AppShell() {
   // (cadrage renouveau produit, Lot 1.1).
   const isDesktop = useIsDesktop();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  // Placeholder minimal du bouton central de création rapide (Lot A — le
-  // vrai sélecteur "Que voulez-vous créer ?" est le travail du Lot B) :
-  // ouvre AddActionSheet (existant, inchangé) directement sur l'espace cible
-  // résolu ci-dessous, jamais un bouton mort.
+  // Bouton central de création rapide (Lot B) : ouvre le sélecteur "Que
+  // voulez-vous créer ?" (QuickCreateSheet), qui choisit lui-même la
+  // destination (RUN / Projet / nouvel espace) avant de déléguer la création
+  // à AddActionSheet + useStore().createAction, jamais un bouton mort.
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
@@ -141,13 +140,11 @@ function AppShell() {
     else setRoute({ screen: tab });
   }
 
-  const quickCreateWorkspace = resolveQuickCreateWorkspace(state.workspaces);
-
   function openQuickCreate() {
     // Aucun espace du tout : rien à créer dedans, on envoie directement vers
-    // la création d'espace plutôt que d'ouvrir un formulaire sans cible
+    // la création d'espace plutôt que d'ouvrir un sélecteur sans cible
     // possible (jamais un bouton qui ne fait rien).
-    if (!quickCreateWorkspace) {
+    if (state.workspaces.length === 0) {
       setRoute({ screen: "spaces-create" });
       return;
     }
@@ -333,22 +330,30 @@ function AppShell() {
         )}
       </main>
 
-      {quickCreateOpen && quickCreateWorkspace && (
-        <AddActionSheet
+      {quickCreateOpen && (
+        <QuickCreateSheet
+          workspaces={state.workspaces}
+          membersByWorkspace={state.membersByWorkspace ?? {}}
           onCancel={() => setQuickCreateOpen(false)}
-          onCreate={(input) => {
-            // Placeholder minimal (Lot A) : pas de répétition depuis la
-            // création rapide globale, seul le formulaire complet d'un
-            // espace (RunWorkspaceScreen) la propose.
+          onCreateProject={() => {
+            setQuickCreateOpen(false);
+            setRoute({ screen: "spaces-create" });
+          }}
+          onCreateAction={(targetWorkspace, input) => {
+            // Pas de répétition depuis la création rapide globale : seul le
+            // formulaire complet d'un espace (Run/ProjectWorkspaceScreen) la
+            // propose (comportement inchangé depuis le Lot A).
             createAction({
-              workspaceId: quickCreateWorkspace.id,
+              workspaceId: targetWorkspace.id,
               title: input.title,
               itemType: input.itemType,
               priority: input.priority,
               phaseId: input.phaseId,
+              schedule: input.schedule,
+              assigneeIds: input.assigneeIds,
             });
             setQuickCreateOpen(false);
-            showToast(`« ${input.title} » créée dans ${quickCreateWorkspace.name}.`);
+            showToast(`« ${input.title} » créée dans ${targetWorkspace.name}.`);
           }}
         />
       )}
