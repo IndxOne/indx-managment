@@ -22,7 +22,10 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     // Navigation immédiate vers l'écran RUN de l'espace créé.
     expect(await screen.findByRole("heading", { name: "RUN SI quotidien" })).toBeInTheDocument();
-    expect(screen.getByText("RUN")).toBeInTheDocument();
+    // "RUN" apparaît maintenant aussi comme onglet primaire de la barre basse
+    // (cadrage renouveau mobile Lot A) — on cible ici précisément le badge de
+    // nature d'espace, pas le libellé de l'onglet.
+    expect(screen.getByText("RUN", { selector: ".badge-run" })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Nouvelle action"), "Investiguer les droits d'accès");
     await user.click(screen.getByRole("button", { name: "Ajouter" }));
@@ -60,5 +63,45 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     // De retour sur l'espace, l'action est toujours là.
     expect(await screen.findByText("Action persistante")).toBeInTheDocument();
+  });
+
+  it("l'onglet RUN saute directement dans l'espace RUN unique, sans étape de sélection (cadrage renouveau mobile Lot A)", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+    await screen.findByRole("heading", { name: "RUN quotidien" });
+
+    // Retour à Accueil, puis l'onglet RUN doit rouvrir directement l'espace,
+    // sans passer par une liste intermédiaire.
+    await user.click(screen.getByRole("button", { name: /Accueil/ }));
+    await user.click(screen.getByRole("button", { name: /^RUN/ }));
+    expect(await screen.findByRole("heading", { name: "RUN quotidien" })).toBeInTheDocument();
+  });
+
+  it("le bouton central de création rapide crée une action dans l'espace RUN par défaut (placeholder minimal, non un bouton mort)", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+    await screen.findByRole("heading", { name: "RUN quotidien" });
+
+    await user.click(screen.getByRole("button", { name: /Accueil/ }));
+    await user.click(screen.getByRole("button", { name: "Créer une action" }));
+    await user.type(screen.getByLabelText("Titre"), "Créée depuis le bouton central");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+
+    expect(await screen.findByText(/créée dans RUN quotidien/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^RUN/ }));
+    expect(await screen.findByText("Créée depuis le bouton central")).toBeInTheDocument();
   });
 });
