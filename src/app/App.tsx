@@ -60,7 +60,11 @@ function routeToTab(route: Route, workspaceKind?: Workspace["kind"]): NavTab {
       return "reminders";
     case "app-settings":
     case "auth":
-      return "settings";
+      // Réglages n'est plus une destination primaire de BottomNav (retour au
+      // menu secondaire, cf. more-links.ts) : sur mobile, c'est le
+      // déclencheur "•••" qui doit paraître actif ici, pas un onglet dédié
+      // qui n'existe plus dans la barre.
+      return "more";
     case "more":
     case "carnet":
     case "hub":
@@ -188,6 +192,8 @@ function AppShell() {
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
             onOpenWeek={() => setRoute({ screen: "week" })}
+            onOpenRun={() => handleNavChange("run")}
+            onQuickAdd={() => setQuickAddOpen(true)}
           />
         )}
 
@@ -325,12 +331,12 @@ function AppShell() {
             kind: candidate.kind,
           }))}
           onCancel={() => setQuickAddOpen(false)}
-          onCreate={({ repeat, workspaceId, ...input }) => {
+          onCreate={({ repeat, workspaceId, dueDate, ...input }) => {
             if (!workspaceId) return;
             if (repeat) {
               createRecurringRule({ workspaceId, ...input, ...repeat });
             } else {
-              createAction({ workspaceId, ...input });
+              createAction({ workspaceId, ...input, schedule: dueDate ? { granularity: "day", value: dueDate } : undefined });
             }
             setQuickAddOpen(false);
           }}

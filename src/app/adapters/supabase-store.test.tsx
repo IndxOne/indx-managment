@@ -160,19 +160,19 @@ describe("App — chargement Supabase", () => {
 
     const loadingLabel = await screen.findByText("Chargement des espaces…");
     expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
-    // "Cette semaine" a rejoint le menu secondaire (renouveau produit v2.2) :
-    // "Réglages" est désormais une destination mobile primaire, on l'utilise
-    // pour vérifier que la barre basse reste interactive pendant le skeleton.
-    const settingsTab = screen.getByRole("button", { name: "Réglages" });
-    await user.click(settingsTab);
-    expect(settingsTab).toHaveAttribute("aria-current", "page");
+    // Réalignement prototype v2.2 : la barre basse mobile a exactement 3
+    // destinations (Aujourd'hui/RUN/Projets) — "Projets" sert ici à vérifier
+    // qu'elle reste interactive pendant le skeleton.
+    const spacesTab = screen.getByRole("button", { name: /Projets/ });
+    await user.click(spacesTab);
+    expect(spacesTab).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();
 
     await act(async () => {
       pendingClient.resolveLoad();
     });
 
-    expect(await screen.findByRole("heading", { name: "Réglages" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Mes projets" })).toBeInTheDocument();
   });
 });
 

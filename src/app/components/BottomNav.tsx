@@ -1,40 +1,32 @@
 import type { Workspace } from "../../domain/workspace";
 import { useIsDesktop } from "../hooks/useIsDesktop";
-import { IconBell, IconCalendar, IconGrid, IconLayers, IconMore, IconPlus, IconSettings, IconSun } from "./Icons";
+import { IconGrid, IconLayers, IconMore, IconPlus, IconSun } from "./Icons";
 
 export type NavTab = "today" | "run" | "spaces" | "week" | "reminders" | "settings" | "more";
 
 /**
- * Barre basse mobile — renouveau produit v2.2 : 5 destinations fixes
- * (Aujourd'hui, RUN, création rapide au centre, Projets, Réglages). "Cette
- * semaine" et "Rappels", primaires jusqu'ici, rejoignent le menu secondaire
- * (cf. more-links.ts) — toujours joignables (bouton "•••" mobile, ou via
- * Réglages) mais plus dans cette barre. Reshuffle explicite et validé côté
- * produit, pas une régression de couverture.
+ * Barre basse mobile — réalignement sur le prototype exact (v2.2) : 3
+ * destinations fixes (Aujourd'hui, RUN, Projets), comme `tab-today` /
+ * `tab-run` / `tab-projects` du prototype. Plus de bouton central de
+ * création (remplacé par le "+ Créer" contextuel de l'écran Aujourd'hui) ni
+ * de Réglages primaire (retourne dans le menu secondaire "•••", cf.
+ * more-links.ts — c'était déjà sa place avant ce lot, restauré tel quel).
  */
 const MOBILE_TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
   { id: "today", label: "Aujourd'hui", Icon: IconSun },
   { id: "run", label: "RUN", Icon: IconLayers },
-];
-
-const MOBILE_TABS_TRAILING: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
   { id: "spaces", label: "Projets", Icon: IconGrid },
-  { id: "settings", label: "Réglages", Icon: IconSettings },
 ];
 
 /**
- * Desktop : sidebar plus généreuse en largeur, on peut se permettre d'y
- * exposer directement toutes les destinations fonctionnelles (pas de geste
- * de swipe pour compenser, pas de bouton central flottant qui aurait
- * moins de sens à la souris) plutôt que de les replier dans "Plus".
+ * Desktop : sidebar plus généreuse en largeur, mêmes 3 destinations que le
+ * prototype (`desk-nav-today/run/projects`) — "Cette semaine"/"Rappels"
+ * restent joignables via "Plus", pas dans la nav primaire.
  */
 const DESKTOP_TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
-  { id: "today", label: "Accueil", Icon: IconSun },
+  { id: "today", label: "Aujourd'hui", Icon: IconSun },
   { id: "run", label: "RUN", Icon: IconLayers },
   { id: "spaces", label: "Projets", Icon: IconGrid },
-  { id: "week", label: "Cette semaine", Icon: IconCalendar },
-  { id: "reminders", label: "Rappels", Icon: IconBell },
-  { id: "settings", label: "Réglages", Icon: IconSettings },
 ];
 
 export function BottomNav({
@@ -49,9 +41,11 @@ export function BottomNav({
   active: NavTab;
   onChange: (tab: NavTab) => void;
   /**
-   * Création rapide (Lot 4, v2.2) : bouton central sur mobile, entrée
-   * "Nouvelle action" dans la sidebar desktop. Optionnel pour ne pas casser
-   * un appelant qui ne le fournirait pas encore (tests existants).
+   * Création rapide (v2.2, réalignement prototype) : sur desktop, bouton
+   * "+ Nouvelle tâche" épinglé en bas de la sidebar (équivalent du bouton
+   * hors `<main>` du prototype). Sur mobile, le déclencheur vit désormais
+   * dans l'en-tête de l'écran "Aujourd'hui" (cf. HomeScreen), plus dans
+   * cette barre — `onQuickAdd` n'a donc d'effet qu'en desktop ici.
    */
   onQuickAdd?: () => void;
   /** Liste des espaces affichée dans la barre latérale à partir de 1024px (masquée en CSS sur mobile, cf. .sidebar-workspaces). */
@@ -82,33 +76,6 @@ export function BottomNav({
         </button>
       ))}
 
-      {!isDesktop && onQuickAdd && (
-        <button
-          type="button"
-          className="bottom-nav-item bottom-nav-fab tap-target"
-          aria-label="Créer une action ou un projet"
-          onClick={onQuickAdd}
-        >
-          <span className="bottom-nav-fab-circle">
-            <IconPlus width={22} height={22} strokeWidth={2.4} />
-          </span>
-        </button>
-      )}
-
-      {!isDesktop &&
-        MOBILE_TABS_TRAILING.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className="bottom-nav-item tap-target"
-            aria-current={active === id ? "page" : undefined}
-            onClick={() => onChange(id)}
-          >
-            <Icon width={24} height={24} strokeWidth={1.6} />
-            <span>{label}</span>
-          </button>
-        ))}
-
       {isDesktop && (
         <button
           type="button"
@@ -123,12 +90,6 @@ export function BottomNav({
 
       {isDesktop && (
         <div className="sidebar-workspaces">
-          {onQuickAdd && (
-            <button type="button" className="sidebar-workspace-create tap-target" onClick={onQuickAdd}>
-              <IconPlus width={14} height={14} strokeWidth={2} />
-              Nouvelle action
-            </button>
-          )}
           <span className="sidebar-workspaces-title">Mes espaces</span>
           <ul className="sidebar-workspace-list">
             {workspaces.map((workspace) => {
@@ -153,6 +114,16 @@ export function BottomNav({
             Nouveau projet
           </button>
         </div>
+      )}
+
+      {/* "+ Nouvelle tâche" (prototype : bouton pinné hors <main>, mt-auto) :
+          toujours visible en bas de la sidebar quel que soit l'écran actif,
+          ouvre la même création rapide globale que le "+ Créer" mobile. */}
+      {isDesktop && onQuickAdd && (
+        <button type="button" className="sidebar-quick-create tap-target" onClick={onQuickAdd}>
+          <IconPlus width={16} height={16} strokeWidth={2.2} />
+          Nouvelle tâche
+        </button>
       )}
     </nav>
   );

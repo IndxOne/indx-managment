@@ -28,8 +28,32 @@ function stubDesktop() {
 }
 
 describe("BottomNav", () => {
-  it("affiche exactement les 5 destinations mobiles (Aujourd'hui, RUN, création rapide, Projets, Réglages — renouveau produit v2.2)", () => {
+  it("affiche exactement les 3 destinations mobiles du prototype (Aujourd'hui, RUN, Projets — réalignement v2.2)", () => {
     // jsdom sans matchMedia stubbé = mobile (cf. useIsDesktop).
+    render(
+      <BottomNav
+        active="today"
+        onChange={() => {}}
+        workspaces={[]}
+        onSelectWorkspace={() => {}}
+        onCreateWorkspace={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Aujourd'hui/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^RUN$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
+    // Plus de bouton central de création, plus de Réglages primaire (retour
+    // au menu secondaire, cf. more-links.ts) : plus dans cette barre.
+    expect(screen.queryByRole("button", { name: "Créer une action ou un projet" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Réglages/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cette semaine/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Plus$/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(3);
+  });
+
+  it("conserve les 3 mêmes destinations côté desktop, plus Plus (accès Semaine/Rappels/Réglages/Carnet/Hub/Approches/Recherche) et 'Nouvelle tâche' épinglée", () => {
+    stubDesktop();
     render(
       <BottomNav
         active="today"
@@ -42,40 +66,37 @@ describe("BottomNav", () => {
     );
     expect(screen.getByRole("button", { name: /Aujourd'hui/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^RUN$/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Créer une action ou un projet" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
-    // Cette semaine / Rappels / Plus ne sont plus des destinations mobiles primaires
-    // (elles rejoignent le menu secondaire, cf. more-links.ts) : plus dans cette barre.
+    expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nouvelle tâche" })).toBeInTheDocument();
+    // Cette semaine/Rappels/Réglages ne sont plus des onglets primaires desktop
+    // non plus (réalignement exact sur le prototype) : plus dans cette barre.
     expect(screen.queryByRole("button", { name: /Cette semaine/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Plus$/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(5);
+    expect(screen.queryByRole("button", { name: /Réglages/ })).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 
-  it("conserve un accès complet (Aujourd'hui/RUN/Projets/Semaine/Rappels/Réglages/Plus) dans la sidebar desktop", () => {
+  it("desktop : le bouton 'Nouvelle tâche' épinglé appelle onQuickAdd", async () => {
     stubDesktop();
+    const user = userEvent.setup();
+    const onQuickAdd = vi.fn();
     render(
       <BottomNav
         active="today"
         onChange={() => {}}
+        onQuickAdd={onQuickAdd}
         workspaces={[]}
         onSelectWorkspace={() => {}}
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^RUN$/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Nouvelle tâche" }));
+    expect(onQuickAdd).toHaveBeenCalledTimes(1);
     vi.unstubAllGlobals();
   });
 
-  it("n'affiche aucun bouton central de création rapide sur desktop (remplacé par 'Nouvelle action' dans la sidebar)", () => {
-    stubDesktop();
+  it("mobile : n'affiche aucun bouton de création rapide (déplacé dans l'en-tête 'Aujourd'hui', cf. HomeScreen)", () => {
     render(
       <BottomNav
         active="today"
@@ -86,9 +107,8 @@ describe("BottomNav", () => {
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.queryByRole("button", { name: "Créer une action ou un projet" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nouvelle action" })).toBeInTheDocument();
-    vi.unstubAllGlobals();
+    expect(screen.queryByRole("button", { name: /Nouvelle tâche/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Créer/ })).not.toBeInTheDocument();
   });
 
   it("marque l'onglet actif avec aria-current", () => {
@@ -118,18 +138,18 @@ describe("BottomNav", () => {
     expect(screen.getByRole("button", { name: /^RUN$/ })).toHaveAttribute("aria-current", "page");
   });
 
-  it("marque Rappels actif sur desktop quand la route courante est reminders", () => {
+  it("marque Plus actif sur desktop quand la route courante mappe sur 'more' (ex. Réglages)", () => {
     stubDesktop();
     render(
       <BottomNav
-        active="reminders"
+        active="more"
         onChange={() => {}}
         workspaces={[]}
         onSelectWorkspace={() => {}}
         onCreateWorkspace={() => {}}
       />
     );
-    expect(screen.getByRole("button", { name: /Rappels/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /^Plus$/ })).toHaveAttribute("aria-current", "page");
     vi.unstubAllGlobals();
   });
 
@@ -138,7 +158,6 @@ describe("BottomNav", () => {
       <BottomNav
         active="today"
         onChange={() => {}}
-        onQuickAdd={() => {}}
         workspaces={[]}
         onSelectWorkspace={() => {}}
         onCreateWorkspace={() => {}}
@@ -165,26 +184,9 @@ describe("BottomNav", () => {
     await user.click(screen.getByRole("button", { name: /^RUN$/ }));
     expect(onChange).toHaveBeenCalledWith("run");
 
-    screen.getByRole("button", { name: /Réglages/ }).focus();
+    screen.getByRole("button", { name: /Projets/ }).focus();
     await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith("settings");
-  });
-
-  it("le bouton central appelle onQuickAdd (création rapide, v2.2 §5)", async () => {
-    const user = userEvent.setup();
-    const onQuickAdd = vi.fn();
-    render(
-      <BottomNav
-        active="today"
-        onChange={() => {}}
-        onQuickAdd={onQuickAdd}
-        workspaces={[]}
-        onSelectWorkspace={() => {}}
-        onCreateWorkspace={() => {}}
-      />
-    );
-    await user.click(screen.getByRole("button", { name: "Créer une action ou un projet" }));
-    expect(onQuickAdd).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("spaces");
   });
 
   it("desktop : le bouton Plus de la sidebar appelle onChange au clic et au clavier", async () => {

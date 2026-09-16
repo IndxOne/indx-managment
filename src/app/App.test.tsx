@@ -66,8 +66,8 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
   });
 });
 
-describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide / Projets / Réglages)", () => {
-  it("navigue Aujourd'hui → RUN → Projets → Réglages", async () => {
+describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / Projets — réalignement prototype)", () => {
+  it("navigue Aujourd'hui → RUN → Projets, et Réglages depuis le menu secondaire '•••'", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -83,7 +83,7 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
 
     // Aujourd'hui.
     await user.click(screen.getByRole("button", { name: /Aujourd.hui/ }));
-    expect(await screen.findByRole("heading", { name: "Accueil" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Aujourd'hui" })).toBeInTheDocument();
 
     // RUN : un seul espace RUN -> va dessus directement, pas une liste à filtrer.
     await user.click(screen.getByRole("button", { name: /^RUN$/ }));
@@ -93,7 +93,10 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     expect(await screen.findByRole("heading", { name: "Mes projets" })).toBeInTheDocument();
 
-    // Réglages.
+    // Réglages n'est plus un onglet primaire de la barre basse (réalignement
+    // v2.2 sur le prototype, 3 destinations exactes) : rejoint depuis "•••".
+    expect(screen.queryByRole("button", { name: "Réglages" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Menu secondaire/ }));
     await user.click(screen.getByRole("button", { name: "Réglages" }));
     expect(await screen.findByRole("heading", { name: "Réglages" })).toBeInTheDocument();
   });
@@ -109,7 +112,7 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
     expect(screen.getByText("Aucun espace RUN pour l'instant")).toBeInTheDocument();
   });
 
-  it("création rapide (bouton central) : crée une Action RUN et la retrouve dans l'espace RUN", async () => {
+  it("création rapide ('+ Créer' de l'en-tête Aujourd'hui) : crée une Action RUN et la retrouve dans l'espace RUN", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -120,7 +123,10 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Support quotidien" });
 
-    await user.click(screen.getByRole("button", { name: "Créer une action ou un projet" }));
+    // Prototype v2.2 : "+ Créer" vit dans l'en-tête de l'écran Aujourd'hui,
+    // plus dans la barre basse.
+    await user.click(screen.getByRole("button", { name: /Aujourd.hui/ }));
+    await user.click(screen.getByRole("button", { name: /Créer/ }));
     expect(screen.getByRole("radio", { name: "Action RUN" })).toBeChecked();
     await user.type(screen.getByLabelText("Titre"), "Investiguer un incident");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
@@ -129,7 +135,7 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
     expect(await screen.findByText("Investiguer un incident")).toBeInTheDocument();
   });
 
-  it("création rapide (bouton central) : crée une Tâche Projet sur le projet choisi", async () => {
+  it("création rapide ('+ Créer' de l'en-tête Aujourd'hui) : crée une Tâche Projet sur le projet choisi", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -141,18 +147,19 @@ describe("App — barre basse mobile v2.2 (Aujourd'hui / RUN / création rapide 
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Refonte CRM" });
 
-    await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(screen.getByRole("button", { name: "Créer une action ou un projet" }));
+    await user.click(screen.getByRole("button", { name: /Aujourd.hui/ }));
+    await user.click(screen.getByRole("button", { name: /Créer/ }));
     await user.click(screen.getByRole("radio", { name: "Tâche Projet" }));
     await user.type(screen.getByLabelText("Titre"), "Rédiger le cahier des charges");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
     await user.click(screen.getByText("Refonte CRM"));
     expect(await screen.findByText("Rédiger le cahier des charges")).toBeInTheDocument();
   });
 });
 
-describe("App — desktop (v2.2 : pas de bouton central flottant, sidebar complète)", () => {
+describe("App — desktop (v2.2 : réalignement prototype, 'Nouvelle tâche' épinglée en sidebar)", () => {
   function stubDesktop() {
     const matchMedia = vi.fn().mockReturnValue({
       matches: true,
@@ -162,13 +169,14 @@ describe("App — desktop (v2.2 : pas de bouton central flottant, sidebar compl�
     vi.stubGlobal("matchMedia", matchMedia);
   }
 
-  it("n'affiche pas le bouton central mobile ; \"Nouvelle action\" vit dans la sidebar", async () => {
+  it("affiche 'Nouvelle tâche' épinglée dans la sidebar, qui ouvre la même création rapide globale", async () => {
     stubDesktop();
+    const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
-    expect(screen.queryByRole("button", { name: "Créer une action ou un projet" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nouvelle action" })).toBeInTheDocument();
+    await screen.findByRole("button", { name: /Aujourd.hui/ });
+    await user.click(screen.getByRole("button", { name: "Nouvelle tâche" }));
+    expect(screen.getByLabelText("Titre")).toBeInTheDocument();
 
     vi.unstubAllGlobals();
   });
