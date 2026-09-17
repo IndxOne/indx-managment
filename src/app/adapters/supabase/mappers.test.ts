@@ -82,6 +82,11 @@ describe("workspaceToRow / workspaceFromRow", () => {
     expect(row.description).toBeNull();
     expect(workspaceFromRow(row).description).toBeUndefined();
   });
+
+  it("owner_id absent par défaut (aucune session Auth), posé si fourni", () => {
+    expect(workspaceToRow(workspace(), USER_HASH).owner_id).toBeNull();
+    expect(workspaceToRow(workspace(), USER_HASH, "auth-uid-1").owner_id).toBe("auth-uid-1");
+  });
 });
 
 describe("actionToRow / actionFromRow", () => {

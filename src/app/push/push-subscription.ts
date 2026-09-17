@@ -23,7 +23,11 @@ export async function isPushEnabled(): Promise<boolean> {
   return isPushSupported() && (await currentSubscription()) !== null;
 }
 
-export async function enablePush(client: SupabaseClient, userHash: string): Promise<void> {
+export async function enablePush(
+  client: SupabaseClient,
+  userHash: string,
+  ownerId: string | null = null
+): Promise<void> {
   const { data: publicKey, error: keyError } = await client.rpc("projets_push_public_key");
   if (keyError) throw keyError;
   if (typeof publicKey !== "string") throw new Error("Serveur de notifications pas encore initialisé.");
@@ -37,7 +41,7 @@ export async function enablePush(client: SupabaseClient, userHash: string): Prom
   });
   const { error } = await client
     .from(TABLE)
-    .upsert({ endpoint: subscription.endpoint, user_hash: userHash, subscription: subscription.toJSON() });
+    .upsert({ endpoint: subscription.endpoint, user_hash: userHash, owner_id: ownerId, subscription: subscription.toJSON() });
   if (error) {
     await subscription.unsubscribe();
     throw error;

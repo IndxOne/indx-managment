@@ -3,10 +3,16 @@ import type { Member } from "../../domain/member";
 import { ITEM_TYPE_LABELS, ITEM_TYPE_OPTIONS, PRIORITY_LABELS } from "../labels";
 import { BottomSheet } from "./BottomSheet";
 import { StatusCheckIcon } from "./Icons";
-import type { ActionFilters, AssigneeFilter } from "../utils/filter-actions";
+import type { ActionFilters, AssigneeFilter, DueBucket } from "../utils/filter-actions";
 
 const STATUS_OPTIONS: ActionStatus[] = ["todo", "doing", "blocked", "waiting", "done"];
 const PRIORITY_OPTIONS: Priority[] = ["high", "normal", "low"];
+const DUE_BUCKET_OPTIONS: { value: DueBucket; label: string }[] = [
+  { value: "overdue", label: "En retard" },
+  { value: "today", label: "Aujourd'hui" },
+  { value: "this_week", label: "Cette semaine" },
+  { value: "unscheduled", label: "Sans échéance" },
+];
 
 export function FilterSheet({
   filters,
@@ -80,6 +86,25 @@ export function FilterSheet({
               onChange={() => onChange({ ...filters, itemTypes: toggle(filters.itemTypes, itemType) })}
             />
             {ITEM_TYPE_LABELS[itemType]}
+          </label>
+        ))}
+      </div>
+
+      <p className="section-title">Échéance</p>
+      <div className="choice-group">
+        {DUE_BUCKET_OPTIONS.map((option) => (
+          <label key={option.value} className="choice-option">
+            <input
+              type="checkbox"
+              checked={filters.dueBuckets.has(option.value)}
+              onChange={() =>
+                onChange({
+                  ...filters,
+                  dueBuckets: toggle(filters.dueBuckets, option.value),
+                })
+              }
+            />
+            {option.label}
           </label>
         ))}
       </div>

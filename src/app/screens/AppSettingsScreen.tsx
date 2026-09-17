@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
 import { disablePush, enablePush, isPushEnabled, isPushSupported } from "../push/push-subscription";
 import { getOrCreateUserHash, setUserHash } from "../adapters/supabase/user-hash";
+import { getCurrentAuthUserId } from "../adapters/supabase/auth";
 import { useStore } from "../adapters/store-context";
 import { buildExportPayload, downloadExport } from "../utils/export-data";
 import { getStoredThemePreference, setThemePreference, type ThemePreference } from "../utils/theme";
@@ -16,12 +17,20 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 ];
 
 /**
- * Réglages globaux (pas de compte Supabase Auth — cf. supabase-store.tsx) :
- * le seul réglage transversal utile aujourd'hui est le code de
- * synchronisation, seul moyen de retrouver ses données depuis un autre
- * navigateur/appareil (voir user-hash.ts).
+ * Réglages globaux. Le code de synchronisation (user_hash, voir
+ * user-hash.ts) reste le mécanisme legacy actif pour tous les
+ * utilisateurs ; la connexion Supabase Auth (AuthScreen) est une entrée
+ * additionnelle et optionnelle qui pose `owner_id` sur les écritures
+ * suivantes sans jamais désactiver le fonctionnement par code (cf.
+ * supabase-store.tsx — les deux mécanismes coexistent, RLS additive).
  */
-export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: MoreDestination) => void }) {
+export function AppSettingsScreen({
+  onNavigate,
+  onOpenAuth,
+}: {
+  onNavigate: (destination: MoreDestination) => void;
+  onOpenAuth: () => void;
+}) {
   const { state } = useStore();
   const configured = isSupabaseConfigured();
   const currentCode = configured ? getOrCreateUserHash() : null;
@@ -49,7 +58,7 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
     try {
       const client = getSupabaseClient();
       if (pushEnabled) await disablePush(client);
-      else await enablePush(client, currentCode);
+      else await enablePush(client, currentCode, await getCurrentAuthUserId());
       setPushEnabled(!pushEnabled);
     } catch (cause) {
       setPushError(cause instanceof Error ? cause.message : "Activation impossible.");
@@ -119,8 +128,17 @@ export function AppSettingsScreen({ onNavigate }: { onNavigate: (destination: Mo
         ) : (
           <>
             <h2 className="section-title" style={{ marginTop: 0 }}>
-              Code de synchronisation
+              Compte
             </h2>
+            <p className="action-sub">
+              Optionnel : le code de synchronisation ci-dessous continue de fonctionner sans compte. Se connecter
+              rattache en plus tes prochaines écritures à ton identité.
+            </p>
+            <button type="button" className="btn btn-block tap-target" onClick={onOpenAuth}>
+              Connexion
+            </button>
+
+            <h2 className="section-title">Code de synchronisation</h2>
             <p className="action-sub">
               Ce code relie cet appareil à tes données. Copie-le et colle-le sur un autre appareil (via "Utiliser un
               code" ci-dessous) pour retrouver les mêmes espaces et actions.

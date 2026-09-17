@@ -38,15 +38,13 @@ const SEND_NOTICE = "Si cette adresse est autorisée, un code a été envoyé.";
 type Step = "email" | "otp";
 
 /**
- * LOT 1A — Écran Auth Supabase OTP, développé isolé et NON branché :
- * aucune route de App.tsx ne le rend accessible, aucun utilisateur ne
- * peut l'atteindre dans le build actuel (confirmé : la taille du bundle
- * de production est inchangée après l'ajout de ce fichier — il n'est
- * importé par aucun chemin atteignable). Reste ainsi tant que auth.uid()
- * n'est pas rattaché aux données et que les RLS sécurisées ne sont pas
- * actives (cf. docs/LOT0-REGISTRE-RISQUES.md, R6) : une connexion visible
- * avant cela créerait une fausse impression de sécurisation, le
- * mécanisme user_hash restant seul à piloter l'accès aux données.
+ * Écran Auth Supabase OTP — routé depuis Réglages ("Connexion"). Se
+ * connecter rattache les écritures suivantes à `owner_id = auth.uid()`
+ * (mappers + supabase-store.tsx, policies RLS additives) mais n'affecte
+ * jamais l'accès existant par code de synchronisation (`user_hash`) : les
+ * deux mécanismes coexistent tant que la migration complète des anciennes
+ * lignes n'a pas eu lieu (lot ultérieur, cf. migration
+ * 20260916130000_add_owner_id_projets_tables.sql).
  */
 export function AuthScreen() {
   const [step, setStep] = useState<Step>("email");

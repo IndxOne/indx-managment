@@ -37,7 +37,7 @@ export default tseslint.config(
   },
   {
     // Modules contexte/store : exportent volontairement un composant Provider et un hook (useX) côte à côte.
-    files: ["src/app/adapters/*.tsx", "src/app/a11y/announcer.tsx"],
+    files: ["src/app/adapters/*.tsx", "src/app/a11y/announcer.tsx", "src/app/components/Toast.tsx"],
     rules: {
       "react-refresh/only-export-components": "off",
     },

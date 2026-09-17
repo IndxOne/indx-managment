@@ -4,10 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthScreen } from "./AuthScreen";
 
 /**
- * Tests UI du Lot 1A — écran non branché (aucune route ne le rend
- * accessible, cf. AuthScreen.tsx). Mock du module ../adapters/supabase/auth
- * (jamais du client Supabase brut) : ces tests vérifient le comportement
- * de l'écran lui-même, pas le wrapper (déjà couvert par auth.test.ts).
+ * Tests UI de l'écran Auth OTP, routé depuis Réglages ("Connexion", cf.
+ * App.tsx). Mock du module ../adapters/supabase/auth (jamais du client
+ * Supabase brut) : ces tests vérifient le comportement de l'écran
+ * lui-même, pas le wrapper (déjà couvert par auth.test.ts).
  */
 
 const sendOtpMock = vi.fn();
@@ -201,6 +201,15 @@ describe("AuthScreen — étape OTP", () => {
 });
 
 describe("AuthScreen — session et déconnexion", () => {
+  it("démarrage sans session : affiche l'étape email (aucun état connecté prématuré)", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    render(<AuthScreen />);
+
+    expect(await screen.findByLabelText("Adresse email")).toBeInTheDocument();
+    expect(screen.queryByText("Connecté.")).not.toBeInTheDocument();
+  });
+
+  /** Couvre aussi la restauration de session après reload : identique à la lecture au montage. */
   it("lecture de session au montage : si une session existe déjà, affiche directement l'état connecté", async () => {
     getCurrentAuthUserIdMock.mockResolvedValue("auth-uid-existant");
     render(<AuthScreen />);
