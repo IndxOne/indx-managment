@@ -11,6 +11,7 @@ import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { EditActionSheet } from "../components/EditActionSheet";
+import { IconChevronRight } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
@@ -30,12 +31,15 @@ export function AggregatedActionsScreen({
   emptyDescription,
   timezone,
   onNavigateToWorkspace,
+  onBack,
 }: {
   title: string;
   includeLabels: RelativeLabelKey[];
   emptyDescription: string;
   timezone: string;
   onNavigateToWorkspace: (workspaceId: string) => void;
+  /** Retour explicite (QA post-prod 2026-09-17) — absent = comportement inchangé (pas de flèche, cf. usage "Rappels" existant s'il réutilise cet écran sans origine connue). */
+  onBack?: () => void;
 }) {
   const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
     useStore();
@@ -107,7 +111,19 @@ export function AggregatedActionsScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>{title}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {onBack && (
+            <button
+              type="button"
+              className="btn btn-icon week-back-button"
+              onClick={onBack}
+              aria-label="Retour à Aujourd'hui"
+            >
+              <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
+            </button>
+          )}
+          <h1>{title}</h1>
+        </div>
       </div>
       <div className="app-main">
         {nothingToShow ? (

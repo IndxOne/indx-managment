@@ -13,9 +13,9 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // créer un espace (décision produit validée, Lot 1 du renouveau produit).
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    expect(await screen.findByText("Aucun espace pour l'instant")).toBeInTheDocument();
+    expect(await screen.findByText("Aucun projet pour l'instant")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN SI quotidien");
     await user.click(screen.getByLabelText("Travail continu (RUN)"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
@@ -32,9 +32,15 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
 
-    // Retour à la liste : la carte reflète le nombre d'actions.
+    // Un seul espace RUN existant : l'onglet RUN saute directement dedans
+    // (pas de card résumé) — vérifie que l'action créée s'y retrouve bien,
+    // et n'apparaît jamais dans "Projets" (QA post-prod 2026-09-17 : un
+    // espace RUN ne doit plus jamais lister dans l'onglet Projets).
+    await user.click(screen.getByRole("button", { name: /^RUN$/ }));
+    expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    expect(await screen.findByText(/1 action/)).toBeInTheDocument();
+    expect(screen.queryByText("RUN SI quotidien")).not.toBeInTheDocument();
   });
 
   it("changer l'approche ne fait disparaître aucune action existante", async () => {
@@ -43,8 +49,8 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await screen.findByText("Aucun projet pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Espace test");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
 
@@ -71,7 +77,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "RUN quotidien" });
@@ -89,7 +95,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "RUN quotidien" });
@@ -116,7 +122,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Refonte site client");
     await user.click(screen.getByLabelText(/Projet avec étapes/));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));

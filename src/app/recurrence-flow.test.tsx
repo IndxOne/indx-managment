@@ -10,8 +10,8 @@ describe("Récurrence — parcours bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await screen.findByText("Aucun projet pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Suivi quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Suivi quotidien" });

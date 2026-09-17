@@ -2567,9 +2567,26 @@ a {
 }
 
 /* Le bouton "Réouvrir" ne doit jamais rétrécir/wrapper avant le titre ou
-   la meta, qui gèrent déjà leur propre troncature (§9 polish RUN). */
+   la meta, qui gèrent déjà leur propre troncature (§9 polish RUN), ni
+   s'étirer en largeur (QA post-prod 2026-09-17 : durci explicitement en
+   `flex: 0 0 auto` + `width: auto`, .btn n'ayant par lui-même aucune de ces
+   propriétés — un futur remaniement de .btn ne doit pas pouvoir réintroduire
+   un étirement silencieux ici). */
 .resolved-run-item > .btn {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* "Cette semaine" est aussi une destination sidebar desktop de premier
+   niveau (DESKTOP_SECONDARY_TABS, BottomNav.tsx) — la flèche retour vers
+   Aujourd'hui n'a de sens que sur mobile, où cet écran n'est atteignable
+   que par le CTA "Voir la semaine complète" depuis Accueil (jamais un
+   onglet primaire). Purement présentation : la route/prop `onBack` reste
+   identique sur les deux formats. */
+@media (min-width: 1024px) {
+  .week-back-button {
+    display: none;
+  }
 }
 
 .resolved-run-item-open {

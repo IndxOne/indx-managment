@@ -212,6 +212,7 @@ function AppShell() {
             emptyDescription="Aucune action prévue cette semaine, ni en attente."
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
+            onBack={() => setRoute({ screen: "today" })}
           />
         )}
 

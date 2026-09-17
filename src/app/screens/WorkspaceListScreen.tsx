@@ -19,7 +19,14 @@ export function WorkspaceListScreen({
   const { state } = useStore();
   const [filters, setFilters] = useState(EMPTY_WORKSPACE_FILTERS);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-  const filtered = applyWorkspaceFilters(state.workspaces, state.actionsByWorkspace, filters);
+  // Cet écran est le contenu de l'onglet "Projets" de la navigation
+  // (routeToTab renvoie "spaces" uniquement pour un espace kind==="project" —
+  // les espaces RUN vivent dans leur propre onglet/écran, RunHubScreen, déjà
+  // filtré sur kind==="run"). Filtre sur la propriété métier réelle
+  // (`workspace.kind`), jamais sur le nom/titre (QA post-prod 2026-09-17 :
+  // un espace RUN apparaissait ici faute de ce filtre).
+  const projectWorkspaces = state.workspaces.filter((workspace) => workspace.kind === "project");
+  const filtered = applyWorkspaceFilters(projectWorkspaces, state.actionsByWorkspace, filters);
 
   return (
     <div>
@@ -31,12 +38,12 @@ export function WorkspaceListScreen({
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          {state.workspaces.length > 0 && (
+          {projectWorkspaces.length > 0 && (
             <button type="button" className="btn tap-target" onClick={() => setFilterSheetOpen(true)}>
               Filtres{hasActiveWorkspaceFilters(filters) ? " •" : ""}
             </button>
           )}
-          {state.workspaces.length > 0 && (
+          {projectWorkspaces.length > 0 && (
             <button
               type="button"
               className="btn btn-primary tap-target"
@@ -50,13 +57,13 @@ export function WorkspaceListScreen({
         </div>
       </div>
       <div className="app-main">
-        {state.workspaces.length === 0 ? (
+        {projectWorkspaces.length === 0 ? (
           <EmptyState
-            title="Aucun espace pour l'instant"
-            description="Créez votre premier espace RUN ou PROJET pour commencer."
+            title="Aucun projet pour l'instant"
+            description="Créez votre premier espace PROJET pour commencer."
             action={
               <button type="button" className="btn btn-primary tap-target" onClick={onCreate}>
-                Créer un espace
+                Créer un projet
               </button>
             }
           />
