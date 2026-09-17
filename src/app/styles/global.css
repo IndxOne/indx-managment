@@ -2577,6 +2577,18 @@ a {
   width: auto;
 }
 
+/* "Cette semaine" est aussi une destination sidebar desktop de premier
+   niveau (DESKTOP_SECONDARY_TABS, BottomNav.tsx) — la flèche retour vers
+   Aujourd'hui n'a de sens que sur mobile, où cet écran n'est atteignable
+   que par le CTA "Voir la semaine complète" depuis Accueil (jamais un
+   onglet primaire). Purement présentation : la route/prop `onBack` reste
+   identique sur les deux formats. */
+@media (min-width: 1024px) {
+  .week-back-button {
+    display: none;
+  }
+}
+
 .resolved-run-item-open {
   flex: 1;
   min-width: 0;

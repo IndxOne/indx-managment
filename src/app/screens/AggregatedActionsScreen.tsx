@@ -113,7 +113,12 @@ export function AggregatedActionsScreen({
       <div className="top-bar">
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           {onBack && (
-            <button type="button" className="btn btn-icon" onClick={onBack} aria-label="Retour à Aujourd'hui">
+            <button
+              type="button"
+              className="btn btn-icon week-back-button"
+              onClick={onBack}
+              aria-label="Retour à Aujourd'hui"
+            >
               <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
             </button>
           )}
