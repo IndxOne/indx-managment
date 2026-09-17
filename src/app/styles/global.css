@@ -1139,7 +1139,7 @@ a {
 }
 
 .more-icon[data-key="week"] {
-  background: #248a3d;
+  background: var(--color-success);
 }
 
 .more-icon[data-key="carnet"] {
@@ -1254,7 +1254,7 @@ a {
   border: none;
   border-radius: 999px;
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-accent-contrast);
   box-shadow: var(--shadow-thumb);
   transition: opacity 120ms ease;
 }
@@ -1281,7 +1281,7 @@ a {
   border: none;
   border-radius: var(--radius-sm);
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-accent-contrast);
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -2154,7 +2154,7 @@ a {
 
 .toast[data-variant="error"] {
   background: var(--color-danger);
-  color: #ffffff;
+  color: var(--color-accent-contrast);
 }
 
 @keyframes toast-in {
