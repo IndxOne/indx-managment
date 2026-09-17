@@ -10,8 +10,8 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await screen.findByText("Aucun projet pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Suivi quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Suivi quotidien" });
@@ -29,9 +29,10 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     // La note a quitté le Carnet.
     await screen.findByText("Carnet vide");
 
-    // L'action existe dans l'espace, avec le texte de la note comme titre.
-    await user.click(screen.getByRole("button", { name: /projets/i }));
-    await user.click(screen.getByRole("button", { name: /suivi quotidien/i }));
+    // L'action existe dans l'espace RUN créé (un seul espace RUN : l'onglet
+    // saute directement dedans, cf. RunHubScreen), avec le texte de la note
+    // comme titre.
+    await user.click(screen.getByRole("button", { name: /^RUN$/ }));
     expect(await screen.findByText("Relancer le fournisseur X")).toBeInTheDocument();
   });
 

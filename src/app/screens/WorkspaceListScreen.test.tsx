@@ -60,7 +60,10 @@ describe("WorkspaceListScreen — filtres projets (§15, Lot C)", () => {
   it("filtre par statut dérivé (Actif/Terminé)", async () => {
     const user = userEvent.setup();
     renderScreen(
-      [workspace({ id: "w1", name: "En cours" }), workspace({ id: "w2", name: "Bouclé", kind: "project" })],
+      [
+        workspace({ id: "w1", name: "En cours", kind: "project", approach: "project_amoa" }),
+        workspace({ id: "w2", name: "Bouclé", kind: "project", approach: "project_amoa" }),
+      ],
       {
         w1: [action({ id: "a1", workspaceId: "w1" })],
         w2: [action({ id: "a2", workspaceId: "w2", status: "done" })],
@@ -82,7 +85,7 @@ describe("WorkspaceListScreen — filtres projets (§15, Lot C)", () => {
     const user = userEvent.setup();
     renderScreen(
       [
-        workspace({ id: "w1", name: "Support quotidien", approach: "it_ops" }),
+        workspace({ id: "w1", name: "Site vitrine", kind: "project", approach: "client_web" }),
         workspace({ id: "w2", name: "Cadrage AMOA", kind: "project", approach: "project_amoa" }),
       ],
       { w1: [action({ id: "a1", workspaceId: "w1" })], w2: [action({ id: "a2", workspaceId: "w2" })] }
@@ -92,13 +95,15 @@ describe("WorkspaceListScreen — filtres projets (§15, Lot C)", () => {
     await user.click(screen.getByRole("checkbox", { name: "Projet / AMOA" }));
     await user.click(screen.getByRole("button", { name: "Appliquer" }));
 
-    expect(screen.queryByText("Support quotidien")).not.toBeInTheDocument();
+    expect(screen.queryByText("Site vitrine")).not.toBeInTheDocument();
     expect(screen.getByText("Cadrage AMOA")).toBeInTheDocument();
   });
 
   it("aucun résultat après filtrage : propose de réinitialiser", async () => {
     const user = userEvent.setup();
-    renderScreen([workspace({ id: "w1", name: "En cours" })], { w1: [action({ id: "a1", workspaceId: "w1" })] });
+    renderScreen([workspace({ id: "w1", name: "En cours", kind: "project", approach: "project_amoa" })], {
+      w1: [action({ id: "a1", workspaceId: "w1" })],
+    });
 
     await user.click(screen.getByRole("button", { name: /Filtres/ }));
     await user.click(screen.getByRole("checkbox", { name: "Terminé" }));
@@ -107,5 +112,27 @@ describe("WorkspaceListScreen — filtres projets (§15, Lot C)", () => {
     expect(screen.getByText("Aucun projet ne correspond aux filtres")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Réinitialiser les filtres" }));
     expect(screen.getByText("En cours")).toBeInTheDocument();
+  });
+
+  it("n'affiche pas les espaces RUN (QA post-prod 2026-09-17 : ce hub liste uniquement les espaces PROJET, RUN a son propre écran)", () => {
+    renderScreen(
+      [
+        workspace({ id: "w1", name: "Support Continu", kind: "run" }),
+        workspace({ id: "w2", name: "Migration ERP", kind: "project", approach: "project_amoa" }),
+      ],
+      { w1: [action({ id: "a1", workspaceId: "w1" })], w2: [action({ id: "a2", workspaceId: "w2" })] }
+    );
+
+    expect(screen.queryByText("Support Continu")).not.toBeInTheDocument();
+    expect(screen.getByText("Migration ERP")).toBeInTheDocument();
+  });
+
+  it("n'affiche que le RUN et masque le hub Projets quand seul un espace RUN existe (état vide correct)", () => {
+    renderScreen([workspace({ id: "w1", name: "Support Continu", kind: "run" })], {
+      w1: [action({ id: "a1", workspaceId: "w1" })],
+    });
+
+    expect(screen.queryByText("Support Continu")).not.toBeInTheDocument();
+    expect(screen.getByText("Aucun projet pour l'instant")).toBeInTheDocument();
   });
 });

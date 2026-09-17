@@ -38,8 +38,8 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await screen.findByText("Aucun projet pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Migration ERP");
     await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
@@ -89,8 +89,8 @@ describe("ProjectWorkspaceScreen — header (Lot C polish)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await screen.findByText("Aucun espace pour l'instant");
-    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await screen.findByText("Aucun projet pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Migration ERP");
     await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
