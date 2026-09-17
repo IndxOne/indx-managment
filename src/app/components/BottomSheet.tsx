@@ -88,7 +88,12 @@ export function BottomSheet({
       <div className="sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} ref={sheetRef} tabIndex={-1}>
         <div className="sheet-handle" aria-hidden="true" />
-        <h2 className="sr-only">{title}</h2>
+        <div className="sheet-header">
+          <h2 className="sheet-title">{title}</h2>
+          <button type="button" className="btn btn-icon tap-target" onClick={onClose} aria-label="Fermer">
+            ✕
+          </button>
+        </div>
         {children}
       </div>
     </>

@@ -25,8 +25,6 @@ export function NotesSheet({
 
   return (
     <BottomSheet title={`Notes - ${action.title}`} onClose={onClose}>
-      <p style={{ fontWeight: 600 }}>Notes de « {action.title} »</p>
-
       {notes.length === 0 ? (
         <p className="action-sub">Aucune note pour l'instant.</p>
       ) : (

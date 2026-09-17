@@ -51,8 +51,6 @@ export function LinkActionSheet({
 
   return (
     <BottomSheet title={`Lien - ${action.title}`} onClose={onClose}>
-      <p style={{ fontWeight: 600 }}>Action liée à « {action.title} »</p>
-
       {action.linkedActionId ? (
         <div className="notes-list-item" style={{ marginBottom: 16 }}>
           {linked === null && <p className="action-sub">Action liée introuvable (supprimée).</p>}

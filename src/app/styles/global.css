@@ -1796,7 +1796,9 @@ a {
   position: fixed;
   left: 8px;
   right: 8px;
-  bottom: 8px;
+  /* Respecte la safe-area (home indicator) plutôt qu'un 8px fixe qui
+     pouvait laisser le bas de la sheet trop près du bord (Lot D polish). */
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 41;
   background: var(--color-bg);
   border-radius: var(--radius-lg);
@@ -1831,6 +1833,26 @@ a {
   border-radius: 999px;
   background: var(--color-text-tertiary);
   margin: 0 auto var(--space-4);
+}
+
+/* Header visible (Lot D polish) : même traitement que .action-detail-header
+   (titre + bouton fermer), pour que toutes les sheets (BottomSheet comme
+   ActionDetailSheet) partagent la même grammaire — auparavant, seul le
+   titre sr-only existait ici, sans fermeture visible ni titre lisible. */
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.sheet-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 /* La zone d'action reste dans le visual viewport quand le clavier mobile
@@ -1990,10 +2012,15 @@ a {
 /* ActionDetailSheet (Lot 5) : plein écran mobile, panneau latéral desktop
    avec le tableau visible derrière (fond translucide, pas de blur ni
    d'opacité qui masquerait totalement le contexte). */
+/* Même backdrop que .sheet-backdrop (Lot D polish) — une seule grammaire
+   de recouvrement, que le contenu derrière soit une liste (BottomSheet) ou
+   le tableau/Kanban (panneau détail desktop). */
 .action-detail-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 40;
 }
 
@@ -2130,6 +2157,66 @@ a {
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   margin: var(--space-4) var(--space-1) var(--space-2);
+}
+
+/* Cartes de section pour Réglages (Lot D polish) : réutilise les mêmes
+   tokens que WorkspaceCard/ActionCard (radius-xl, border discrète) plutôt
+   qu'une grammaire séparée — objectif "moins de sensation formulaire web
+   long" en regroupant chaque bloc fonctionnel (Thème, Compte, Sync, Push...)
+   dans sa propre surface au lieu d'un empilement plat de h2/boutons. */
+.settings-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.settings-section > .section-title:first-child {
+  margin-top: 0;
+}
+
+/* Section secondaire (Sauvegarde/export, §6) : même carte mais visuellement
+   moins prioritaire que Compte/Sync — fond neutre légèrement en retrait,
+   jamais une simple absence de traitement qui la ferait fondre dans la page. */
+.settings-section-compact {
+  background: var(--color-fill);
+  border-color: transparent;
+}
+
+/* Sélecteur de thème (Lot D polish, §3) : un vrai <input type=radio> par
+   option (accessibilité/état inchangés), visuellement présenté en segmented
+   control plutôt qu'en liste verticale de lignes radio — sélection plus
+   immédiate à lire qu'un empilement de .choice-option. */
+.theme-segmented {
+  display: flex;
+  gap: 4px;
+  background: var(--color-fill);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.theme-segmented-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.theme-segmented-option-active {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.theme-segmented-option:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .today-section {
