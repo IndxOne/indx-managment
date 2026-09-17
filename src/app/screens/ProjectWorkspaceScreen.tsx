@@ -90,7 +90,7 @@ export function ProjectWorkspaceScreen({
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
 
-  const filteredActions = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
+  const filteredActions = useMemo(() => applyFilters(allActions, filters, timezone), [allActions, filters, timezone]);
 
   const actionsByPhase = useMemo(() => {
     const grouped: Record<string, Action[]> = {};

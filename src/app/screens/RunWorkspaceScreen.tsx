@@ -86,7 +86,7 @@ export function RunWorkspaceScreen({
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
   const { showToast } = useToast();
 
-  const filtered = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
+  const filtered = useMemo(() => applyFilters(allActions, filters, timezone), [allActions, filters, timezone]);
 
   // Une opération résolue perd toute sa place dans la file active (cadrage
   // "RUN resolved") : sortie ici, jamais mélangée aux buckets actifs, rendue
