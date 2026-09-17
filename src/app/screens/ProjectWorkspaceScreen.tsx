@@ -4,7 +4,8 @@ import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
-import { STATUS_LABELS_DEFAULT } from "../labels";
+import { PRIORITY_LABELS, STATUS_LABELS_DEFAULT } from "../labels";
+import { deriveWorkspaceStatus, deriveWorkspaceTopPriority, workspaceStatusLabel } from "../utils/workspace-summary";
 import { useStore } from "../adapters/temporary-store";
 import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
@@ -102,6 +103,9 @@ export function ProjectWorkspaceScreen({
     return grouped;
   }, [filteredActions, phases]);
 
+  const workspaceStatus = deriveWorkspaceStatus(allActions);
+  const workspaceTopPriority = deriveWorkspaceTopPriority(allActions);
+
   const weekActions = useMemo(() => {
     if (mode !== "week") return [];
     return filteredActions.filter((action) => {
@@ -123,8 +127,23 @@ export function ProjectWorkspaceScreen({
     <div>
       <div className="top-bar">
         <div>
-          <h1>{workspace.name}</h1>
-          <span className={`badge badge-${workspace.kind}`}>PROJET</span>
+          <span className="screen-eyebrow">Espace projet</span>
+          <h1 className="project-title">{workspace.name}</h1>
+          <div className="project-header-chips">
+            <span className={`badge badge-${workspace.kind}`}>PROJET</span>
+            <span
+              className={`phase-chip ${
+                workspaceStatus === "done" ? "phase-chip-green" : workspaceStatus === "active" ? "phase-chip-blue" : "phase-chip-gray"
+              }`}
+            >
+              {workspaceStatusLabel(workspaceStatus)}
+            </span>
+            {workspaceTopPriority && (
+              <span className={`phase-chip ${workspaceTopPriority === "high" ? "phase-chip-red" : "phase-chip-orange"}`}>
+                {PRIORITY_LABELS[workspaceTopPriority]}
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" className="btn" onClick={() => setFilterSheetOpen(true)}>

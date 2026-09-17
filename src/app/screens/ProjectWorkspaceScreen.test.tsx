@@ -75,3 +75,35 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
     expect(screen.queryByRole("heading", { name: "Jalons" })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Header PROJET (Lot C polish) : statut/priorité dérivés de l'espace,
+ * affichés une seule fois dans le header (`.project-header-chips`) — plus
+ * dans ProjectPhaseOverview (retiré pour éviter la redondance visuelle,
+ * cf. commentaire dans ProjectPhaseOverview.tsx).
+ */
+describe("ProjectWorkspaceScreen — header (Lot C polish)", () => {
+  it("affiche le statut et la priorité dérivés de l'espace dans le header", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await screen.findByRole("button", { name: /Accueil/ });
+    await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await screen.findByText("Aucun espace pour l'instant");
+    await user.click(screen.getByRole("button", { name: "Créer un espace" }));
+    await user.type(screen.getByLabelText("Nom de l'espace"), "Migration ERP");
+    await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
+    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
+
+    await screen.findByRole("heading", { name: "Migration ERP" });
+
+    await user.click(screen.getByRole("button", { name: /Options avancées/ }));
+    await user.type(screen.getByLabelText("Titre"), "Cadrer le besoin");
+    await user.selectOptions(screen.getByLabelText("Priorité"), "high");
+    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
+    await screen.findByText("Cadrer le besoin");
+
+    expect(screen.getByText("Actif")).toBeInTheDocument();
+    expect(screen.getByText("Haute")).toBeInTheDocument();
+  });
+});

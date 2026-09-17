@@ -876,8 +876,11 @@ a {
   height: 100%;
   padding: 14px 16px 12px;
   background: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-lg);
+  /* Rayon + bordure fine alignés sur ActionCard (Lot A/B) : cette carte se
+     rapproche du prototype riche (surface légère + trait discret) plutôt
+     que de ne dépendre que de l'ombre pour se détacher (cadrage §3 Lot C). */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
   text-align: left;
   cursor: pointer;
@@ -887,6 +890,12 @@ a {
 .workspace-card-title {
   font-weight: 700;
   font-size: 1rem;
+  /* Titre long sur 2 lignes max (§3 Lot C) plutôt qu'une croissance libre
+     qui déséquilibrerait la carte compacte. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Rangée nom + statut/priorité dérivés (Lot B, liste des projets) — pas de
@@ -1530,6 +1539,25 @@ a {
    ci-dessus : seule la taille de départ change. */
 .top-bar h1.run-title {
   font-size: 1.25rem;
+}
+
+/* PROJET (Lot C polish) : même situation que RUN ci-dessus — le titre
+   partage la ligne avec "Filtres" + réglages, donc même correctif scoped
+   plutôt que de toucher `.top-bar h1` partagé. */
+.top-bar h1.project-title {
+  font-size: 1.25rem;
+}
+
+/* Statut/priorité de l'espace sous le titre (Lot C polish) : réutilise
+   .phase-chip existant (déjà la grammaire de WorkspaceCard et
+   ProjectPhaseOverview) plutôt qu'un nouveau système — réduit le poids
+   visuel du bloc "outils" (Filtres/Réglages) par rapport au bloc titre. */
+.project-header-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 /* Sur-titre discret (Accueil, RUN) : introduit par le Lot A polish
@@ -2348,14 +2376,11 @@ a {
 
 /* Vue "Par étapes" mobile d'un espace PROJET (Lot B) : hiérarchie verticale
    (ProjectPhaseOverview) au lieu du Kanban à défilement horizontal forcé —
-   ce dernier (.columns-view) reste réservé au desktop. */
-.project-overview-header {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
-}
-
+   ce dernier (.columns-view) reste réservé au desktop. Statut/priorité ne
+   sont plus répétés ici (Lot C) : déjà affichés une seule fois dans le
+   header de l'écran (`.project-header-chips`), pour éviter la redondance
+   visuelle à la lecture (cadrage §4 "hiérarchie claire, pas deux fois la
+   même info"). */
 .project-overview-progress {
   display: flex;
   align-items: center;
@@ -2374,6 +2399,17 @@ a {
   padding-bottom: 4px;
   margin-bottom: var(--space-2);
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.phase-tab-scroller::-webkit-scrollbar {
+  height: 4px;
+}
+
+.phase-tab-scroller::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 999px;
 }
 
 .phase-tab-chip {

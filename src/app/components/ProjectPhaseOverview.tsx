@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { Member } from "../../domain/member";
 import type { Action, ActionStatus } from "../../domain/types";
-import { PRIORITY_LABELS } from "../labels";
 import { phaseLabel } from "../labels";
-import { deriveWorkspaceStatus, deriveWorkspaceTopPriority, workspaceStatusLabel } from "../utils/workspace-summary";
 import { ActionListSection } from "./ActionListSection";
 import { IconChevronRight } from "./Icons";
 import { QuickAddBar } from "./QuickAddBar";
@@ -19,6 +17,11 @@ import { EmptyState } from "./StateBlocks";
  * callbacks (créer/déplacer/éditer/etc.) et le même composant de liste
  * (`ActionListSection`, qui préserve la séparation "ouvrir le détail" vs
  * "cocher/terminer" déjà garantie par `ActionCard`) sont réutilisés tels quels.
+ *
+ * Statut/priorité de l'espace (Lot C polish) : affichés une seule fois dans
+ * le header de `ProjectWorkspaceScreen` (`.project-header-chips`), pas ici
+ * — évite de répéter deux fois la même information dans la hiérarchie
+ * verticale (Header -> Progression -> Phase actuelle -> ...).
  */
 export function ProjectPhaseOverview({
   phases,
@@ -65,8 +68,6 @@ export function ProjectPhaseOverview({
   const allActions = phases.flatMap((phase) => actionsByPhase[phase] ?? []);
   const doneCount = allActions.filter((action) => action.status === "done").length;
   const percent = allActions.length === 0 ? 0 : Math.round((doneCount / allActions.length) * 100);
-  const status = deriveWorkspaceStatus(allActions);
-  const topPriority = deriveWorkspaceTopPriority(allActions);
   const otherPhases = phases.filter((phase) => phase !== currentPhase);
   const currentActions = actionsByPhase[currentPhase] ?? [];
 
@@ -76,17 +77,6 @@ export function ProjectPhaseOverview({
 
   return (
     <div className="project-phase-overview">
-      <div className="project-overview-header">
-        <span className={`phase-chip ${status === "done" ? "phase-chip-green" : status === "active" ? "phase-chip-blue" : "phase-chip-gray"}`}>
-          {workspaceStatusLabel(status)}
-        </span>
-        {topPriority && (
-          <span className={`phase-chip ${topPriority === "high" ? "phase-chip-red" : "phase-chip-orange"}`}>
-            {PRIORITY_LABELS[topPriority]}
-          </span>
-        )}
-      </div>
-
       {allActions.length > 0 && (
         <div className="project-overview-progress" aria-label="Progression du projet">
           <span className="progress-track" aria-hidden="true">
