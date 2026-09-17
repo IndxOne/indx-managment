@@ -33,6 +33,34 @@ function stateWithWorkspace(): AppState {
   return { ...EMPTY_STATE, actionsByWorkspace: { w1: [] }, recurrenceRulesByWorkspace: { w1: [] } };
 }
 
+describe("appReducer — action/create (Échéance, réconciliation PR #48 §12)", () => {
+  it("sans schedule fourni, l'action créée reste sans échéance (comportement inchangé)", () => {
+    const next = appReducer(stateWithWorkspace(), {
+      type: "action/create",
+      input: { workspaceId: "w1", title: "Sans échéance", itemType: "task", priority: "normal" },
+      id: "a1",
+      now: "2026-09-16T08:00:00.000Z",
+    });
+    expect(next.actionsByWorkspace.w1?.[0]?.schedule).toEqual({ granularity: "none" });
+  });
+
+  it("avec schedule fourni (Échéance choisie en création rapide), l'action créée le porte directement", () => {
+    const next = appReducer(stateWithWorkspace(), {
+      type: "action/create",
+      input: {
+        workspaceId: "w1",
+        title: "Avec échéance",
+        itemType: "task",
+        priority: "normal",
+        schedule: { granularity: "day", value: "2026-09-20" },
+      },
+      id: "a1",
+      now: "2026-09-16T08:00:00.000Z",
+    });
+    expect(next.actionsByWorkspace.w1?.[0]?.schedule).toEqual({ granularity: "day", value: "2026-09-20" });
+  });
+});
+
 describe("appReducer — carnet/*", () => {
   it("carnet/create ajoute une note", () => {
     const note = { id: "n1", text: "Vérifier le contrat X", createdAt: "2026-09-09T08:00:00.000Z" };
