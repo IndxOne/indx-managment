@@ -29,6 +29,7 @@
   --color-success: #34c759;
   --color-success-soft: #e8f8ed;
   --color-warning-soft: #fff3e0;
+  --color-danger-soft: #ffece9;
   --focus-ring: 3px solid #0062cc;
   --space-1: 4px;
   --space-2: 8px;
@@ -91,6 +92,7 @@
     --color-success: #30d158;
     --color-success-soft: #0f2417;
     --color-warning-soft: #2a2210;
+    --color-danger-soft: #34140f;
     --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.5);
     --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
@@ -140,6 +142,7 @@
   --color-success: #30d158;
   --color-success-soft: #0f2417;
   --color-warning-soft: #2a2210;
+  --color-danger-soft: #34140f;
   --shadow-thumb: 0 3px 8px rgba(0, 0, 0, 0.5);
   --shadow-sheet: 0 20px 40px rgba(0, 0, 0, 0.6);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
@@ -471,6 +474,27 @@ a {
   margin-bottom: var(--space-5);
 }
 
+/* RUN du jour (Accueil) : au-delà de 2 cartes, défilement interne plutôt
+   qu'une liste qui pousse indéfiniment le reste de l'écran (cadrage §7
+   polish — "densité excessive"). Purement visuel : aucune action n'est
+   retirée, le scroll interne donne accès à toutes les cartes ; l'écran
+   RUN complet (bouton "Voir Inbox") reste la vue exhaustive non contrainte. */
+.home-run-today {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+/* Tâches Projet du jour (Accueil) : présentation plus légère que RUN — pas
+   de swipe/traitement mis en avant visuellement de la même façon, cartes
+   plus compactes (cadrage §8 polish, jamais un Kanban/dashboard). */
+.home-project-tasks-today .action-card-swipe-content {
+  padding: 10px var(--space-3) 8px;
+}
+
+.home-project-tasks-today .action-card-footer {
+  padding-top: 6px;
+}
+
 .action-card {
   position: relative;
   border-radius: var(--radius-xl);
@@ -481,6 +505,50 @@ a {
 
 .action-card:active {
   box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
+}
+
+/* Accent de priorité (§3 polish RUN) : un bord fin, jamais une carte
+   pleinement colorée pour une priorité normale/basse — la distinction
+   "critique visible / normal neutre" reste avant tout portée par le chip
+   texte "Prioritaire" (déjà présent, indication non-couleur), ce bord
+   n'est qu'un renfort visuel discret. */
+.action-card[data-priority="high"] .action-card-swipe-content {
+  border-left: 3px solid var(--color-danger);
+}
+
+/* Priorité immédiate (Accueil) : la carte doit se distinguer au premier
+   coup d'œil du reste de la liste — bord d'accent latéral + surface
+   légèrement teintée selon `action.priority`, jamais un rouge agressif
+   uniforme pour une priorité normale/basse (cadrage §5 polish : accent
+   proportionné à la criticité, pas un état "alerte" systématique). Ne
+   modifie que l'apparence de la carte déjà rendue par ActionCard — aucune
+   logique de sélection dupliquée ici. */
+.home-priority-card .action-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+}
+
+.home-priority-card-high .action-card::before {
+  background: var(--color-danger);
+}
+
+.home-priority-card-normal .action-card::before {
+  background: var(--color-accent);
+}
+
+.home-priority-card-low .action-card::before {
+  background: var(--color-text-tertiary);
+}
+
+.home-priority-card-high .action-card-swipe-content {
+  background: var(--color-danger-soft);
+}
+
+.home-priority-card-normal .action-card-swipe-content,
+.home-priority-card-low .action-card-swipe-content {
+  background: var(--color-accent-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -583,7 +651,22 @@ a {
 .action-card-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+/* Échéance repérable au premier coup d'œil (§4 polish RUN) : poussée à
+   droite de la ligne de chips via `margin-left: auto` — si la largeur
+   manque et qu'elle passe à la ligne suivante (chips nombreux + 320px),
+   elle reste un badge sur une seule ligne, jamais un retour à la ligne
+   au milieu du texte. */
+.action-card-due {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
 }
 
 .phase-chip {
@@ -793,8 +876,11 @@ a {
   height: 100%;
   padding: 14px 16px 12px;
   background: var(--color-bg);
-  border: none;
-  border-radius: var(--radius-lg);
+  /* Rayon + bordure fine alignés sur ActionCard (Lot A/B) : cette carte se
+     rapproche du prototype riche (surface légère + trait discret) plutôt
+     que de ne dépendre que de l'ombre pour se détacher (cadrage §3 Lot C). */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
   text-align: left;
   cursor: pointer;
@@ -804,6 +890,12 @@ a {
 .workspace-card-title {
   font-weight: 700;
   font-size: 1rem;
+  /* Titre long sur 2 lignes max (§3 Lot C) plutôt qu'une croissance libre
+     qui déséquilibrerait la carte compacte. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Rangée nom + statut/priorité dérivés (Lot B, liste des projets) — pas de
@@ -1183,9 +1275,14 @@ a {
   padding-bottom: max(20px, env(safe-area-inset-bottom));
   display: flex;
   background: var(--blur-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  /* Séparation plus discrète qu'un trait plein (cadrage §3 polish, aspect
+     natif) : une ombre douce vers le haut lit mieux comme un plan surélevé
+     qu'une bordure, tout en gardant le filet existant en repli si les
+     ombres sont désactivées (impression, forced-colors). */
   border-top: 0.5px solid var(--color-border);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.04);
   z-index: 30;
 }
 
@@ -1245,22 +1342,28 @@ a {
 }
 
 .bottom-nav-create {
-  width: 48px;
-  height: 48px;
-  margin-top: -22px;
+  width: 54px;
+  height: 54px;
+  margin-top: -24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  /* Anneau de contraste avec le fond (traduit en dur ici car le bouton est
+     surélevé au-dessus de .bottom-nav : il n'hérite pas de sa propre
+     couleur de fond) — lit comme un vrai FAB natif plutôt qu'une icône
+     posée sur la barre (cadrage §3 polish : "bouton central clairement
+     dominant"). Purement décoratif, aucun changement de comportement. */
+  border: 3px solid var(--color-bg);
   border-radius: 999px;
   background: var(--color-accent);
   color: var(--color-accent-contrast);
-  box-shadow: var(--shadow-thumb);
-  transition: opacity 120ms ease;
+  box-shadow: var(--shadow-thumb), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .bottom-nav-create:active {
   opacity: 0.8;
+  transform: scale(0.96);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1425,6 +1528,50 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* RUN (§1 polish) : `.top-bar h1` (34px) est dimensionné pour un titre
+   seul sans bouton à droite (Accueil) — sur RUN, où "Filtres" + réglages
+   partagent la ligne, même un nom d'espace court ("RUN Support SI")
+   pouvait finir tronqué en "RUN…" à 320px. Réduit ici sans toucher
+   `.top-bar h1` (Accueil, WorkspaceList, Project en dépendent) ni revenir
+   sur le choix déjà arbitré "rétrécir plutôt que passer à la ligne"
+   ci-dessus : seule la taille de départ change. */
+.top-bar h1.run-title {
+  font-size: 1.25rem;
+}
+
+/* PROJET (Lot C polish) : même situation que RUN ci-dessus — le titre
+   partage la ligne avec "Filtres" + réglages, donc même correctif scoped
+   plutôt que de toucher `.top-bar h1` partagé. */
+.top-bar h1.project-title {
+  font-size: 1.25rem;
+}
+
+/* Statut/priorité de l'espace sous le titre (Lot C polish) : réutilise
+   .phase-chip existant (déjà la grammaire de WorkspaceCard et
+   ProjectPhaseOverview) plutôt qu'un nouveau système — réduit le poids
+   visuel du bloc "outils" (Filtres/Réglages) par rapport au bloc titre. */
+.project-header-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Sur-titre discret (Accueil, RUN) : introduit par le Lot A polish
+   (Accueil : "INDXONE Workspace"), réutilisé tel quel par RUN ("Inbox
+   opérationnelle") plutôt que de dupliquer une seconde grammaire de
+   sur-titre — même token, même traitement. */
+.screen-eyebrow {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-accent);
+  margin-bottom: 2px;
 }
 
 @media (max-width: 359px) {
@@ -1649,7 +1796,9 @@ a {
   position: fixed;
   left: 8px;
   right: 8px;
-  bottom: 8px;
+  /* Respecte la safe-area (home indicator) plutôt qu'un 8px fixe qui
+     pouvait laisser le bas de la sheet trop près du bord (Lot D polish). */
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 41;
   background: var(--color-bg);
   border-radius: var(--radius-lg);
@@ -1684,6 +1833,26 @@ a {
   border-radius: 999px;
   background: var(--color-text-tertiary);
   margin: 0 auto var(--space-4);
+}
+
+/* Header visible (Lot D polish) : même traitement que .action-detail-header
+   (titre + bouton fermer), pour que toutes les sheets (BottomSheet comme
+   ActionDetailSheet) partagent la même grammaire — auparavant, seul le
+   titre sr-only existait ici, sans fermeture visible ni titre lisible. */
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.sheet-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 /* La zone d'action reste dans le visual viewport quand le clavier mobile
@@ -1809,6 +1978,15 @@ a {
   margin-top: 2px;
 }
 
+/* Rappel du geste swipe (RUN, §1 polish) : une ligne courte, jamais un
+   paragraphe — n'existe que si le geste a réellement quelque chose sur
+   quoi agir (cf. `hasActiveItems` dans RunWorkspaceScreen). */
+.run-swipe-hint {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin: 2px 0 0;
+}
+
 .action-title {
   font-size: 0.9375rem;
   font-weight: 700;
@@ -1834,10 +2012,15 @@ a {
 /* ActionDetailSheet (Lot 5) : plein écran mobile, panneau latéral desktop
    avec le tableau visible derrière (fond translucide, pas de blur ni
    d'opacité qui masquerait totalement le contexte). */
+/* Même backdrop que .sheet-backdrop (Lot D polish) — une seule grammaire
+   de recouvrement, que le contenu derrière soit une liste (BottomSheet) ou
+   le tableau/Kanban (panneau détail desktop). */
 .action-detail-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 40;
 }
 
@@ -1976,6 +2159,66 @@ a {
   margin: var(--space-4) var(--space-1) var(--space-2);
 }
 
+/* Cartes de section pour Réglages (Lot D polish) : réutilise les mêmes
+   tokens que WorkspaceCard/ActionCard (radius-xl, border discrète) plutôt
+   qu'une grammaire séparée — objectif "moins de sensation formulaire web
+   long" en regroupant chaque bloc fonctionnel (Thème, Compte, Sync, Push...)
+   dans sa propre surface au lieu d'un empilement plat de h2/boutons. */
+.settings-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.settings-section > .section-title:first-child {
+  margin-top: 0;
+}
+
+/* Section secondaire (Sauvegarde/export, §6) : même carte mais visuellement
+   moins prioritaire que Compte/Sync — fond neutre légèrement en retrait,
+   jamais une simple absence de traitement qui la ferait fondre dans la page. */
+.settings-section-compact {
+  background: var(--color-fill);
+  border-color: transparent;
+}
+
+/* Sélecteur de thème (Lot D polish, §3) : un vrai <input type=radio> par
+   option (accessibilité/état inchangés), visuellement présenté en segmented
+   control plutôt qu'en liste verticale de lignes radio — sélection plus
+   immédiate à lire qu'un empilement de .choice-option. */
+.theme-segmented {
+  display: flex;
+  gap: 4px;
+  background: var(--color-fill);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.theme-segmented-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.theme-segmented-option-active {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.theme-segmented-option:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .today-section {
   margin-bottom: var(--space-5);
 }
@@ -2013,6 +2256,42 @@ a {
   .today-sections-grid .today-section-actions {
     grid-column: 2;
   }
+}
+
+/* Bandeau "Prochaine échéance" (Accueil) : en-tête compact (icône + label)
+   au-dessus de la carte déjà rendue par ActionCard, sur une surface amber
+   discrète — jamais un second composant carte, seule sa présentation
+   change (cadrage §6 polish). L'accès complet à l'action (détail, menu,
+   édition) reste inchangé : rien n'est retiré du DOM produit par
+   ActionCard, seul un en-tête s'ajoute au-dessus. */
+.home-deadline-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 2px;
+}
+
+.home-deadline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-warning);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.home-deadline-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-warning-text);
+}
+
+.home-deadline-compact .action-card-swipe-content {
+  background: var(--color-warning-soft);
+  padding: var(--space-2) var(--space-3) 10px;
 }
 
 /* "Projets actifs" (Home) : vue secondaire compacte volontairement plus
@@ -2137,7 +2416,15 @@ a {
   position: fixed;
   left: var(--space-4);
   right: var(--space-4);
-  bottom: calc(var(--bottom-nav-height) + var(--space-3));
+  /* Offset distinct de .undo-banner (risque identifié §15 polish RUN) :
+     Toast et UndoBanner sont deux mécanismes indépendants (contexts
+     séparés, aucun état partagé) qui peuvent apparaître dans la même
+     fenêtre de quelques secondes (ex. "Action créée." puis "Traiter" sur
+     une autre carte) — au même `bottom`, ils se chevauchaient
+     illisiblement. +152px couvre le pire cas déjà géré par
+     RunWorkspaceScreen/HomeScreen (deux UndoBanner empilés, cf. leur
+     propre offset +72px) sans toucher à la durée ni aux callbacks Undo. */
+  bottom: calc(var(--bottom-nav-height) + var(--space-3) + 152px);
   margin: 0 auto;
   max-width: 420px;
   padding: var(--space-3) var(--space-4);
@@ -2176,14 +2463,11 @@ a {
 
 /* Vue "Par étapes" mobile d'un espace PROJET (Lot B) : hiérarchie verticale
    (ProjectPhaseOverview) au lieu du Kanban à défilement horizontal forcé —
-   ce dernier (.columns-view) reste réservé au desktop. */
-.project-overview-header {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
-}
-
+   ce dernier (.columns-view) reste réservé au desktop. Statut/priorité ne
+   sont plus répétés ici (Lot C) : déjà affichés une seule fois dans le
+   header de l'écran (`.project-header-chips`), pour éviter la redondance
+   visuelle à la lecture (cadrage §4 "hiérarchie claire, pas deux fois la
+   même info"). */
 .project-overview-progress {
   display: flex;
   align-items: center;
@@ -2202,6 +2486,17 @@ a {
   padding-bottom: 4px;
   margin-bottom: var(--space-2);
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.phase-tab-scroller::-webkit-scrollbar {
+  height: 4px;
+}
+
+.phase-tab-scroller::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 999px;
 }
 
 .phase-tab-chip {
@@ -2271,6 +2566,12 @@ a {
   background: var(--color-bg);
 }
 
+/* Le bouton "Réouvrir" ne doit jamais rétrécir/wrapper avant le titre ou
+   la meta, qui gèrent déjà leur propre troncature (§9 polish RUN). */
+.resolved-run-item > .btn {
+  flex-shrink: 0;
+}
+
 .resolved-run-item-open {
   flex: 1;
   min-width: 0;
@@ -2298,8 +2599,17 @@ a {
 }
 
 .resolved-run-title {
-  flex: 1;
-  min-width: 0;
+  /* Plancher explicite (dette §9 polish RUN) : sans lui, un badge + une
+     meta (assigné + date) longs poussent ce titre flex:1 vers une largeur
+     quasi nulle à 320px — l'ellipsis ne laissait alors plus qu'un seul
+     caractère visible avant "…". flex-basis:auto (pas 0%) + le flex-shrink
+     très élevé sur .resolved-run-meta ci-dessous font que c'est la meta qui
+     cède la place en premier ; le plancher ne borne que le cas extrême où
+     le budget restant (largeur écran − badge − bouton Réouvrir − gaps) est
+     déjà inférieur à lui — vérifié à 320px pour ne jamais faire déborder
+     .resolved-run-item-open (pas de chevauchement avec le bouton). */
+  flex: 1 1 auto;
+  min-width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2310,7 +2620,13 @@ a {
 }
 
 .resolved-run-meta {
-  flex-shrink: 0;
+  /* flex-shrink élevé (999) plutôt que `flex-shrink: 0` + largeur libre :
+     cette meta cède systématiquement sa place en premier (jusqu'à 0),
+     avant que le titre n'atteigne son propre plancher (dette §9 polish RUN). */
+  flex: 0 999 auto;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--color-text-tertiary);
   font-size: 0.8125rem;
   white-space: nowrap;
@@ -2355,20 +2671,33 @@ a {
   scrollbar-color: var(--color-text-muted) transparent;
 }
 
-.columns-view::-webkit-scrollbar {
+/* Même traitement de scrollbar que .columns-view (§10 polish RUN,
+   "aucun scrollbar gênant") — uniquement les propriétés de scrollbar,
+   jamais la mise en page propre de .segmented-scroll (gap/snap définis
+   à sa propre déclaration, plus haut). */
+.segmented-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.columns-view::-webkit-scrollbar,
+.segmented-scroll::-webkit-scrollbar {
   height: 6px;
 }
 
-.columns-view::-webkit-scrollbar-track {
+.columns-view::-webkit-scrollbar-track,
+.segmented-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.columns-view::-webkit-scrollbar-thumb {
+.columns-view::-webkit-scrollbar-thumb,
+.segmented-scroll::-webkit-scrollbar-thumb {
   background: var(--color-text-muted);
   border-radius: 999px;
 }
 
-.columns-view::-webkit-scrollbar-thumb:hover {
+.columns-view::-webkit-scrollbar-thumb:hover,
+.segmented-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--color-text);
 }
 

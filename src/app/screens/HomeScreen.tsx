@@ -17,7 +17,7 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { TodaySection } from "../components/TodaySection";
-import { IconPlus } from "../components/Icons";
+import { IconCalendar, IconPlus } from "../components/Icons";
 import { UndoBanner } from "../components/UndoBanner";
 
 /**
@@ -153,7 +153,10 @@ export function HomeScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Accueil</h1>
+        <div>
+          <span className="screen-eyebrow">INDXONE Workspace</span>
+          <h1>Aujourd&apos;hui</h1>
+        </div>
       </div>
       <div className="app-main">
         {nothingToShow ? (
@@ -184,7 +187,11 @@ export function HomeScreen({
                 landscapeGroup="focus"
               >
                 {overview.priorityAction && (
-                  <div className="action-card-list">{renderCard(overview.priorityAction, { showDescription: true, treat: true })}</div>
+                  <div
+                    className={`action-card-list home-priority-card home-priority-card-${overview.priorityAction.priority}`}
+                  >
+                    {renderCard(overview.priorityAction, { showDescription: true, treat: true })}
+                  </div>
                 )}
               </TodaySection>
 
@@ -195,7 +202,7 @@ export function HomeScreen({
                 emptyMessage="Aucune action RUN à traiter aujourd'hui."
                 landscapeGroup="actions"
               >
-                <div className="action-card-list">
+                <div className="action-card-list home-run-today">
                   {overview.runToday.map((action) => renderCard(action, { treat: true }))}
                 </div>
               </TodaySection>
@@ -207,7 +214,7 @@ export function HomeScreen({
                 emptyMessage="Aucune tâche Projet prévue aujourd'hui."
                 landscapeGroup="actions"
               >
-                <div className="action-card-list">
+                <div className="action-card-list home-project-tasks-today">
                   {overview.projectTasksToday.map((action) => renderCard(action, { treat: true }))}
                 </div>
               </TodaySection>
@@ -219,7 +226,17 @@ export function HomeScreen({
                 emptyMessage="Aucune échéance proche cette semaine."
                 landscapeGroup="focus"
               >
-                {overview.nextDeadline && <div className="action-card-list">{renderCard(overview.nextDeadline)}</div>}
+                {overview.nextDeadline && (
+                  <div className="action-card-list home-deadline-compact">
+                    <div className="home-deadline-header">
+                      <span className="home-deadline-icon" aria-hidden="true">
+                        <IconCalendar width={16} height={16} strokeWidth={2} />
+                      </span>
+                      <span className="home-deadline-label">Prochaine échéance</span>
+                    </div>
+                    {renderCard(overview.nextDeadline)}
+                  </div>
+                )}
               </TodaySection>
 
               <TodaySection

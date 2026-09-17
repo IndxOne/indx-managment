@@ -45,7 +45,6 @@ export function CreateWorkspaceScreen({
   return (
     <BottomSheet title="Nouvel espace" onClose={onCancel}>
       <form onSubmit={handleSubmit} noValidate>
-        <p style={{ fontWeight: 600, fontSize: "1.125rem", marginBottom: "var(--space-4)" }}>Nouvel espace</p>
         <div className="field">
           <label htmlFor="workspace-name">Nom de l'espace</label>
           <input

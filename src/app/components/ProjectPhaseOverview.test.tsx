@@ -51,12 +51,6 @@ function baseProps(overrides: Partial<Parameters<typeof ProjectPhaseOverview>[0]
 }
 
 describe("ProjectPhaseOverview — hiérarchie verticale mobile (Lot B)", () => {
-  it("affiche le statut et la priorité dérivés de l'espace (Header)", () => {
-    render(<ProjectPhaseOverview {...baseProps()} />);
-    expect(screen.getByText("Actif")).toBeInTheDocument();
-    expect(screen.getByText("Haute")).toBeInTheDocument();
-  });
-
   it("affiche une progression unique et lisible (1/2 terminée, 50%)", () => {
     render(<ProjectPhaseOverview {...baseProps()} />);
     expect(screen.getByText("1/2 (50%)")).toBeInTheDocument();

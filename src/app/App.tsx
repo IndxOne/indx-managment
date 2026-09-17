@@ -6,7 +6,7 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
-import { IconMore } from "./components/Icons";
+import { IconChevronRight, IconMore } from "./components/Icons";
 import { ErrorState, LoadingState, OfflineBanner } from "./components/StateBlocks";
 import { useIsDesktop } from "./hooks/useIsDesktop";
 import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
@@ -311,18 +311,22 @@ function AppShell() {
         {route.screen === "auth" && (
           <div>
             <div className="top-bar">
-              <h1>Connexion</h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  type="button"
+                  className="btn btn-icon"
+                  onClick={() => setRoute({ screen: "app-settings" })}
+                  aria-label="Retour aux réglages"
+                >
+                  <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
+                </button>
+                <h1>Connexion</h1>
+              </div>
             </div>
             <div className="app-main">
-              <AuthScreen />
-              <button
-                type="button"
-                className="btn btn-block tap-target"
-                style={{ marginTop: 16 }}
-                onClick={() => setRoute({ screen: "app-settings" })}
-              >
-                Retour aux réglages
-              </button>
+              <div className="settings-section">
+                <AuthScreen />
+              </div>
             </div>
           </div>
         )}

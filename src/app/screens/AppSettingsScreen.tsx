@@ -103,21 +103,27 @@ export function AppSettingsScreen({
       </div>
       <MoreSubNav active="app-settings" onNavigate={onNavigate} />
       <div className="app-main">
-        <h2 className="section-title" style={{ marginTop: 0 }}>
-          Thème
-        </h2>
-        <div className="choice-group" role="radiogroup" aria-label="Thème">
-          {THEME_OPTIONS.map((option) => (
-            <label key={option.value} className="choice-option">
-              <input
-                type="radio"
-                name="theme"
-                checked={theme === option.value}
-                onChange={() => handleThemeChange(option.value)}
-              />
-              {option.label}
-            </label>
-          ))}
+        <div className="settings-section">
+          <h2 className="section-title" style={{ marginTop: 0 }}>
+            Thème
+          </h2>
+          <div className="theme-segmented" role="radiogroup" aria-label="Thème">
+            {THEME_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={`theme-segmented-option ${theme === option.value ? "theme-segmented-option-active" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="theme"
+                  className="sr-only"
+                  checked={theme === option.value}
+                  onChange={() => handleThemeChange(option.value)}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
         </div>
 
         {!configured || !currentCode ? (
@@ -127,78 +133,101 @@ export function AppSettingsScreen({
           />
         ) : (
           <>
-            <h2 className="section-title" style={{ marginTop: 0 }}>
-              Compte
-            </h2>
-            <p className="action-sub">
-              Optionnel : le code de synchronisation ci-dessous continue de fonctionner sans compte. Se connecter
-              rattache en plus tes prochaines écritures à ton identité.
-            </p>
-            <button type="button" className="btn btn-block tap-target" onClick={onOpenAuth}>
-              Connexion
-            </button>
-
-            <h2 className="section-title">Code de synchronisation</h2>
-            <p className="action-sub">
-              Ce code relie cet appareil à tes données. Copie-le et colle-le sur un autre appareil (via "Utiliser un
-              code" ci-dessous) pour retrouver les mêmes espaces et actions.
-            </p>
-            <div className="field">
-              <input type="text" readOnly value={currentCode} onFocus={(event) => event.target.select()} />
+            <div className="settings-section">
+              <h2 className="section-title" style={{ marginTop: 0 }}>
+                Compte
+              </h2>
+              <p className="action-sub">
+                Optionnel : le code de synchronisation ci-dessous continue de fonctionner sans compte. Se connecter
+                rattache en plus tes prochaines écritures à ton identité.
+              </p>
+              <button type="button" className="btn btn-primary btn-block tap-target" onClick={onOpenAuth}>
+                Connexion
+              </button>
             </div>
-            <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleCopy}>
-              {copied ? "Copié !" : "Copier le code"}
-            </button>
 
-            <h2 className="section-title">Utiliser un code existant</h2>
-            <p className="action-sub">Colle ici le code d'un autre appareil pour retrouver ses données ici.</p>
-            <div className="field">
-              <label htmlFor="sync-code-input">Code</label>
-              <input
-                id="sync-code-input"
-                type="text"
-                value={pastedCode}
-                onChange={(event) => {
-                  setPastedCode(event.target.value);
-                  setError(null);
-                }}
-                aria-invalid={Boolean(error)}
-              />
-              {error && (
+            <div className="settings-section">
+              <h2 className="section-title" style={{ marginTop: 0 }}>
+                Code de synchronisation
+              </h2>
+              <p className="action-sub">
+                Ce code relie cet appareil à tes données. Copie-le et colle-le sur un autre appareil (via "Utiliser
+                un code" ci-dessous) pour retrouver les mêmes espaces et actions.
+              </p>
+              <div className="field">
+                <input type="text" readOnly value={currentCode} onFocus={(event) => event.target.select()} />
+              </div>
+              <button type="button" className="btn btn-primary btn-block tap-target" onClick={handleCopy}>
+                {copied ? "Copié !" : "Copier le code"}
+              </button>
+            </div>
+
+            <div className="settings-section">
+              <h2 className="section-title" style={{ marginTop: 0 }}>
+                Utiliser un code existant
+              </h2>
+              <p className="action-sub">Colle ici le code d'un autre appareil pour retrouver ses données ici.</p>
+              <div className="field">
+                <label htmlFor="sync-code-input">Code</label>
+                <input
+                  id="sync-code-input"
+                  type="text"
+                  value={pastedCode}
+                  onChange={(event) => {
+                    setPastedCode(event.target.value);
+                    setError(null);
+                  }}
+                  aria-invalid={Boolean(error)}
+                />
+                {error && (
+                  <p role="alert" style={{ color: "var(--color-danger)" }}>
+                    {error}
+                  </p>
+                )}
+              </div>
+              <button type="button" className="btn btn-block tap-target" onClick={handleUseCode}>
+                Utiliser ce code
+              </button>
+            </div>
+
+            <div className="settings-section settings-section-compact">
+              <h2 className="section-title" style={{ marginTop: 0 }}>
+                Sauvegarde
+              </h2>
+              <p className="action-sub">
+                Aucun mode hors ligne, pas de compte réel : exporte régulièrement un fichier JSON de secours.
+              </p>
+              <button type="button" className="btn btn-block tap-target" onClick={handleExport}>
+                Exporter mes données (JSON)
+              </button>
+            </div>
+
+            <div className="settings-section">
+              <h2 className="section-title" style={{ marginTop: 0 }}>
+                Notifications de relance
+              </h2>
+              <p className="action-sub">
+                Reçois une notification sur cet appareil quand une relance est due, même app fermée. Sur iPhone,
+                l'app doit d'abord être ajoutée à l'écran d'accueil.
+              </p>
+              {isPushSupported() ? (
+                <button
+                  type="button"
+                  className="btn btn-block tap-target"
+                  disabled={pushBusy}
+                  onClick={handleTogglePush}
+                >
+                  {pushEnabled ? "Désactiver sur cet appareil" : "Activer sur cet appareil"}
+                </button>
+              ) : (
+                <p className="action-sub">Non pris en charge par ce navigateur.</p>
+              )}
+              {pushError && (
                 <p role="alert" style={{ color: "var(--color-danger)" }}>
-                  {error}
+                  {pushError}
                 </p>
               )}
             </div>
-            <button type="button" className="btn btn-block tap-target" onClick={handleUseCode}>
-              Utiliser ce code
-            </button>
-
-            <h2 className="section-title">Sauvegarde</h2>
-            <p className="action-sub">
-              Aucun mode hors ligne, pas de compte réel : exporte régulièrement un fichier JSON de secours.
-            </p>
-            <button type="button" className="btn btn-block tap-target" onClick={handleExport}>
-              Exporter mes données (JSON)
-            </button>
-
-            <h2 className="section-title">Notifications de relance</h2>
-            <p className="action-sub">
-              Reçois une notification sur cet appareil quand une relance est due, même app fermée. Sur iPhone,
-              l'app doit d'abord être ajoutée à l'écran d'accueil.
-            </p>
-            {isPushSupported() ? (
-              <button type="button" className="btn btn-block tap-target" disabled={pushBusy} onClick={handleTogglePush}>
-                {pushEnabled ? "Désactiver sur cet appareil" : "Activer sur cet appareil"}
-              </button>
-            ) : (
-              <p className="action-sub">Non pris en charge par ce navigateur.</p>
-            )}
-            {pushError && (
-              <p role="alert" style={{ color: "var(--color-danger)" }}>
-                {pushError}
-              </p>
-            )}
           </>
         )}
       </div>

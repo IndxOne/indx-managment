@@ -128,6 +128,10 @@ export function RunWorkspaceScreen({
     buckets.inView.length === 0 &&
     buckets.unscheduled.length === 0 &&
     buckets.resolved.length === 0;
+  // Le swipe-pour-résoudre n'agit que sur les buckets actifs (jamais sur
+  // "Résolu") — sert uniquement à conditionner le rappel du geste dans le
+  // header (§1 polish), aucune incidence sur `buckets` lui-même.
+  const hasActiveItems = buckets.waiting.length > 0 || buckets.inView.length > 0 || buckets.unscheduled.length > 0;
 
   // `move` déclenche déjà UndoBanner ("Déplacement effectué.", annulable) —
   // un toast en plus ferait doublon visuel sur la même action (cadrage
@@ -150,8 +154,16 @@ export function RunWorkspaceScreen({
     <div>
       <div className="top-bar">
         <div>
-          <h1>{workspace.name}</h1>
+          <span className="screen-eyebrow">Inbox opérationnelle</span>
+          <h1 className="run-title">{workspace.name}</h1>
           <span className={`badge badge-${workspace.kind}`}>{workspace.kind === "run" ? "RUN" : "PROJET"}</span>
+          {/* Le geste swipe n'existe que s'il y a au moins une action active à
+              traiter (onComplete branché sur les 3 buckets actifs) — jamais
+              affiché sur un écran vide ou 100% résolu, où le geste n'a
+              littéralement rien sur quoi agir (cadrage §1 polish RUN). */}
+          {hasActiveItems && (
+            <p className="run-swipe-hint">Glissez une carte à droite pour la résoudre rapidement.</p>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" className="btn" onClick={() => setFilterSheetOpen(true)}>

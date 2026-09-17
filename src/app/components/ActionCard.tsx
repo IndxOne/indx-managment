@@ -130,7 +130,12 @@ export function ActionCard({
   const statusLabel = statusLabels[action.status];
   const nextStatusLabel = statusLabels[cycleStatus(action.status)];
   const ariaChecked = action.status === "done" ? "true" : action.status === "doing" ? "mixed" : "false";
-  const hasChips = Boolean(action.phaseId) || action.priority === "high" || Boolean(workspaceKind) || action.itemType !== "task";
+  const hasChips =
+    Boolean(action.phaseId) ||
+    action.priority === "high" ||
+    Boolean(workspaceKind) ||
+    action.itemType !== "task" ||
+    Boolean(scheduleLabel);
   // resolveDisplayPhaseId retombe sur la première phase du template quand
   // phaseId est absent (comportement voulu pour le regroupement en colonnes)
   // — mais ici, "pas de phase" doit rester "pas de chip", jamais la 1ère phase.
@@ -360,7 +365,11 @@ export function ActionCard({
   );
 
   return (
-    <div className="action-card" style={isDone ? { opacity: 0.72 } : undefined}>
+    <div
+      className="action-card"
+      data-priority={action.priority}
+      style={isDone ? { opacity: 0.72 } : undefined}
+    >
       {swipeEnabled && (
         <div className="action-card-swipe-bg" aria-hidden="true">
           {swipeCompleteEnabled && (
@@ -398,6 +407,11 @@ export function ActionCard({
             {action.itemType !== "task" && (
               <span className="phase-chip phase-chip-gray">{ITEM_TYPE_LABELS[action.itemType]}</span>
             )}
+            {/* Échéance repérable immédiatement, alignée à droite de la ligne
+                de chips (cadrage §4 polish RUN) — additif : la ligne meta
+                sous le titre continue de porter la même info en contexte
+                (espace/statut), jamais supprimée. */}
+            {scheduleLabel && <span className="action-card-due">{scheduleLabel}</span>}
           </div>
         )}
         <div className="action-card-body">
