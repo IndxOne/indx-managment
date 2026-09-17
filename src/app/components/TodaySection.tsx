@@ -14,6 +14,8 @@ export function TodaySection({
   emptyMessage,
   emptyAction,
   children,
+  /** Regroupement visuel pour la mise en page paysage mobile (§ landscape) — sans effet en portrait. */
+  landscapeGroup,
 }: {
   id: string;
   title: string;
@@ -21,9 +23,11 @@ export function TodaySection({
   emptyMessage?: string;
   emptyAction?: ReactNode;
   children: ReactNode;
+  landscapeGroup?: "focus" | "actions";
 }) {
+  const groupClass = landscapeGroup ? ` today-section-${landscapeGroup}` : "";
   return (
-    <section aria-labelledby={id} className="today-section">
+    <section aria-labelledby={id} className={`today-section${groupClass}`}>
       <h2 id={id} className="section-title">
         {title}
       </h2>

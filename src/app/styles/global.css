@@ -1392,6 +1392,18 @@ a {
   background: var(--color-page);
 }
 
+/* Le bouton "•••" (.app-more-trigger) est fixe en coin haut-droit sur tout
+   écran mobile (cf. App.tsx), par-dessus le contenu normal — sans cette
+   réserve, il recouvre le dernier bouton d'un .top-bar qui en a un à droite
+   (ex. Réglages de l'espace sur RUN/Projet), le rendant invisible/incliquable
+   (régression constatée à 390×844 et au-delà tant que < 1024px, où le
+   bouton n'existe plus — cf. AppShell). */
+@media (max-width: 1023.98px) {
+  .top-bar {
+    padding-right: calc(max(20px, env(safe-area-inset-right)) + var(--touch-target) + var(--space-2));
+  }
+}
+
 /* Le premier enfant direct (bloc titre) doit pouvoir rétrécir/tronquer au
    lieu de forcer .top-bar à passer sur 2 lignes (repéré à 320px : le titre
    long d'un espace RUN faisait déborder/chevaucher "Filtres" + réglages). */
@@ -1973,6 +1985,34 @@ a {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2);
+}
+
+/* Paysage mobile (§ "Paysage mobile", Lot C) : à ce format on a la largeur
+   pour deux colonnes mais jamais la hauteur pour 5 sections empilées
+   (844×390 typique) — gauche "focus/urgence" (Priorité immédiate,
+   Échéances, Projets actifs), droite "actions du jour" (RUN du jour,
+   Tâches Projet du jour). Bornée à un intervalle mobile large (>=700px de
+   large, <1024px, orientation paysage) : ni un petit téléphone en paysage
+   (trop étroit pour 2 colonnes lisibles) ni un vrai desktop (sidebar +
+   .app-main déjà borné à 720px ailleurs). Transparent en portrait — l'ordre
+   DOM (Priorité, RUN, Tâches Projet, Échéances, Projets actifs) reste la
+   seule mise en page, aucune section n'est dupliquée ni réordonnée dans le
+   DOM, seul son placement visuel change. */
+@media (min-width: 700px) and (max-width: 1023.98px) and (orientation: landscape) {
+  .today-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-5);
+    align-items: start;
+  }
+
+  .today-sections-grid .today-section-focus {
+    grid-column: 1;
+  }
+
+  .today-sections-grid .today-section-actions {
+    grid-column: 2;
+  }
 }
 
 /* "Projets actifs" (Home) : vue secondaire compacte volontairement plus

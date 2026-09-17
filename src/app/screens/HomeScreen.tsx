@@ -169,75 +169,88 @@ export function HomeScreen({
           />
         ) : (
           <>
-            <TodaySection
-              id="section-home-priority"
-              title="Priorité immédiate"
-              isEmpty={!overview.priorityAction}
-              emptyMessage="Rien d'urgent à traiter en premier."
-            >
-              {overview.priorityAction && (
-                <div className="action-card-list">{renderCard(overview.priorityAction, { showDescription: true, treat: true })}</div>
-              )}
-            </TodaySection>
+            {/* En paysage mobile (844×390 et similaires), ce conteneur bascule en
+                deux colonnes CSS — gauche "focus/urgence" (Priorité, Échéances,
+                Projets actifs), droite "actions du jour" (RUN, Tâches Projet) —
+                cf. règle `.today-sections-grid` dans global.css. En portrait et
+                sur desktop, transparent : l'ordre et l'empilement DOM ci-dessous
+                restent la seule mise en page. */}
+            <div className="today-sections-grid">
+              <TodaySection
+                id="section-home-priority"
+                title="Priorité immédiate"
+                isEmpty={!overview.priorityAction}
+                emptyMessage="Rien d'urgent à traiter en premier."
+                landscapeGroup="focus"
+              >
+                {overview.priorityAction && (
+                  <div className="action-card-list">{renderCard(overview.priorityAction, { showDescription: true, treat: true })}</div>
+                )}
+              </TodaySection>
 
-            <TodaySection
-              id="section-home-run"
-              title="RUN du jour"
-              isEmpty={overview.runToday.length === 0}
-              emptyMessage="Aucune action RUN à traiter aujourd'hui."
-            >
-              <div className="action-card-list">
-                {overview.runToday.map((action) => renderCard(action, { treat: true }))}
-              </div>
-            </TodaySection>
+              <TodaySection
+                id="section-home-run"
+                title="RUN du jour"
+                isEmpty={overview.runToday.length === 0}
+                emptyMessage="Aucune action RUN à traiter aujourd'hui."
+                landscapeGroup="actions"
+              >
+                <div className="action-card-list">
+                  {overview.runToday.map((action) => renderCard(action, { treat: true }))}
+                </div>
+              </TodaySection>
 
-            <TodaySection
-              id="section-home-project-tasks"
-              title="Tâches Projet du jour"
-              isEmpty={overview.projectTasksToday.length === 0}
-              emptyMessage="Aucune tâche Projet prévue aujourd'hui."
-            >
-              <div className="action-card-list">
-                {overview.projectTasksToday.map((action) => renderCard(action, { treat: true }))}
-              </div>
-            </TodaySection>
+              <TodaySection
+                id="section-home-project-tasks"
+                title="Tâches Projet du jour"
+                isEmpty={overview.projectTasksToday.length === 0}
+                emptyMessage="Aucune tâche Projet prévue aujourd'hui."
+                landscapeGroup="actions"
+              >
+                <div className="action-card-list">
+                  {overview.projectTasksToday.map((action) => renderCard(action, { treat: true }))}
+                </div>
+              </TodaySection>
 
-            <TodaySection
-              id="section-home-deadline"
-              title="Échéances"
-              isEmpty={!overview.nextDeadline}
-              emptyMessage="Aucune échéance proche cette semaine."
-            >
-              {overview.nextDeadline && <div className="action-card-list">{renderCard(overview.nextDeadline)}</div>}
-            </TodaySection>
+              <TodaySection
+                id="section-home-deadline"
+                title="Échéances"
+                isEmpty={!overview.nextDeadline}
+                emptyMessage="Aucune échéance proche cette semaine."
+                landscapeGroup="focus"
+              >
+                {overview.nextDeadline && <div className="action-card-list">{renderCard(overview.nextDeadline)}</div>}
+              </TodaySection>
 
-            <TodaySection
-              id="section-home-active-projects"
-              title="Projets actifs"
-              isEmpty={overview.activeProjects.length === 0}
-              emptyMessage="Aucun projet actif pour l'instant."
-            >
-              <ul className="active-projects-list" aria-label="Projets actifs">
-                {overview.activeProjects.map(({ workspace, totalCount, doneCount }) => {
-                  const percent = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
-                  return (
-                    <li key={workspace.id}>
-                      <button
-                        type="button"
-                        className="active-project-row"
-                        onClick={() => onNavigateToWorkspace(workspace.id)}
-                      >
-                        <span className="active-project-name">{workspace.name}</span>
-                        <span className="progress-track" aria-hidden="true">
-                          <span className="progress-fill" style={{ width: `${percent}%` }} />
-                        </span>
-                        <span className="active-project-percent">{percent}%</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </TodaySection>
+              <TodaySection
+                id="section-home-active-projects"
+                title="Projets actifs"
+                isEmpty={overview.activeProjects.length === 0}
+                emptyMessage="Aucun projet actif pour l'instant."
+                landscapeGroup="focus"
+              >
+                <ul className="active-projects-list" aria-label="Projets actifs">
+                  {overview.activeProjects.map(({ workspace, totalCount, doneCount }) => {
+                    const percent = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
+                    return (
+                      <li key={workspace.id}>
+                        <button
+                          type="button"
+                          className="active-project-row"
+                          onClick={() => onNavigateToWorkspace(workspace.id)}
+                        >
+                          <span className="active-project-name">{workspace.name}</span>
+                          <span className="progress-track" aria-hidden="true">
+                            <span className="progress-fill" style={{ width: `${percent}%` }} />
+                          </span>
+                          <span className="active-project-percent">{percent}%</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </TodaySection>
+            </div>
 
             <button type="button" className="btn btn-block tap-target" style={{ marginBottom: "var(--space-4)" }} onClick={onOpenWeek}>
               Voir la semaine complète
