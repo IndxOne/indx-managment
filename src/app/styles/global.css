@@ -507,6 +507,15 @@ a {
   box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
 }
 
+/* Accent de priorité (§3 polish RUN) : un bord fin, jamais une carte
+   pleinement colorée pour une priorité normale/basse — la distinction
+   "critique visible / normal neutre" reste avant tout portée par le chip
+   texte "Prioritaire" (déjà présent, indication non-couleur), ce bord
+   n'est qu'un renfort visuel discret. */
+.action-card[data-priority="high"] .action-card-swipe-content {
+  border-left: 3px solid var(--color-danger);
+}
+
 /* Priorité immédiate (Accueil) : la carte doit se distinguer au premier
    coup d'œil du reste de la liste — bord d'accent latéral + surface
    légèrement teintée selon `action.priority`, jamais un rouge agressif
@@ -642,7 +651,22 @@ a {
 .action-card-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+}
+
+/* Échéance repérable au premier coup d'œil (§4 polish RUN) : poussée à
+   droite de la ligne de chips via `margin-left: auto` — si la largeur
+   manque et qu'elle passe à la ligne suivante (chips nombreux + 320px),
+   elle reste un badge sur une seule ligne, jamais un retour à la ligne
+   au milieu du texte. */
+.action-card-due {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
 }
 
 .phase-chip {
@@ -1497,10 +1521,22 @@ a {
   white-space: nowrap;
 }
 
-/* Sur-titre discret (Accueil uniquement) : signe l'écran comme un espace de
-   travail nommé, sans dupliquer le titre de la barre basse ("Accueil") —
-   celui-ci reste orienté exécution ("Aujourd'hui"), cf. cadrage §4 polish. */
-.home-eyebrow {
+/* RUN (§1 polish) : `.top-bar h1` (34px) est dimensionné pour un titre
+   seul sans bouton à droite (Accueil) — sur RUN, où "Filtres" + réglages
+   partagent la ligne, même un nom d'espace court ("RUN Support SI")
+   pouvait finir tronqué en "RUN…" à 320px. Réduit ici sans toucher
+   `.top-bar h1` (Accueil, WorkspaceList, Project en dépendent) ni revenir
+   sur le choix déjà arbitré "rétrécir plutôt que passer à la ligne"
+   ci-dessus : seule la taille de départ change. */
+.top-bar h1.run-title {
+  font-size: 1.25rem;
+}
+
+/* Sur-titre discret (Accueil, RUN) : introduit par le Lot A polish
+   (Accueil : "INDXONE Workspace"), réutilisé tel quel par RUN ("Inbox
+   opérationnelle") plutôt que de dupliquer une seconde grammaire de
+   sur-titre — même token, même traitement. */
+.screen-eyebrow {
   display: block;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -1892,6 +1928,15 @@ a {
   margin-top: 2px;
 }
 
+/* Rappel du geste swipe (RUN, §1 polish) : une ligne courte, jamais un
+   paragraphe — n'existe que si le geste a réellement quelque chose sur
+   quoi agir (cf. `hasActiveItems` dans RunWorkspaceScreen). */
+.run-swipe-hint {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin: 2px 0 0;
+}
+
 .action-title {
   font-size: 0.9375rem;
   font-weight: 700;
@@ -2256,7 +2301,15 @@ a {
   position: fixed;
   left: var(--space-4);
   right: var(--space-4);
-  bottom: calc(var(--bottom-nav-height) + var(--space-3));
+  /* Offset distinct de .undo-banner (risque identifié §15 polish RUN) :
+     Toast et UndoBanner sont deux mécanismes indépendants (contexts
+     séparés, aucun état partagé) qui peuvent apparaître dans la même
+     fenêtre de quelques secondes (ex. "Action créée." puis "Traiter" sur
+     une autre carte) — au même `bottom`, ils se chevauchaient
+     illisiblement. +152px couvre le pire cas déjà géré par
+     RunWorkspaceScreen/HomeScreen (deux UndoBanner empilés, cf. leur
+     propre offset +72px) sans toucher à la durée ni aux callbacks Undo. */
+  bottom: calc(var(--bottom-nav-height) + var(--space-3) + 152px);
   margin: 0 auto;
   max-width: 420px;
   padding: var(--space-3) var(--space-4);
@@ -2390,6 +2443,12 @@ a {
   background: var(--color-bg);
 }
 
+/* Le bouton "Réouvrir" ne doit jamais rétrécir/wrapper avant le titre ou
+   la meta, qui gèrent déjà leur propre troncature (§9 polish RUN). */
+.resolved-run-item > .btn {
+  flex-shrink: 0;
+}
+
 .resolved-run-item-open {
   flex: 1;
   min-width: 0;
@@ -2417,8 +2476,17 @@ a {
 }
 
 .resolved-run-title {
-  flex: 1;
-  min-width: 0;
+  /* Plancher explicite (dette §9 polish RUN) : sans lui, un badge + une
+     meta (assigné + date) longs poussent ce titre flex:1 vers une largeur
+     quasi nulle à 320px — l'ellipsis ne laissait alors plus qu'un seul
+     caractère visible avant "…". flex-basis:auto (pas 0%) + le flex-shrink
+     très élevé sur .resolved-run-meta ci-dessous font que c'est la meta qui
+     cède la place en premier ; le plancher ne borne que le cas extrême où
+     le budget restant (largeur écran − badge − bouton Réouvrir − gaps) est
+     déjà inférieur à lui — vérifié à 320px pour ne jamais faire déborder
+     .resolved-run-item-open (pas de chevauchement avec le bouton). */
+  flex: 1 1 auto;
+  min-width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2429,7 +2497,13 @@ a {
 }
 
 .resolved-run-meta {
-  flex-shrink: 0;
+  /* flex-shrink élevé (999) plutôt que `flex-shrink: 0` + largeur libre :
+     cette meta cède systématiquement sa place en premier (jusqu'à 0),
+     avant que le titre n'atteigne son propre plancher (dette §9 polish RUN). */
+  flex: 0 999 auto;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--color-text-tertiary);
   font-size: 0.8125rem;
   white-space: nowrap;
@@ -2474,20 +2548,33 @@ a {
   scrollbar-color: var(--color-text-muted) transparent;
 }
 
-.columns-view::-webkit-scrollbar {
+/* Même traitement de scrollbar que .columns-view (§10 polish RUN,
+   "aucun scrollbar gênant") — uniquement les propriétés de scrollbar,
+   jamais la mise en page propre de .segmented-scroll (gap/snap définis
+   à sa propre déclaration, plus haut). */
+.segmented-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.columns-view::-webkit-scrollbar,
+.segmented-scroll::-webkit-scrollbar {
   height: 6px;
 }
 
-.columns-view::-webkit-scrollbar-track {
+.columns-view::-webkit-scrollbar-track,
+.segmented-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.columns-view::-webkit-scrollbar-thumb {
+.columns-view::-webkit-scrollbar-thumb,
+.segmented-scroll::-webkit-scrollbar-thumb {
   background: var(--color-text-muted);
   border-radius: 999px;
 }
 
-.columns-view::-webkit-scrollbar-thumb:hover {
+.columns-view::-webkit-scrollbar-thumb:hover,
+.segmented-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--color-text);
 }
 

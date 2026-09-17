@@ -154,7 +154,7 @@ export function HomeScreen({
     <div>
       <div className="top-bar">
         <div>
-          <span className="home-eyebrow">INDXONE Workspace</span>
+          <span className="screen-eyebrow">INDXONE Workspace</span>
           <h1>Aujourd&apos;hui</h1>
         </div>
       </div>
