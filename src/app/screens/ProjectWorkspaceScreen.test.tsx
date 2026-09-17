@@ -1,7 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
+
+/**
+ * Ce test valide spécifiquement la forme ColumnsView (Kanban, une action par
+ * colonne) — désormais réservée au desktop, la vue "Par étapes" mobile étant
+ * ProjectPhaseOverview (hiérarchie verticale, Lot B). `useIsDesktop()`
+ * retombe sur "mobile" par défaut en jsdom (pas de matchMedia stubbé).
+ */
+function stubDesktop() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockReturnValue({ matches: true, addEventListener: () => {}, removeEventListener: () => {} })
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /**
  * Depuis le Lot 3 (Vue Columns canonique), la vue "Par étapes" d'un espace
@@ -15,6 +32,7 @@ import { App } from "../App";
  */
 describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
   it("range une décision et un risque dans la même colonne, chacun identifiable par son chip de type", async () => {
+    stubDesktop();
     const user = userEvent.setup();
     render(<App />);
 

@@ -160,16 +160,19 @@ describe("App — chargement Supabase", () => {
 
     const loadingLabel = await screen.findByText("Chargement des espaces…");
     expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
-    const weekTab = screen.getByRole("button", { name: "Cette semaine" });
-    await user.click(weekTab);
-    expect(weekTab).toHaveAttribute("aria-current", "page");
+    // "Cette semaine" a quitté la barre basse primaire mobile (cadrage
+    // renouveau mobile Lot A, désormais accessible via le menu secondaire) —
+    // "Projets" reste un onglet primaire mobile, cible équivalente ici.
+    const spacesTab = screen.getByRole("button", { name: "Projets" });
+    await user.click(spacesTab);
+    expect(spacesTab).toHaveAttribute("aria-current", "page");
     expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();
 
     await act(async () => {
       pendingClient.resolveLoad();
     });
 
-    expect(await screen.findByRole("heading", { name: "Cette semaine" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Mes projets" })).toBeInTheDocument();
   });
 });
 

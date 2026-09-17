@@ -1,10 +1,28 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnnouncerProvider } from "../a11y/announcer";
 import type { AppState } from "../adapters/store-context";
 import { TemporaryStoreProvider } from "../adapters/temporary-store";
 import { ProjectWorkspaceScreen } from "./ProjectWorkspaceScreen";
+
+/**
+ * La vue "Par étapes" bascule désormais entre ColumnsView (desktop, Kanban
+ * inchangé) et ProjectPhaseOverview (mobile, hiérarchie verticale — Lot B) :
+ * `useIsDesktop()` retombe sur "mobile" par défaut en jsdom (pas de
+ * matchMedia). Les tests qui valident spécifiquement la forme ColumnsView
+ * (une région + un bouton d'ajout par colonne) forcent donc le desktop ici.
+ */
+function stubDesktop() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn().mockReturnValue({ matches: true, addEventListener: () => {}, removeEventListener: () => {} })
+  );
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function stateWithWorkspace(): AppState {
   return {
@@ -28,6 +46,7 @@ function stateWithWorkspace(): AppState {
 
 describe("ProjectWorkspaceScreen — approche management", () => {
   it("propose ses quatre colonnes métier, chacune une région nommée avec un bouton d'ajout (Lot 3 : ColumnsView)", async () => {
+    stubDesktop();
     render(
       <AnnouncerProvider>
         <TemporaryStoreProvider initialState={stateWithWorkspace()}>
@@ -51,6 +70,7 @@ describe("ProjectWorkspaceScreen — approche management", () => {
   });
 
   it("une action ajoutée sans échéance reste visible (finding Codex PR #28)", async () => {
+    stubDesktop();
     const user = userEvent.setup();
     render(
       <AnnouncerProvider>

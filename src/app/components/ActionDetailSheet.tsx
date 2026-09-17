@@ -4,7 +4,7 @@ import type { ActionContentEdit } from "../../domain/edit-action";
 import type { Member } from "../../domain/member";
 import type { MoveAxis, MoveDestination } from "../../domain/move-action";
 import type { Workspace } from "../../domain/workspace";
-import { ITEM_TYPE_LABELS, PRIORITY_LABELS } from "../labels";
+import { ITEM_TYPE_LABELS, KIND_LABELS, PRIORITY_LABELS } from "../labels";
 import { phaseLabel } from "../labels";
 import { assigneesLabel } from "../utils/member-summary";
 import { resolveDisplayPhaseId } from "../utils/resolve-phase";
@@ -18,14 +18,18 @@ import {
   IconArrowRight,
   IconBell,
   IconCalendar,
+  IconCompass,
   IconLayers,
   IconLink,
   IconMessage,
+  IconNotebook,
   IconPencil,
   IconTrash,
   IconUsers,
   StatusCheckIcon,
 } from "./Icons";
+
+const ACTIVITY_DATE_FORMAT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" });
 
 /**
  * Regroupe les 4 props liées à l'assignation (Lot 8B §K) — évite d'ajouter
@@ -112,6 +116,7 @@ export function ActionDetailSheet({
   const reminder = action.waitingReminder;
   const displayPhaseId = resolveDisplayPhaseId(action.phaseId, phaseOptions);
   const reminderActive = action.status === "waiting" && reminder?.enabled;
+  const actionWorkspace = workspaces.find((candidate) => candidate.id === action.workspaceId);
 
   return (
     <>
@@ -135,6 +140,18 @@ export function ActionDetailSheet({
 
         <div className="action-detail-body">
           <div className="choice-group" style={{ marginBottom: 8 }}>
+            {actionWorkspace && (
+              <DetailRow
+                chipClass="phase-chip-gray"
+                icon={<IconCompass width={18} height={18} />}
+                label="Espace"
+                value={`${actionWorkspace.name} · ${KIND_LABELS[actionWorkspace.kind]}`}
+                onClick={() => {
+                  onNavigate(actionWorkspace.id);
+                  onClose();
+                }}
+              />
+            )}
             <DetailRow
               chipClass="phase-chip-blue"
               icon={<StatusCheckIcon status={action.status} size={18} />}
@@ -215,6 +232,44 @@ export function ActionDetailSheet({
                   </button>
                 )}
               </div>
+            )}
+          </div>
+
+          <div className="choice-group" style={{ marginBottom: 8, padding: "var(--space-3) var(--space-4)" }}>
+            <p className="section-title" style={{ margin: "0 0 4px" }}>
+              Description
+            </p>
+            {action.description ? (
+              <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{action.description}</p>
+            ) : (
+              <p className="action-sub" style={{ margin: 0 }}>
+                Aucune description.
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn tap-target"
+              style={{ marginTop: 8 }}
+              onClick={() => setEditing(true)}
+            >
+              <IconPencil width={14} height={14} /> {action.description ? "Modifier" : "Ajouter une description"}
+            </button>
+          </div>
+
+          <div className="choice-group" style={{ marginBottom: 8, padding: "var(--space-3) var(--space-4)" }}>
+            <p className="section-title" style={{ margin: "0 0 4px" }}>
+              Activité
+            </p>
+            <p className="action-sub" style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <IconNotebook width={14} height={14} /> Créée le {ACTIVITY_DATE_FORMAT.format(new Date(action.createdAt))}
+            </p>
+            <p className="action-sub" style={{ margin: "4px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
+              <IconNotebook width={14} height={14} /> Modifiée le {ACTIVITY_DATE_FORMAT.format(new Date(action.updatedAt))}
+            </p>
+            {action.completedAt && (
+              <p className="action-sub" style={{ margin: "4px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
+                <IconNotebook width={14} height={14} /> Terminée le {ACTIVITY_DATE_FORMAT.format(new Date(action.completedAt))}
+              </p>
             )}
           </div>
 

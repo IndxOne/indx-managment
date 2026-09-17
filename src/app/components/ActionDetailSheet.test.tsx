@@ -206,6 +206,71 @@ describe("ActionDetailSheet — orchestration des sheets existantes", () => {
   });
 });
 
+describe("ActionDetailSheet — écran complet (Lot B)", () => {
+  const workspaces: Workspace[] = [
+    {
+      id: "w1",
+      name: "Refonte site client",
+      kind: "project",
+      approach: "project_amoa",
+      collaborationMode: "solo",
+      presetVersion: 1,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
+  ];
+
+  it("affiche l'espace d'origine (nom + nature) et navigue puis ferme au clic", async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+    const onClose = vi.fn();
+    render(<ActionDetailSheet {...baseProps({ workspaces, onNavigate, onClose })} />);
+
+    const row = screen.getByRole("button", { name: /^Espace/ });
+    expect(row).toHaveTextContent("Refonte site client");
+    expect(row).toHaveTextContent("PROJET");
+    await user.click(row);
+    expect(onNavigate).toHaveBeenCalledWith("w1");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("affiche la description existante et permet de l'éditer via le formulaire existant (pas de second moteur d'édition)", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    const action = makeAction({ description: "Contexte utile pour la suite." });
+    render(<ActionDetailSheet {...baseProps({ action, onEdit })} />);
+
+    expect(screen.getByText("Contexte utile pour la suite.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Modifier/ }));
+    expect(screen.getByText("Éditer l'action")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+    expect(onEdit).toHaveBeenCalled();
+  });
+
+  it("affiche « Aucune description » quand l'action n'en a pas", () => {
+    render(<ActionDetailSheet {...baseProps()} />);
+    expect(screen.getByText("Aucune description.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ajouter une description/ })).toBeInTheDocument();
+  });
+
+  it("affiche l'activité réelle de l'action (création, modification, complétion) sans aucune donnée inventée", () => {
+    const action = makeAction({
+      createdAt: "2026-09-01T08:00:00.000Z",
+      updatedAt: "2026-09-05T10:00:00.000Z",
+      completedAt: "2026-09-06T12:00:00.000Z",
+    });
+    render(<ActionDetailSheet {...baseProps({ action })} />);
+    expect(screen.getByText(/Créée le/)).toBeInTheDocument();
+    expect(screen.getByText(/Modifiée le/)).toBeInTheDocument();
+    expect(screen.getByText(/Terminée le/)).toBeInTheDocument();
+  });
+
+  it("n'affiche pas de ligne « Terminée le » quand l'action n'est pas terminée", () => {
+    render(<ActionDetailSheet {...baseProps()} />);
+    expect(screen.queryByText(/Terminée le/)).not.toBeInTheDocument();
+  });
+});
+
 describe("ActionDetailSheet — collaboration (Lot 8B)", () => {
   const members = [
     { id: "m1", workspaceId: "w1", displayName: "Koffi", active: true, createdAt: "x", updatedAt: "x" },

@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { Action, ActionStatus, CollaborationMode, Priority, WorkItemType } from "../../domain/types";
+import type { Action, ActionStatus, CollaborationMode, Priority, Schedule, WorkItemType } from "../../domain/types";
 import type { ActionContentEdit } from "../../domain/edit-action";
 import type { Member } from "../../domain/member";
 import type { MoveDestination } from "../../domain/move-action";
@@ -65,6 +65,10 @@ export interface NewActionInput {
   status?: ActionStatus;
   /** Présent quand l'action provient d'une note du Carnet convertie. */
   sourceNoteId?: string;
+  /** Échéance initiale (Lot B, création rapide) — même type `Schedule` que le reste du domaine, aucun second mécanisme de date. Absent = `{ granularity: "none" }` comme avant. */
+  schedule?: Schedule;
+  /** Responsable(s) initial(aux) — uniquement pertinent en mode Équipe. Absent = `[]` comme avant. */
+  assigneeIds?: string[];
 }
 
 export interface NewRecurrenceRuleInput {

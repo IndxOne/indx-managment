@@ -11,10 +11,26 @@ import { resolveDisplayPhaseId } from "../utils/resolve-phase";
 import { ActionMenuSheet } from "./ActionMenuSheet";
 import { IconCalendar, IconGripVertical, IconLink, IconMessage, IconMore, StatusCheckIcon } from "./Icons";
 
-// Seuil à partir duquel relâcher déclenche l'action ; au-delà, la carte
-// arrête de suivre le doigt pour ne pas la faire sortir de son conteneur.
-const SWIPE_THRESHOLD = 88;
-const SWIPE_MAX = 132;
+// Seuil de swipe exprimé en pourcentage de la largeur RÉELLE de la carte
+// (mesurée au pointerdown, jamais une valeur en pixels figée) — cadrage
+// "Swipe" du renouveau mobile : ~35% pour déclencher, la carte suit le
+// doigt jusqu'à 55% avant de ne plus avancer, pour ne jamais sortir de son
+// conteneur. En environnement de test (jsdom, offsetWidth toujours 0) ou
+// avant tout layout, on retombe sur une largeur de repli correspondant au
+// viewport mobile minimum du cadrage (320px) plutôt que de désactiver le
+// geste (seuil de 0 déclencherait au moindre pixel).
+const SWIPE_THRESHOLD_RATIO = 0.35;
+const SWIPE_MAX_RATIO = 0.55;
+const SWIPE_FALLBACK_WIDTH = 320;
+
+// Un pointerdown démarré sur un contrôle interactif (checkbox de statut,
+// menu "…") ne doit jamais amorcer un swipe — il resterait "coincé" en
+// attente d'un mouvement horizontal qui ne viendra pas au clic normal, mais
+// interférerait avec les gestionnaires natifs de ces contrôles (cadrage
+// "Swipe" : ignorer le geste sur un contrôle, jamais sur la grande surface
+// de contenu qui ouvre le détail). Sélecteur volontairement restreint aux
+// DEUX contrôles concernés, pas à toute la carte.
+const SWIPE_IGNORE_SELECTOR = ".status-check, .icon-btn";
 
 /**
  * Carte d'action unique (Lot 2 du renouveau produit) : fusionne l'ancienne
@@ -50,6 +66,9 @@ export function ActionCard({
   onDragEnd,
   phaseOptions,
   assignedMembers,
+  onTreat,
+  treatLabel = "Traiter",
+  showDescription,
 }: {
   action: Action;
   timezone: string;
@@ -81,11 +100,19 @@ export function ActionCard({
   phaseOptions?: string[];
   /** Responsables déjà résolus (Lot 8B) — initiales compactes, max 2 + "+N". Absent ou vide = rien affiché (mode Solo, ou action non assignée). */
   assignedMembers?: Member[];
+  /** Alternative NON gestuelle, toujours accessible, au swipe-pour-terminer (cadrage "Swipe" : le geste est toujours un raccourci, jamais la seule voie). Rendu dans un pied de carte visuellement séparé (variant "list" uniquement) — absent = pas de bouton "Traiter" (écrans qui n'en ont pas besoin, comportement inchangé). */
+  onTreat?: () => void;
+  /** Libellé du bouton "Traiter" (par défaut) — personnalisable pour "Réouvrir" etc. si un futur écran en a besoin. */
+  treatLabel?: string;
+  /** Affiche `action.description` (1-2 lignes, tronquée) dans le corps de la carte — réservé aux vues où la densité le permet (RUN actif, Home). Absent/false = comportement inchangé. */
+  showDescription?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; committed: boolean; width: number } | null>(
+    null
+  );
   // Un swipe committed (list) ou un drag HTML5 (kanban) synthétise parfois
   // quand même un "click" natif au relâchement — sans ce garde-fou, ouvrir
   // le détail au clic sur le titre ouvrirait aussi le détail après un
@@ -119,7 +146,12 @@ export function ActionCard({
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!swipeEnabled || menuOpen) return;
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false };
+    // Un contrôle interactif (checkbox de statut, menu "…") gère déjà son
+    // propre clic — jamais de swipe amorcé depuis lui. La grande surface qui
+    // ouvre le détail, elle, reste une zone de swipe valide.
+    if (event.target instanceof HTMLElement && event.target.closest(SWIPE_IGNORE_SELECTOR)) return;
+    const width = event.currentTarget.offsetWidth || SWIPE_FALLBACK_WIDTH;
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, committed: false, width };
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -140,7 +172,7 @@ export function ActionCard({
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }
     event.preventDefault();
-    const max = SWIPE_MAX;
+    const max = drag.width * SWIPE_MAX_RATIO;
     const clamped = Math.max(-max, Math.min(max, deltaX));
     setDragX(swipeCompleteEnabled ? clamped : Math.min(clamped, 0));
   }
@@ -151,9 +183,10 @@ export function ActionCard({
     dragRef.current = null;
     setIsDragging(false);
     if (drag.committed) {
-      if (dragX >= SWIPE_THRESHOLD && swipeCompleteEnabled) {
+      const threshold = drag.width * SWIPE_THRESHOLD_RATIO;
+      if (dragX >= threshold && swipeCompleteEnabled) {
         onSwipeComplete!();
-      } else if (dragX <= -SWIPE_THRESHOLD) {
+      } else if (dragX <= -threshold) {
         onMove();
       }
     }
@@ -313,6 +346,7 @@ export function ActionCard({
   const listInfo = (
     <>
       {title}
+      {showDescription && action.description && <p className="action-card-description">{action.description}</p>}
       <div className="action-sub">
         <span>
           {workspaceName ? `${workspaceName} · ` : ""}
@@ -400,6 +434,13 @@ export function ActionCard({
           </div>
           {menuButton}
         </div>
+        {onTreat && !isDone && (
+          <div className="action-card-footer">
+            <button type="button" className="btn btn-primary tap-target action-card-treat" onClick={onTreat}>
+              {treatLabel}
+            </button>
+          </div>
+        )}
       </div>
       {menu}
     </div>

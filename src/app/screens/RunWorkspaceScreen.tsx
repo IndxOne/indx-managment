@@ -16,14 +16,17 @@ import { EditActionSheet } from "../components/EditActionSheet";
 import { FilterSheet } from "../components/FilterSheet";
 import { QuickFilterChips } from "../components/QuickFilterChips";
 import { SegmentedTabs } from "../components/SegmentedTabs";
-import { IconSettings } from "../components/Icons";
+import { IconPlus, IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { QuickAddBar } from "../components/QuickAddBar";
+import { ResolvedRunItem } from "../components/ResolvedRunItem";
+import { useToast } from "../components/Toast";
 import { UndoBanner } from "../components/UndoBanner";
 import { EmptyState, NoResultsState } from "../components/StateBlocks";
 import { applyFilters, EMPTY_FILTERS, hasActiveFilters, type ActionFilters } from "../utils/filter-actions";
+import { resolveAssignees } from "../utils/member-summary";
 
 type RunView = "today" | "week";
 
@@ -81,31 +84,67 @@ export function RunWorkspaceScreen({
   const { pendingUndo, move, cancelLastMove } = useMoveWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
+  const { showToast } = useToast();
 
-  const filtered = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
+  const filtered = useMemo(() => applyFilters(allActions, filters, timezone), [allActions, filters, timezone]);
 
+  // Une opération résolue perd toute sa place dans la file active (cadrage
+  // "RUN resolved") : sortie ici, jamais mélangée aux buckets actifs, rendue
+  // séparément en fin d'écran via ResolvedRunItem (densité minimale).
   const buckets = useMemo(() => {
     const waiting: Action[] = [];
     const inView: Action[] = [];
     const unscheduled: Action[] = [];
+    const resolved: Action[] = [];
 
     for (const action of filtered) {
-      if (action.status === "waiting") waiting.push(action);
+      if (action.status === "done") {
+        resolved.push(action);
+        continue;
+      }
+      if (action.status === "waiting") {
+        waiting.push(action);
+        continue;
+      }
       const derived = deriveScheduleKeys(action.schedule, timezone);
       if (derived.relativeLabel === "unscheduled") {
-        if (action.status !== "waiting") unscheduled.push(action);
+        unscheduled.push(action);
         continue;
       }
       const withinView =
         view === "today" ? derived.relativeLabel === "today" : ["today", "tomorrow", "this_week"].includes(derived.relativeLabel);
-      if (withinView && action.status !== "waiting") {
+      if (withinView) {
         inView.push(action);
       }
     }
-    return { waiting, inView, unscheduled };
+    // Plus récemment résolue en premier — la file "Résolu" reste utile en
+    // lecture rapide sans avoir à la trier soi-même.
+    resolved.sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt));
+    return { waiting, inView, unscheduled, resolved };
   }, [filtered, timezone, view]);
 
-  const nothingToShow = buckets.waiting.length === 0 && buckets.inView.length === 0 && buckets.unscheduled.length === 0;
+  const nothingToShow =
+    buckets.waiting.length === 0 &&
+    buckets.inView.length === 0 &&
+    buckets.unscheduled.length === 0 &&
+    buckets.resolved.length === 0;
+
+  // `move` déclenche déjà UndoBanner ("Déplacement effectué.", annulable) —
+  // un toast en plus ferait doublon visuel sur la même action (cadrage
+  // "Feedback"). Le toast reste réservé à la création, qui n'a pas
+  // d'équivalent visuel existant sur cet écran.
+  function handleTreat(action: Action) {
+    move(workspace.id, action, { axis: "status", status: "done" });
+  }
+
+  function handleReopen(action: Action) {
+    move(workspace.id, action, { axis: "status", status: "todo" });
+  }
+
+  function handleQuickAdd(title: string) {
+    createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" });
+    showToast("Action créée.");
+  }
 
   return (
     <div>
@@ -138,7 +177,7 @@ export function RunWorkspaceScreen({
         <QuickFilterChips quickFilterIds={preset.quickFilters} filters={filters} onChange={setFilters} />
 
         <QuickAddBar
-          onQuickAdd={(title) => createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal" })}
+          onQuickAdd={handleQuickAdd}
           onOpenFullForm={(draftTitle) => {
             setAddSheetDraftTitle(draftTitle);
             setAddSheetOpen(true);
@@ -150,8 +189,21 @@ export function RunWorkspaceScreen({
             <NoResultsState onClearFilters={() => setFilters(EMPTY_FILTERS)} />
           ) : (
             <EmptyState
-              title="Rien à afficher"
+              title="Aucune action prévue"
               description="Ajoutez une action pour commencer à suivre ce RUN."
+              action={
+                <button
+                  type="button"
+                  className="btn btn-primary tap-target"
+                  onClick={() => {
+                    setAddSheetDraftTitle("");
+                    setAddSheetOpen(true);
+                  }}
+                >
+                  <IconPlus width={16} height={16} strokeWidth={2.4} />
+                  Ajouter une action
+                </button>
+              }
             />
           )
         ) : (
@@ -165,7 +217,9 @@ export function RunWorkspaceScreen({
               resolveSyncStatus={resolveSyncStatus}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
+              onComplete={handleTreat}
+              onTreat={handleTreat}
+              showDescription
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
@@ -185,7 +239,9 @@ export function RunWorkspaceScreen({
               emptyMessage="Aucune action planifiée."
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
+              onComplete={handleTreat}
+              onTreat={handleTreat}
+              showDescription
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
@@ -204,7 +260,9 @@ export function RunWorkspaceScreen({
               resolveSyncStatus={resolveSyncStatus}
               onMove={setMovingAction}
               onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
-              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
+              onComplete={handleTreat}
+              onTreat={handleTreat}
+              showDescription
               onEdit={setEditingAction}
               onDelete={(action) => remove(workspace.id, action)}
               onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
@@ -213,6 +271,25 @@ export function RunWorkspaceScreen({
               onOpenDetail={(action) => setDetailActionId(action.id)}
               members={members}
             />
+
+            {buckets.resolved.length > 0 && (
+              <section aria-labelledby="section-resolved">
+                <h2 id="section-resolved" className="section-title">
+                  Résolu
+                </h2>
+                <ul className="resolved-run-list">
+                  {buckets.resolved.map((action) => (
+                    <ResolvedRunItem
+                      key={action.id}
+                      action={action}
+                      assignedMember={members ? resolveAssignees(members, action.assigneeIds)[0] : undefined}
+                      onOpenDetail={() => setDetailActionId(action.id)}
+                      onReopen={() => handleReopen(action)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
           </>
         )}
       </div>
@@ -230,6 +307,7 @@ export function RunWorkspaceScreen({
       {addSheetOpen && (
         <AddActionSheet
           initialTitle={addSheetDraftTitle}
+          members={members}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={({ repeat, ...input }) => {
             if (repeat) {
@@ -238,6 +316,7 @@ export function RunWorkspaceScreen({
               createAction({ workspaceId: workspace.id, ...input });
             }
             setAddSheetOpen(false);
+            showToast("Action créée.");
           }}
         />
       )}

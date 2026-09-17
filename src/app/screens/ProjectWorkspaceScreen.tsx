@@ -6,6 +6,7 @@ import type { Workspace } from "../../domain/workspace";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
 import { useStore } from "../adapters/temporary-store";
+import { useIsDesktop } from "../hooks/useIsDesktop";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
@@ -14,6 +15,7 @@ import { ActionDetailSheet } from "../components/ActionDetailSheet";
 import { ActionListSection } from "../components/ActionListSection";
 import { AddActionSheet } from "../components/AddActionSheet";
 import { ColumnsView } from "../components/ColumnsView";
+import { ProjectPhaseOverview } from "../components/ProjectPhaseOverview";
 import { EditActionSheet } from "../components/EditActionSheet";
 import { IconSettings } from "../components/Icons";
 import { LinkActionSheet } from "../components/LinkActionSheet";
@@ -52,6 +54,7 @@ export function ProjectWorkspaceScreen({
     unlinkAction,
     setAssignees,
   } = useStore();
+  const isDesktop = useIsDesktop();
   const preset = resolveWorkspacePreset(workspace);
   const statusLabels = { ...STATUS_LABELS_DEFAULT, ...preset.statusLabels };
   const allActions = useMemo(() => state.actionsByWorkspace[workspace.id] ?? [], [state.actionsByWorkspace, workspace.id]);
@@ -87,7 +90,7 @@ export function ProjectWorkspaceScreen({
   const { pendingUndo: pendingDeleteUndo, remove, cancelLastDelete } = useDeleteWithUndo();
   const resolveSyncStatus = useActionSyncStatus();
 
-  const filteredActions = useMemo(() => applyFilters(allActions, filters), [allActions, filters]);
+  const filteredActions = useMemo(() => applyFilters(allActions, filters, timezone), [allActions, filters, timezone]);
 
   const actionsByPhase = useMemo(() => {
     const grouped: Record<string, Action[]> = {};
@@ -146,33 +149,63 @@ export function ProjectWorkspaceScreen({
           />
         )}
         {mode === "phase" ? (
-          <ColumnsView
-            phases={phases}
-            actionsByPhase={actionsByPhase}
-            statusLabels={statusLabels}
-            timezone={timezone}
-            resolveSyncStatus={resolveSyncStatus}
-            onAddToPhase={(phaseId, draftTitle) => {
-              setCurrentPhase(phaseId);
-              setAddSheetDraftTitle(draftTitle ?? "");
-              setAddSheetOpen(true);
-            }}
-            onQuickCreate={(phaseId, title) =>
-              createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId })
-            }
-            onDropOnPhase={(actionId, phaseId) => {
-              const action = allActions.find((candidate) => candidate.id === actionId);
-              if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });
-            }}
-            onMove={setMovingAction}
-            onEdit={setEditingAction}
-            onDelete={(action) => remove(workspace.id, action)}
-            onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
-            onOpenNotes={(action) => setNotesActionId(action.id)}
-            onOpenLink={(action) => setLinkingActionId(action.id)}
-            onOpenDetail={(action) => setDetailActionId(action.id)}
-            members={members}
-          />
+          isDesktop ? (
+            <ColumnsView
+              phases={phases}
+              actionsByPhase={actionsByPhase}
+              statusLabels={statusLabels}
+              timezone={timezone}
+              resolveSyncStatus={resolveSyncStatus}
+              onAddToPhase={(phaseId, draftTitle) => {
+                setCurrentPhase(phaseId);
+                setAddSheetDraftTitle(draftTitle ?? "");
+                setAddSheetOpen(true);
+              }}
+              onQuickCreate={(phaseId, title) =>
+                createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId })
+              }
+              onDropOnPhase={(actionId, phaseId) => {
+                const action = allActions.find((candidate) => candidate.id === actionId);
+                if (action && action.phaseId !== phaseId) move(workspace.id, action, { axis: "phase", phaseId });
+              }}
+              onMove={setMovingAction}
+              onEdit={setEditingAction}
+              onDelete={(action) => remove(workspace.id, action)}
+              onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+              onOpenNotes={(action) => setNotesActionId(action.id)}
+              onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
+              members={members}
+            />
+          ) : (
+            <ProjectPhaseOverview
+              phases={phases}
+              actionsByPhase={actionsByPhase}
+              statusLabels={statusLabels}
+              timezone={timezone}
+              resolveSyncStatus={resolveSyncStatus}
+              members={members}
+              currentPhase={currentPhase ?? phases[0]!}
+              onSelectPhase={setCurrentPhase}
+              onAddToPhase={(phaseId, draftTitle) => {
+                setCurrentPhase(phaseId);
+                setAddSheetDraftTitle(draftTitle ?? "");
+                setAddSheetOpen(true);
+              }}
+              onQuickCreate={(phaseId, title) =>
+                createAction({ workspaceId: workspace.id, title, itemType: "task", priority: "normal", phaseId })
+              }
+              onMove={setMovingAction}
+              onCycleStatus={(action) => move(workspace.id, action, { axis: "status", status: cycleStatus(action.status) })}
+              onComplete={(action) => move(workspace.id, action, { axis: "status", status: "done" })}
+              onEdit={setEditingAction}
+              onDelete={(action) => remove(workspace.id, action)}
+              onDisableReminder={(action) => disableReminder(workspace.id, action.id)}
+              onOpenNotes={(action) => setNotesActionId(action.id)}
+              onOpenLink={(action) => setLinkingActionId(action.id)}
+              onOpenDetail={(action) => setDetailActionId(action.id)}
+            />
+          )
         ) : (
           <>
             <QuickAddBar
@@ -259,6 +292,7 @@ export function ProjectWorkspaceScreen({
           phaseOptions={phases}
           defaultPhaseId={currentPhase}
           initialTitle={addSheetDraftTitle}
+          members={members}
           onCancel={() => setAddSheetOpen(false)}
           onCreate={({ repeat, ...input }) => {
             if (repeat) {

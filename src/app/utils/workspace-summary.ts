@@ -1,10 +1,50 @@
 import { deriveScheduleKeys, formatRelativeLabel } from "../../calendar/calendar-engine";
-import type { Action } from "../../domain/types";
+import type { Action, Priority } from "../../domain/types";
 
 export interface WorkspaceSummary {
   relevantActionsCount: number;
   doneCount: number;
   nextDueLabel: string | null;
+}
+
+export type WorkspaceDerivedStatus = "new" | "active" | "done";
+
+const WORKSPACE_STATUS_LABELS: Record<WorkspaceDerivedStatus, string> = {
+  new: "Nouveau",
+  active: "Actif",
+  done: "Terminé",
+};
+
+/**
+ * Statut d'espace affiché dans la liste des projets (Lot B) — dérivé
+ * uniquement des actions réelles de l'espace, jamais un champ persisté
+ * séparé (aucune migration Supabase requise pour cette information) :
+ * "Nouveau" tant qu'aucune action n'existe, "Terminé" quand toutes les
+ * actions existantes sont faites, "Actif" sinon.
+ */
+export function deriveWorkspaceStatus(actions: readonly Action[]): WorkspaceDerivedStatus {
+  if (actions.length === 0) return "new";
+  return actions.every((action) => action.status === "done") ? "done" : "active";
+}
+
+export function workspaceStatusLabel(status: WorkspaceDerivedStatus): string {
+  return WORKSPACE_STATUS_LABELS[status];
+}
+
+const PRIORITY_ORDER: Priority[] = ["high", "normal", "low"];
+
+/**
+ * Priorité "dominante" de l'espace pour la liste des projets — la plus
+ * élevée parmi les actions encore ouvertes (jamais parmi les actions
+ * terminées, qui n'ont plus d'urgence). `null` si aucune action ouverte
+ * (espace nouveau ou entièrement terminé) : pas de priorité à afficher.
+ */
+export function deriveWorkspaceTopPriority(actions: readonly Action[]): Priority | null {
+  const open = actions.filter((action) => action.status !== "done");
+  for (const priority of PRIORITY_ORDER) {
+    if (open.some((action) => action.priority === priority)) return priority;
+  }
+  return null;
 }
 
 /**
