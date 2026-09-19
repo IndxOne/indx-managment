@@ -121,7 +121,12 @@ function makePendingMockClient() {
 }
 
 vi.mock("./supabase/client", () => ({
-  getSupabaseClient: () => mockClientInstance,
+  getSupabaseClient: () => ({
+    ...mockClientInstance,
+    rpc:
+      mockClientInstance?.rpc ??
+      (async () => ({ data: { workspaces: 0, carnet_notes: 0, hub_settings: 0, push_subscriptions: 0 }, error: null })),
+  }),
   isSupabaseConfigured: () => true,
 }));
 
@@ -134,7 +139,7 @@ vi.mock("./supabase/user-hash", () => ({
  * bas) : par défaut, résolution immédiate sans session (comportement de
  * tous les scénarios ci-dessus, non concernés par owner_id).
  */
-const getCurrentAuthUserIdMock = vi.fn(async () => null as string | null);
+const getCurrentAuthUserIdMock = vi.fn(async () => "auth-uid-default" as string | null);
 const onAuthStateChangeMock = vi.fn((_callback: (id: string | null) => void) => () => {});
 
 vi.mock("./supabase/auth", () => ({
@@ -143,7 +148,7 @@ vi.mock("./supabase/auth", () => ({
 }));
 
 afterEach(() => {
-  getCurrentAuthUserIdMock.mockReset().mockResolvedValue(null);
+  getCurrentAuthUserIdMock.mockReset().mockResolvedValue("auth-uid-default");
   onAuthStateChangeMock.mockReset().mockReturnValue(() => {});
 });
 
