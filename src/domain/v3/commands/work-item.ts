@@ -44,6 +44,17 @@ export function assignWorkItem(item: WorkItem, responsibleId: EntityId, now: Iso
   return ok(next, events);
 }
 
+/** ACT-001 (§11.5) — prédicat pur partagé avec le moteur de règles (Lot 2,
+ * cf. rules/work-item-rules.ts) : source unique de vérité. */
+export function hasResponsible(item: WorkItem): boolean {
+  return Boolean(item.responsibleId);
+}
+
+/** ACT-002 (§11.5) — idem, partagé avec le moteur de règles. */
+export function hasExitConditionOrDueDate(item: WorkItem): boolean {
+  return Boolean(item.dueDate || item.exitCondition);
+}
+
 /**
  * ACT-001/ACT-002 (§11.5) au niveau structurel : passer à "ready" exige un
  * responsable ET (une échéance OU une condition de sortie) — l'invariant
@@ -54,10 +65,10 @@ export function transitionWorkItem(item: WorkItem, to: WorkItemStatus, now: IsoD
   if (!canTransitionWorkItem(item.status, to)) {
     return fail(domainError("work_item_invalid_transition", `Transition ${item.status} -> ${to} interdite`, item.id));
   }
-  if (to === "ready" && !item.responsibleId) {
+  if (to === "ready" && !hasResponsible(item)) {
     return fail(domainError("work_item_missing_responsible", "Un responsable est requis avant de passer à Prêt", item.id));
   }
-  if (to === "ready" && !item.dueDate && !item.exitCondition) {
+  if (to === "ready" && !hasExitConditionOrDueDate(item)) {
     return fail(domainError("work_item_missing_exit_condition", "Une échéance ou une condition de sortie est requise avant de passer à Prêt", item.id));
   }
   if (to === "blocked" && !item.blockedReason) {

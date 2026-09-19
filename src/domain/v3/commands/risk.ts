@@ -48,6 +48,24 @@ export function qualifyRisk(risk: Risk, probability: RiskProbability, impact: Ri
   return ok(next, events);
 }
 
+function isCriticalOrHigh(criticality: Criticality | undefined): boolean {
+  return criticality === "high" || criticality === "critical";
+}
+
+/** RSK-002 (§11.5) — prédicat pur partagé avec le moteur de règles (Lot 2).
+ * Ne s'applique qu'aux risques high/critical (vacuously satisfait sinon).
+ * planRiskResponse() l'applique au paramètre `ownerId` proposé ; la règle
+ * RSK-002 l'applique à `risk.ownerId` déjà posé — même prédicat, entrée
+ * différente selon le moment de l'évaluation. */
+export function meetsOwnerRequirement(criticality: Criticality | undefined, ownerId: EntityId | undefined): boolean {
+  return !isCriticalOrHigh(criticality) || Boolean(ownerId);
+}
+
+/** RSK-003 (§11.5) — idem, partagé avec le moteur de règles. */
+export function meetsResponseRequirement(criticality: Criticality | undefined, response: string | undefined): boolean {
+  return !isCriticalOrHigh(criticality) || Boolean(response);
+}
+
 /** RSK-002 (§11.5) au niveau structurel : un risque qualifié élevé/critique
  * sans stratégie ni propriétaire ni réponse ne peut pas être déclaré "sous
  * contrôle" — cette fonction couvre l'étape "réponse planifiée" qui en est
@@ -62,10 +80,10 @@ export function planRiskResponse(
   if (!canTransitionRisk(risk.status, "response_planned")) {
     return fail(domainError("risk_invalid_transition", `Transition ${risk.status} -> response_planned interdite`, risk.id));
   }
-  if ((risk.criticality === "high" || risk.criticality === "critical") && !ownerId) {
+  if (!meetsOwnerRequirement(risk.criticality, ownerId)) {
     return fail(domainError("risk_critical_without_owner", "Un risque critique/élevé exige un propriétaire", risk.id));
   }
-  if ((risk.criticality === "high" || risk.criticality === "critical") && !response) {
+  if (!meetsResponseRequirement(risk.criticality, response)) {
     return fail(domainError("risk_critical_without_response", "Un risque critique/élevé exige une réponse", risk.id));
   }
   const next: Risk = { ...risk, strategy, response, ownerId, status: "response_planned", updatedAt: now };

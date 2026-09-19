@@ -34,13 +34,23 @@ export function setMilestoneCriteria(milestone: Milestone, criteria: AcceptanceC
   return ok({ ...milestone, acceptanceCriteria: criteria, updatedAt: now }, []);
 }
 
+/** JAL-001 (§11.5) — prédicat pur partagé avec le moteur de règles (Lot 2). */
+export function hasCriteria(milestone: Milestone): boolean {
+  return milestone.acceptanceCriteria.length > 0;
+}
+
+/** JAL-002 (§11.5) — idem, partagé avec le moteur de règles. */
+export function hasEvidence(milestone: Milestone): boolean {
+  return milestone.evidenceIds.length > 0;
+}
+
 /** JAL-001 (§11.5) au niveau structurel : un jalon sans critères
  * d'acceptation ne peut pas passer "prêt pour contrôle". */
 export function submitMilestoneForReview(milestone: Milestone, now: IsoDateTime): CommandResult<Milestone> {
   if (!canTransitionMilestone(milestone.status, "ready_for_review")) {
     return fail(domainError("milestone_invalid_transition", `Transition ${milestone.status} -> ready_for_review interdite`, milestone.id));
   }
-  if (milestone.acceptanceCriteria.length === 0) {
+  if (!hasCriteria(milestone)) {
     return fail(domainError("milestone_missing_criteria", "Des critères d'acceptation sont requis avant contrôle", milestone.id));
   }
   const next: Milestone = { ...milestone, status: "ready_for_review", updatedAt: now };
@@ -56,7 +66,7 @@ export function acceptMilestone(milestone: Milestone, approverId: EntityId, now:
   if (!canTransitionMilestone(milestone.status, "accepted")) {
     return fail(domainError("milestone_invalid_transition", `Transition ${milestone.status} -> accepted interdite`, milestone.id));
   }
-  if (milestone.evidenceIds.length === 0) {
+  if (!hasEvidence(milestone)) {
     return fail(domainError("milestone_missing_evidence", "Une preuve est requise avant acceptation", milestone.id));
   }
   const next: Milestone = { ...milestone, status: "accepted", approverId, reviewedAt: now, updatedAt: now };

@@ -35,6 +35,16 @@ export function createDecision(input: CreateDecisionInput): CommandResult<Decisi
   return ok(decision, []);
 }
 
+/** DEC-001 (§11.5) — prédicat pur partagé avec le moteur de règles (Lot 2). */
+export function hasDecider(decision: Decision): boolean {
+  return Boolean(decision.deciderId);
+}
+
+/** DEC-002 (§11.5) — idem, partagé avec le moteur de règles. */
+export function hasDueDate(decision: Decision): boolean {
+  return Boolean(decision.dueDate);
+}
+
 /** DEC-001 (§11.5) au niveau structurel : une décision sans décideur ne
  * peut pas devenir "prête à décider" — empêche sa publication en
  * gouvernance, comme l'exige le cahier. */
@@ -42,10 +52,10 @@ export function markDecisionReady(decision: Decision, now: IsoDateTime): Command
   if (!canTransitionDecision(decision.status, "ready")) {
     return fail(domainError("decision_invalid_transition", `Transition ${decision.status} -> ready interdite`, decision.id));
   }
-  if (!decision.deciderId) {
+  if (!hasDecider(decision)) {
     return fail(domainError("decision_missing_decider", "Un décideur est requis avant de publier la décision", decision.id));
   }
-  if (!decision.dueDate) {
+  if (!hasDueDate(decision)) {
     return fail(domainError("decision_missing_due_date", "Une échéance est requise avant de publier la décision", decision.id));
   }
   const next: Decision = { ...decision, status: "ready", updatedAt: now };

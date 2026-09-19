@@ -13,3 +13,4 @@ export * from "./commands/milestone";
 export * from "./commands/dependency";
 export * from "./commands/change-request";
 export * from "./commands/evidence";
+export * from "./rules";

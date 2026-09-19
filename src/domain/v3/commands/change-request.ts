@@ -32,7 +32,8 @@ export function createChangeRequest(input: CreateChangeRequestInput): CommandRes
   return ok(changeRequest, events);
 }
 
-function hasImpactAnalysis(impact: ImpactAssessment): boolean {
+/** CHG-001 (§11.5) — prédicat pur partagé avec le moteur de règles (Lot 2). */
+export function hasImpactAnalysis(impact: ImpactAssessment): boolean {
   return Boolean(impact.scope || impact.schedule || impact.cost || impact.quality || impact.risk);
 }
 
