@@ -14,7 +14,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(36);
+select plan(37);
 
 -- ===================================================================
 -- Fixtures
@@ -91,7 +91,7 @@ select throws_ok(
 -- ===================================================================
 select set_config('request.jwt.claim.sub', 'cccccccc-cccc-cccc-cccc-cccccccccccc', true);
 select throws_ok(
-  $ update public.projets_actions set title = 'modifié par viewer' where id = '33333333-3333-3333-3333-333333333333' $,
+  $$ update public.projets_actions set title = 'modifié par viewer' where id = '33333333-3333-3333-3333-333333333333' $$,
   '42501',
   'Rôle viewer : modification interdite',
   'viewer C reçoit un refus explicite en UPDATE'
@@ -108,12 +108,31 @@ select is((select title from public.projets_actions where id = '33333333-3333-33
 -- ===================================================================
 -- workspace_id non réaffectable, quel que soit le rôle
 -- ===================================================================
+-- A n'a aucun rôle sur W2 (destination) : enforce_workspace_write_access
+-- (qui évalue le rôle sur NEW.workspace_id, donc la destination) bloque
+-- en premier — les triggers BEFORE UPDATE d'une même table s'exécutent
+-- par ordre alphabétique de nom ('enforce_actions_write_access' avant
+-- 'prevent_workspace_reassignment'). Le déplacement reste bloqué (42501),
+-- mais ce n'est pas le message P0001 dédié à l'immutabilité.
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', true);
+select throws_ok(
+  $$ update public.projets_actions set workspace_id = '22222222-2222-2222-2222-222222222222' where id = '33333333-3333-3333-3333-333333333333' $$,
+  '42501',
+  null,
+  'owner A (sans rôle sur W2) ne peut pas déplacer une action de W1 vers W2'
+);
+
+-- B a un rôle légitime sur LES DEUX workspaces (editor de W1, owner de
+-- W2) : enforce_workspace_write_access passe (owner sur la destination),
+-- ce qui isole enfin réellement prevent_workspace_reassignment — la
+-- protection d'immutabilité de workspace_id survit même quand l'acteur
+-- est autorisé des deux côtés.
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
 select throws_ok(
   $$ update public.projets_actions set workspace_id = '22222222-2222-2222-2222-222222222222' where id = '33333333-3333-3333-3333-333333333333' $$,
   'P0001',
   null,
-  'owner A ne peut pas déplacer une action de W1 vers W2 (workspace_id immuable)'
+  'editor B (owner de W2, autorisé des deux côtés) ne peut quand même pas déplacer l''action — workspace_id immuable'
 );
 
 -- ===================================================================
@@ -121,7 +140,7 @@ select throws_ok(
 -- ===================================================================
 select set_config('request.jwt.claim.sub', 'cccccccc-cccc-cccc-cccc-cccccccccccc', true);
 select throws_ok(
-  $ delete from public.projets_actions where id = '55555555-5555-5555-5555-555555555555' $,
+  $$ delete from public.projets_actions where id = '55555555-5555-5555-5555-555555555555' $$,
   '42501',
   'Rôle viewer : modification interdite',
   'viewer C reçoit un refus explicite en DELETE'
@@ -181,17 +200,17 @@ select is(
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
 select throws_ok(
-  $ update public.projets_actions
+  $$ update public.projets_actions
      set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', user_hash = 'hash-editor-b'
-     where id = '33333333-3333-3333-3333-333333333333' $,
+     where id = '33333333-3333-3333-3333-333333333333' $$,
   '42501',
   'owner_id/user_hash d''une action ne sont pas modifiables depuis un rôle applicatif',
   'editor B ne peut pas réattribuer les métadonnées d''ownership d''une action'
 );
 select throws_ok(
-  $ update public.projets_workspaces
+  $$ update public.projets_workspaces
      set user_hash = 'hash-editor-b'
-     where id = '11111111-1111-1111-1111-111111111111' $,
+     where id = '11111111-1111-1111-1111-111111111111' $$,
   '42501',
   'owner_id/user_hash du workspace non modifiables depuis un rôle applicatif',
   'editor B ne peut pas modifier le user_hash du workspace'
@@ -263,26 +282,26 @@ insert into public.projets_hub_settings (user_hash, owner_id, monthly_objective)
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
-select is((select count(*) from public.projets_hub_settings where user_hash = 'hash-a')::int, 0, 'B ne lit pas les réglages Hub de A');
+select is((select count(*) from public.projets_hub_settings where owner_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')::int, 0, 'B ne lit pas les réglages Hub de A');
 
 select lives_ok(
-  $$ update public.projets_hub_settings set monthly_objective = 999 where user_hash = 'hash-a' $$,
+  $$ update public.projets_hub_settings set monthly_objective = 999 where owner_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
   'la tentative de modification par B ne lève pas d''exception'
 );
 -- vérification en bypass RLS : le SELECT de contrôle sous le rôle B
 -- serait lui-même filtré (B ne voit pas la ligne de A), donnant un faux
 -- positif (NULL au lieu de la vraie valeur inchangée).
 reset role;
-select is((select monthly_objective from public.projets_hub_settings where user_hash = 'hash-a')::int, 100, 'la valeur n''a pas changé — B refusé en UPDATE sur les réglages de A');
+select is((select monthly_objective from public.projets_hub_settings where owner_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')::int, 100, 'la valeur n''a pas changé — B refusé en UPDATE sur les réglages de A');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
 select lives_ok(
-  $$ delete from public.projets_hub_settings where user_hash = 'hash-a' $$,
+  $$ delete from public.projets_hub_settings where owner_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
   'la tentative de suppression par B ne lève pas d''exception'
 );
 reset role;
-select is((select count(*) from public.projets_hub_settings where user_hash = 'hash-a')::int, 1, 'la ligne existe toujours — B refusé en DELETE sur les réglages de A');
+select is((select count(*) from public.projets_hub_settings where owner_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')::int, 1, 'la ligne existe toujours — B refusé en DELETE sur les réglages de A');
 
 select * from finish();
 rollback;
