@@ -74,10 +74,20 @@ function extractErrorMessage(cause: unknown, fallback: string): string {
   return fallback;
 }
 
+function isAuthorizationError(cause: unknown): boolean {
+  return (
+    typeof cause === "object" &&
+    cause !== null &&
+    "code" in cause &&
+    (cause as { code?: unknown }).code === "42501"
+  );
+}
+
 export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE);
   const [status, setStatus] = useState<SyncStatus>("loading");
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [authRevision, setAuthRevision] = useState(0);
 
   const client = useMemo(() => getSupabaseClient(), []);
   const userHash = useMemo(() => getOrCreateUserHash(), []);
@@ -110,6 +120,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     });
     const unsubscribe = onAuthStateChange((id) => {
       authUserIdRef.current = id;
+      setAuthRevision((revision) => revision + 1);
     });
     return () => {
       cancelled = true;
@@ -123,10 +134,33 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
     return authUserIdRef.current;
   }, []);
 
+  const actionUpdatePayload = useCallback(
+    (action: Action): Record<string, unknown> => {
+      const payload: Record<string, unknown> = { ...actionToRow(action, userHash, null) };
+      for (const key of ["id", "workspace_id", "user_hash", "owner_id", "created_at"]) {
+        delete payload[key];
+      }
+      return payload;
+    },
+    [userHash]
+  );
+
   const load = useCallback(async () => {
     setStatus("loading");
     setSyncError(null);
     try {
+      const ownerId = await resolveOwnerId();
+      if (!ownerId) {
+        dispatch({ type: "hydrate", state: EMPTY_STATE });
+        setStatus("ready");
+        return;
+      }
+
+      const { error: claimError } = await client.rpc("claim_legacy_user_hash", {
+        target_user_hash: userHash,
+      });
+      if (claimError) throw claimError;
+
       const [
         { data: workspaceRows, error: workspacesError },
         { data: actionRows, error: actionsError },
@@ -182,11 +216,11 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       setSyncError(extractErrorMessage(cause, "Erreur de chargement Supabase"));
       setStatus("error");
     }
-  }, [client]);
+  }, [client, resolveOwnerId, userHash]);
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, authRevision]);
 
   /**
    * File d'attente par clé (actionId, ou `workspace:<id>` pour les notes de
@@ -241,14 +275,16 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           setPendingSyncCount(pendingRef.current.size);
         })
         .catch((cause) => {
-          // Reste dans pendingRef pour le prochain retry ; l'appelant décide
-          // s'il propage l'erreur (editWorkspaceDescription, updateHubSettings)
-          // ou l'avale (dispatchAndPersist*, déjà optimistes).
           setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+          if (isAuthorizationError(cause)) {
+            pendingRef.current.delete(mutation.key);
+            setPendingSyncCount(pendingRef.current.size);
+            load();
+          }
           throw cause;
         });
     },
-    [queuePersist]
+    [queuePersist, load]
   );
 
   /** Applique localement puis réplique vers Supabase ; erreur affichée sans annuler l'UI locale. */
@@ -535,16 +571,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const moved = appReducer(state, { type: "action/move", workspaceId, actionId, destination })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!moved) return;
-          const ownerId = await resolveOwnerId();
-          const { error } = await client.from("projets_actions").update(actionToRow(moved, userHash, ownerId)).eq("id", actionId);
+          const { error } = await client.from("projets_actions").update(actionUpdatePayload(moved)).eq("id", actionId);
           if (error) throw error;
         });
       },
 
       restoreAction: (workspaceId, action) => {
         dispatchAndPersistAction(action.id, { type: "action/restore", workspaceId, action }, async () => {
-          const ownerId = await resolveOwnerId();
-          const { error } = await client.from("projets_actions").update(actionToRow(action, userHash, ownerId)).eq("id", action.id);
+          const { error } = await client.from("projets_actions").update(actionUpdatePayload(action)).eq("id", action.id);
           if (error) throw error;
         });
       },
@@ -605,8 +639,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           const updated = appReducer(state, { type: "action/edit", workspaceId, actionId, edit, now })
             .actionsByWorkspace[workspaceId]?.find((a) => a.id === actionId);
           if (!updated) return;
-          const ownerId = await resolveOwnerId();
-          const { error } = await client.from("projets_actions").update(actionToRow(updated, userHash, ownerId)).eq("id", actionId);
+          const { error } = await client.from("projets_actions").update(actionUpdatePayload(updated)).eq("id", actionId);
           if (error) throw error;
         });
       },
@@ -714,6 +747,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       client,
       userHash,
       resolveOwnerId,
+      actionUpdatePayload,
       dispatchAndPersist,
       dispatchAndPersistAction,
       queueActionPersist,
