@@ -24,7 +24,7 @@ describe("dependencyToRow / dependencyFromRow", () => {
     expect(dependencyFromRow(row)).toEqual(original);
   });
 
-  it("responsibleId (invariant DEP-001) est toujours présent en base malgré le type optionnel", () => {
+  it("responsibleId (invariant DEP-001) est obligatoire côté domaine et toujours présent en base", () => {
     const row = dependencyToRow(dependency(), "w1");
     expect(row.responsible_id).toBe("user-a");
   });

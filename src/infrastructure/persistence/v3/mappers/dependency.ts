@@ -39,10 +39,7 @@ export function dependencyToRow(dependency: Dependency, workspaceId: string): De
     source_entity_id: dependency.sourceEntityId,
     dependent_entity_id: dependency.dependentEntityId,
     type: dependency.type,
-    // responsibleId est optionnel dans le type domaine mais invariant de
-    // création (DEP-001, createDependency le refuse sinon) — la colonne
-    // est NOT NULL, une valeur manquante ici serait un bug appelant.
-    responsible_id: dependency.responsibleId as string,
+    responsible_id: dependency.responsibleId,
     needed_by_date: dependency.neededByDate ?? null,
     status: dependency.status,
     delay_impact: dependency.delayImpact ?? null,

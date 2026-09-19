@@ -276,7 +276,10 @@ export interface Dependency {
   sourceEntityId: EntityId;
   dependentEntityId: EntityId;
   type: DependencyType;
-  responsibleId?: EntityId;
+  /** Obligatoire (DEP-001, §11.5) : createDependency le refuse sinon.
+   * Aucun état métier ne permet ensuite son absence — le domaine doit être
+   * au moins aussi strict que la persistance (colonne NOT NULL). */
+  responsibleId: EntityId;
   neededByDate?: IsoDateTime;
   status: DependencyStatus;
   delayImpact?: string;
