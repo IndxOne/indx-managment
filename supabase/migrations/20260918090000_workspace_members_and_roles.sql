@@ -144,7 +144,7 @@ create trigger prevent_workspace_owner_reassignment
 
 create or replace function public.prevent_action_ownership_reassignment() returns trigger
   language plpgsql security invoker set search_path = ''
-  as $
+  as $$
   begin
     if current_user in ('anon', 'authenticated')
        and (new.owner_id is distinct from old.owner_id or new.user_hash is distinct from old.user_hash) then
@@ -154,7 +154,7 @@ create or replace function public.prevent_action_ownership_reassignment() return
     end if;
     return new;
   end;
-  $;
+  $$;
 
 revoke all on function public.prevent_action_ownership_reassignment() from public, anon, authenticated;
 grant execute on function public.prevent_action_ownership_reassignment() to service_role;
@@ -166,7 +166,7 @@ create trigger prevent_action_ownership_reassignment
 
 create or replace function public.enforce_workspace_write_access() returns trigger
   language plpgsql security definer set search_path = ''
-  as $
+  as $$
   declare
     ws_id uuid;
     actor_role text;
@@ -181,7 +181,7 @@ create or replace function public.enforce_workspace_write_access() returns trigg
     if tg_op = 'DELETE' then return old; end if;
     return new;
   end;
-  $;
+  $$;
 
 revoke all on function public.enforce_workspace_write_access() from public, anon, authenticated;
 grant execute on function public.enforce_workspace_write_access() to service_role;
