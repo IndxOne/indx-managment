@@ -105,6 +105,25 @@ export interface EvidenceValidatedEvent extends BaseEvent<"evidence.validated"> 
   payload: { evidenceId: EntityId };
 }
 
+/**
+ * rule.executed (Lot 2, moteur de règles — cf. rules/). Émis uniquement
+ * pour les résultats "violated" (jamais satisfied/not_applicable, cf.
+ * rules/evaluate.ts::ruleResultsToEvents) — pas d'événement pour un bruit
+ * qui n'a pas de valeur de traçabilité. severity/status dupliquent
+ * volontairement les littéraux de rules/types.ts (RuleSeverity/RuleStatus)
+ * plutôt que d'importer ce module ici : le domaine de base ne dépend pas
+ * de rules/, c'est l'inverse.
+ */
+export interface RuleExecutedEvent extends BaseEvent<"rule.executed"> {
+  payload: {
+    ruleId: string;
+    targetType: string;
+    targetId: EntityId;
+    severity: "blocking" | "warning" | "info";
+    status: "satisfied" | "violated" | "not_applicable";
+  };
+}
+
 export type DomainEvent =
   | ProjectCreatedEvent
   | WorkItemAssignedEvent
@@ -127,4 +146,5 @@ export type DomainEvent =
   | ChangeRequestedEvent
   | ChangeDecidedEvent
   | EvidenceAttachedEvent
-  | EvidenceValidatedEvent;
+  | EvidenceValidatedEvent
+  | RuleExecutedEvent;
