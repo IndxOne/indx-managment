@@ -16,6 +16,7 @@ let mockConfigured = false;
 
 function makePendingSupabaseClient() {
   return {
+    rpc: async () => ({ data: {}, error: null }),
     from() {
       return {
         select: () => ({
@@ -37,7 +38,7 @@ vi.mock("./supabase/user-hash", () => ({
 }));
 
 vi.mock("./supabase/auth", () => ({
-  getCurrentAuthUserId: async () => null,
+  getCurrentAuthUserId: async () => "auth-uid-test",
   onAuthStateChange: () => () => {},
 }));
 
