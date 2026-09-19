@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(22);
 
 -- ===================================================================
 -- is_workspace_owner(uuid)
@@ -23,13 +23,23 @@ select is(has_function_privilege('anon', 'public.workspace_role(uuid)', 'EXECUTE
 select is(has_function_privilege('authenticated', 'public.workspace_role(uuid)', 'EXECUTE'), true, 'authenticated a EXECUTE sur workspace_role');
 
 -- ===================================================================
--- prevent_workspace_reassignment() — trigger function, pas de grant
--- EXECUTE nécessaire côté rôle applicatif (invoquée uniquement par le
--- trigger, jamais appelée directement), mais doit rester SECURITY DEFINER
--- + search_path figé par cohérence défensive.
+-- prevent_workspace_reassignment() — fonction trigger sans privilège
+-- élevé et sans appel RPC direct par les rôles applicatifs.
 -- ===================================================================
-select is((select prosecdef from pg_proc where proname = 'prevent_workspace_reassignment' and pronamespace = 'public'::regnamespace), true, 'prevent_workspace_reassignment est SECURITY DEFINER');
+select is((select prosecdef from pg_proc where proname = 'prevent_workspace_reassignment' and pronamespace = 'public'::regnamespace), false, 'prevent_workspace_reassignment est SECURITY INVOKER');
 select is((select proconfig from pg_proc where proname = 'prevent_workspace_reassignment' and pronamespace = 'public'::regnamespace), array['search_path=""'], 'prevent_workspace_reassignment a search_path figé à vide');
+select is(has_function_privilege('anon', 'public.prevent_workspace_reassignment()', 'EXECUTE'), false, 'anon n''a pas EXECUTE sur prevent_workspace_reassignment');
+select is(has_function_privilege('authenticated', 'public.prevent_workspace_reassignment()', 'EXECUTE'), false, 'authenticated n''a pas EXECUTE direct sur prevent_workspace_reassignment');
+
+-- ===================================================================
+-- prevent_workspace_owner_reassignment() — même durcissement ; protège
+-- owner_id via trigger tout en laissant les opérations administratives
+-- explicites au service_role/postgres.
+-- ===================================================================
+select is((select prosecdef from pg_proc where proname = 'prevent_workspace_owner_reassignment' and pronamespace = 'public'::regnamespace), false, 'prevent_workspace_owner_reassignment est SECURITY INVOKER');
+select is((select proconfig from pg_proc where proname = 'prevent_workspace_owner_reassignment' and pronamespace = 'public'::regnamespace), array['search_path=""'], 'prevent_workspace_owner_reassignment a search_path figé à vide');
+select is(has_function_privilege('anon', 'public.prevent_workspace_owner_reassignment()', 'EXECUTE'), false, 'anon n''a pas EXECUTE sur prevent_workspace_owner_reassignment');
+select is(has_function_privilege('authenticated', 'public.prevent_workspace_owner_reassignment()', 'EXECUTE'), false, 'authenticated n''a pas EXECUTE direct sur prevent_workspace_owner_reassignment');
 
 -- ===================================================================
 -- claim_legacy_user_hash(text)
