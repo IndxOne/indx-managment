@@ -14,3 +14,4 @@ export * from "./commands/dependency";
 export * from "./commands/change-request";
 export * from "./commands/evidence";
 export * from "./rules";
+export * from "./brief";
