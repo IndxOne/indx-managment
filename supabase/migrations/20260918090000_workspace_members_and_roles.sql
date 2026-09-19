@@ -98,7 +98,7 @@ create or replace function public.prevent_workspace_reassignment() returns trigg
     end if;
     return new;
   end;
-  $;
+  $$;
 
 revoke all on function public.prevent_workspace_reassignment() from public, anon, authenticated;
 grant execute on function public.prevent_workspace_reassignment() to service_role;
@@ -122,7 +122,7 @@ create trigger prevent_workspace_reassignment before update on public.projets_me
 -- explicite via service_role/postgres reste possible.
 create or replace function public.prevent_workspace_owner_reassignment() returns trigger
   language plpgsql security invoker set search_path = ''
-  as $
+  as $$
   begin
     if current_user in ('anon', 'authenticated')
        and new.owner_id is distinct from old.owner_id then
@@ -131,15 +131,74 @@ create or replace function public.prevent_workspace_owner_reassignment() returns
     end if;
     return new;
   end;
-  $;
+  $$;
 
 revoke all on function public.prevent_workspace_owner_reassignment() from public, anon, authenticated;
 grant execute on function public.prevent_workspace_owner_reassignment() to service_role;
 
 drop trigger if exists prevent_workspace_owner_reassignment on public.projets_workspaces;
 create trigger prevent_workspace_owner_reassignment
-  before update of owner_id on public.projets_workspaces
+  before update of owner_id, user_hash on public.projets_workspaces
   for each row execute function public.prevent_workspace_owner_reassignment();
+
+create or replace function public.prevent_action_ownership_reassignment() returns trigger
+  language plpgsql security invoker set search_path = ''
+  as $
+  begin
+    if current_user in ('anon', 'authenticated')
+       and (new.owner_id is distinct from old.owner_id or new.user_hash is distinct from old.user_hash) then
+      raise exception using
+        errcode = '42501',
+        message = 'owner_id/user_hash d''une action ne sont pas modifiables depuis un rôle applicatif';
+    end if;
+    return new;
+  end;
+  $;
+
+revoke all on function public.prevent_action_ownership_reassignment() from public, anon, authenticated;
+grant execute on function public.prevent_action_ownership_reassignment() to service_role;
+
+drop trigger if exists prevent_action_ownership_reassignment on public.projets_actions;
+create trigger prevent_action_ownership_reassignment
+  before update of owner_id, user_hash on public.projets_actions
+  for each row execute function public.prevent_action_ownership_reassignment();
+
+create or replace function public.enforce_workspace_write_access() returns trigger
+  language plpgsql security definer set search_path = ''
+  as $
+  declare
+    ws_id uuid;
+    actor_role text;
+  begin
+    ws_id := case when tg_op = 'DELETE' then old.workspace_id else new.workspace_id end;
+    actor_role := public.workspace_role(ws_id);
+    if actor_role is null or actor_role not in ('owner', 'editor') then
+      raise exception using
+        errcode = '42501',
+        message = 'Rôle viewer : modification interdite';
+    end if;
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end;
+  $;
+
+revoke all on function public.enforce_workspace_write_access() from public, anon, authenticated;
+grant execute on function public.enforce_workspace_write_access() to service_role;
+
+drop trigger if exists enforce_actions_write_access on public.projets_actions;
+create trigger enforce_actions_write_access
+  before update or delete on public.projets_actions
+  for each row execute function public.enforce_workspace_write_access();
+
+drop trigger if exists enforce_recurrence_write_access on public.projets_recurrence_rules;
+create trigger enforce_recurrence_write_access
+  before update or delete on public.projets_recurrence_rules
+  for each row execute function public.enforce_workspace_write_access();
+
+drop trigger if exists enforce_members_write_access on public.projets_members;
+create trigger enforce_members_write_access
+  before update or delete on public.projets_members
+  for each row execute function public.enforce_workspace_write_access();
 
 -- ===================================================================
 -- 4. projets_workspace_members — policies
@@ -196,10 +255,10 @@ create policy "actions_insert" on public.projets_actions
   for insert with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "actions_update" on public.projets_actions
   for update
-  using (public.workspace_role(workspace_id) in ('owner','editor'))
+  using (public.workspace_role(workspace_id) is not null)
   with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "actions_delete" on public.projets_actions
-  for delete using (public.workspace_role(workspace_id) in ('owner','editor'));
+  for delete using (public.workspace_role(workspace_id) is not null);
 
 -- ===================================================================
 -- 7. projets_recurrence_rules — même patron que actions
@@ -213,10 +272,10 @@ create policy "recurrence_rules_insert" on public.projets_recurrence_rules
   for insert with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "recurrence_rules_update" on public.projets_recurrence_rules
   for update
-  using (public.workspace_role(workspace_id) in ('owner','editor'))
+  using (public.workspace_role(workspace_id) is not null)
   with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "recurrence_rules_delete" on public.projets_recurrence_rules
-  for delete using (public.workspace_role(workspace_id) in ('owner','editor'));
+  for delete using (public.workspace_role(workspace_id) is not null);
 
 -- ===================================================================
 -- 8. projets_members (étiquettes d'assignation métier) — même patron
@@ -230,10 +289,10 @@ create policy "members_insert" on public.projets_members
   for insert with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "members_update" on public.projets_members
   for update
-  using (public.workspace_role(workspace_id) in ('owner','editor'))
+  using (public.workspace_role(workspace_id) is not null)
   with check (public.workspace_role(workspace_id) in ('owner','editor'));
 create policy "members_delete" on public.projets_members
-  for delete using (public.workspace_role(workspace_id) in ('owner','editor'));
+  for delete using (public.workspace_role(workspace_id) is not null);
 
 -- ===================================================================
 -- 9. projets_carnet_notes / projets_hub_settings — portée personnelle,
