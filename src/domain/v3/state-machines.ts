@@ -91,14 +91,18 @@ export const canTransitionIssue = buildTransitionChecker(issueTransitions);
 
 // ===========================================================================
 // Milestone — Planifié → Prêt pour contrôle → Accepté ; └→ Refusé.
-// refused → ready_for_review (nouvelle soumission après correction) est une
-// inférence raisonnable non explicitée par le cahier — écart à signaler.
+// refused est un état terminal pour ce checker générique : la resoumission
+// après correction n'est PAS une transition implicite (corrigé le
+// 20/09/2026, décision GO conditionnel) — elle passe par la commande
+// dédiée resubmitMilestone() (commands/milestone.ts), qui vérifie
+// explicitement `status === "refused"` et émet milestone.resubmitted,
+// plutôt qu'un chemin générique dans cette table.
 // ===========================================================================
 
 const milestoneTransitions: Record<MilestoneStatus, readonly MilestoneStatus[]> = {
   planned: ["ready_for_review"],
   ready_for_review: ["accepted", "refused"],
-  refused: ["ready_for_review"],
+  refused: [],
   accepted: [],
 };
 

@@ -77,6 +77,10 @@ export interface MilestoneRefusedEvent extends BaseEvent<"milestone.refused"> {
   payload: { milestoneId: EntityId };
 }
 
+export interface MilestoneResubmittedEvent extends BaseEvent<"milestone.resubmitted"> {
+  payload: { milestoneId: EntityId };
+}
+
 export interface DependencyDelayedEvent extends BaseEvent<"dependency.delayed"> {
   payload: { dependencyId: EntityId };
 }
@@ -117,6 +121,7 @@ export type DomainEvent =
   | MilestoneReadyForReviewEvent
   | MilestoneAcceptedEvent
   | MilestoneRefusedEvent
+  | MilestoneResubmittedEvent
   | DependencyDelayedEvent
   | DependencyConfirmedEvent
   | ChangeRequestedEvent

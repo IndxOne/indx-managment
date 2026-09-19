@@ -4,6 +4,7 @@ export * from "./events";
 export * from "./result";
 export * from "./state-machines";
 export * from "./commands/project";
+export * from "./commands/objective";
 export * from "./commands/work-item";
 export * from "./commands/decision";
 export * from "./commands/risk";

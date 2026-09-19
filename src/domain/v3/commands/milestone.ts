@@ -76,3 +76,23 @@ export function refuseMilestone(milestone: Milestone, now: IsoDateTime): Command
   ];
   return ok(next, events);
 }
+
+/**
+ * Resoumission explicite après correction — seule voie pour sortir de
+ * "refused" (corrigé le 20/09/2026 : la table de transition générique ne
+ * l'autorise plus, cf. state-machines.ts). Distincte de
+ * submitMilestoneForReview() : celle-ci part uniquement de "planned" et
+ * vérifie les critères d'acceptation (JAL-001) ; resubmitMilestone() ne
+ * revérifie pas les critères (ils n'ont pas changé, seul le contexte a
+ * évolué) mais exige explicitement l'état "refused" en amont.
+ */
+export function resubmitMilestone(milestone: Milestone, now: IsoDateTime): CommandResult<Milestone> {
+  if (milestone.status !== "refused") {
+    return fail(domainError("milestone_invalid_transition", `resubmitMilestone exige l'état refused (actuel : ${milestone.status})`, milestone.id));
+  }
+  const next: Milestone = { ...milestone, status: "ready_for_review", updatedAt: now };
+  const events: DomainEvent[] = [
+    { type: "milestone.resubmitted", occurredAt: now, projectId: milestone.projectId, payload: { milestoneId: milestone.id } },
+  ];
+  return ok(next, events);
+}

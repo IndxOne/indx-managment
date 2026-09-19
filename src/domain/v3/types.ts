@@ -12,8 +12,13 @@
  * Classification Entité / Value Object / Projection (§9.2) :
  *
  * ENTITÉS (identité stable, cycle de vie propre, référencées ailleurs) :
- *   Project, Stage, WorkItem, Decision, Risk, Issue, Milestone,
+ *   Project, Objective, Stage, WorkItem, Decision, Risk, Issue, Milestone,
  *   Dependency, ChangeRequest, Evidence.
+ *
+ * Objective est une entité séparée (corrigé le 20/09/2026, décision GO
+ * conditionnel) : Project.objective en champ unique bloquait les objectifs
+ * multiples, l'ownership et le statut propres, et la traçabilité. Un
+ * Project porte désormais `objectiveIds: EntityId[]`.
  *
  * VALUE OBJECTS (aucune identité propre, définis entièrement par leur
  * contenu, remplacés en bloc plutôt que mutés champ à champ) :
@@ -26,9 +31,6 @@
  *   Northstar (Lot 7) consommeront ces entités en lecture seule.
  *
  * Écarts assumés vs la hiérarchie §9.1 (documentés dans le rapport) :
- *   - Objective n'est PAS une entité séparée : "objectif" et "valeur
- *     attendue" sont des champs de Project (§9.2 ne lui donne aucune
- *     liste de champs propre).
  *   - Meeting et Assumption ne sont PAS dans la liste "objets
  *     obligatoires" de §9.2 (seulement mentionnés dans la hiérarchie/les
  *     workflows) : différés à un lot ultérieur (Meeting → Lot 6
@@ -61,9 +63,6 @@ export interface Project {
   id: EntityId;
   workspaceId: EntityId;
   name: string;
-  /** Fusionne Objective (§9.1) : aucune entité séparée, cf. écarts ci-dessus. */
-  objective: string;
-  expectedValue?: string;
   sponsor?: string;
   projectManager?: string;
   method: ProjectMethod;
@@ -72,9 +71,32 @@ export interface Project {
   targetDate?: IsoDateTime;
   forecastDate?: IsoDateTime;
   currentStageId?: EntityId;
+  /** Un projet peut porter plusieurs objectifs (§9.1) — chacun est une
+   * entité Objective indépendante, cf. plus bas. */
+  objectiveIds: EntityId[];
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   lastReviewedAt?: IsoDateTime;
+}
+
+// ===========================================================================
+// Objective — entité indépendante (corrigé le 20/09/2026 : la fusion dans
+// Project bloquait objectifs multiples, ownership et statut propres,
+// traçabilité). Identité stable, cycle de vie minimal : ne pas
+// sur-concevoir, le cahier ne lui donne pas de liste de champs dédiée.
+// ===========================================================================
+
+export type ObjectiveStatus = "active" | "achieved" | "abandoned";
+
+export interface Objective {
+  id: EntityId;
+  projectId: EntityId;
+  statement: string;
+  expectedValue?: string;
+  ownerId?: EntityId;
+  status: ObjectiveStatus;
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
 }
 
 // ===========================================================================

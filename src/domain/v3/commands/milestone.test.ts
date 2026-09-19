@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMilestone, setMilestoneCriteria, submitMilestoneForReview, acceptMilestone, refuseMilestone } from "./milestone";
+import { createMilestone, setMilestoneCriteria, submitMilestoneForReview, acceptMilestone, refuseMilestone, resubmitMilestone } from "./milestone";
 import type { Milestone } from "../types";
 
 const NOW = "2026-09-20T08:00:00.000Z";
@@ -52,8 +52,8 @@ describe("acceptMilestone — JAL-002", () => {
   });
 });
 
-describe("refuseMilestone puis nouvelle soumission", () => {
-  it("refused -> ready_for_review reste possible (nouvelle tentative après correction)", () => {
+describe("refuseMilestone puis resubmitMilestone (commande explicite)", () => {
+  it("refuse la transition implicite refused -> ready_for_review via submitMilestoneForReview", () => {
     const milestone = baseMilestone({ status: "ready_for_review", acceptanceCriteria: [{ description: "x", satisfied: false }] });
     const refused = refuseMilestone(milestone, NOW);
     expect(refused.ok).toBe(true);
@@ -61,7 +61,25 @@ describe("refuseMilestone puis nouvelle soumission", () => {
     expect(refused.state.status).toBe("refused");
     expect(refused.events).toEqual([{ type: "milestone.refused", occurredAt: NOW, projectId: "p1", payload: { milestoneId: "m1" } }]);
 
-    const resubmitted = submitMilestoneForReview(refused.state, NOW);
-    expect(resubmitted.ok).toBe(true);
+    const viaGenericPath = submitMilestoneForReview(refused.state, NOW);
+    expect(viaGenericPath.ok).toBe(false);
+    expect(!viaGenericPath.ok && viaGenericPath.error.code).toBe("milestone_invalid_transition");
+  });
+
+  it("resubmitMilestone() ramène explicitement en ready_for_review et émet milestone.resubmitted", () => {
+    const refusedMilestone = baseMilestone({ status: "refused" });
+    const result = resubmitMilestone(refusedMilestone, NOW);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.status).toBe("ready_for_review");
+    expect(result.events).toEqual([{ type: "milestone.resubmitted", occurredAt: NOW, projectId: "p1", payload: { milestoneId: "m1" } }]);
+  });
+
+  it("resubmitMilestone() refuse depuis tout état autre que refused", () => {
+    for (const status of ["planned", "ready_for_review", "accepted"] as const) {
+      const result = resubmitMilestone(baseMilestone({ status }), NOW);
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.error.code).toBe("milestone_invalid_transition");
+    }
   });
 });

@@ -12,6 +12,7 @@ export type DomainErrorCode =
   | "work_item_missing_exit_condition"
   | "work_item_invalid_transition"
   | "work_item_blocked_without_reason"
+  | "objective_invalid_transition"
   | "decision_missing_decider"
   | "decision_missing_due_date"
   | "decision_invalid_transition"

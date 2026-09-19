@@ -46,6 +46,11 @@ describe("canTransitionMilestone", () => {
     expect(canTransitionMilestone("accepted", "ready_for_review")).toBe(false);
   });
 
+  it("refused n'autorise plus de transition générique (resubmitMilestone() requis)", () => {
+    expect(canTransitionMilestone("refused", "ready_for_review")).toBe(false);
+    expect(canTransitionMilestone("refused", "accepted")).toBe(false);
+  });
+
   it("planned ne saute jamais directement à accepted", () => {
     expect(canTransitionMilestone("planned", "accepted")).toBe(false);
   });
