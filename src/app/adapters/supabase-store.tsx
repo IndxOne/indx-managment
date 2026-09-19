@@ -74,6 +74,15 @@ function extractErrorMessage(cause: unknown, fallback: string): string {
   return fallback;
 }
 
+function isAuthorizationError(cause: unknown): boolean {
+  return (
+    typeof cause === "object" &&
+    cause !== null &&
+    "code" in cause &&
+    (cause as { code?: unknown }).code === "42501"
+  );
+}
+
 export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE);
   const [status, setStatus] = useState<SyncStatus>("loading");
@@ -266,14 +275,16 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           setPendingSyncCount(pendingRef.current.size);
         })
         .catch((cause) => {
-          // Reste dans pendingRef pour le prochain retry ; l'appelant décide
-          // s'il propage l'erreur (editWorkspaceDescription, updateHubSettings)
-          // ou l'avale (dispatchAndPersist*, déjà optimistes).
           setSyncError(`Synchronisation Supabase échouée : ${extractErrorMessage(cause, "erreur inconnue")}`);
+          if (isAuthorizationError(cause)) {
+            pendingRef.current.delete(mutation.key);
+            setPendingSyncCount(pendingRef.current.size);
+            load();
+          }
           throw cause;
         });
     },
-    [queuePersist]
+    [queuePersist, load]
   );
 
   /** Applique localement puis réplique vers Supabase ; erreur affichée sans annuler l'UI locale. */
