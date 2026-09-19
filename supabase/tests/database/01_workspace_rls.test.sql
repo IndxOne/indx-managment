@@ -150,7 +150,7 @@ select lives_ok(
 );
 
 select throws_ok(
-  $ update public.projets_carnet_notes set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' where id = '12121212-1212-1212-1212-121212121212' $,
+  $$ update public.projets_carnet_notes set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' where id = '12121212-1212-1212-1212-121212121212' $$,
   '42501',
   null,
   'A ne peut pas céder owner_id de sa note à B (réaffectation refusée)'
@@ -160,9 +160,9 @@ select throws_ok(
 -- attribuer l'autorité. Ce contrôle compare OLD/NEW via le trigger dédié.
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
 select throws_ok(
-  $ update public.projets_workspaces
+  $$ update public.projets_workspaces
      set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-     where id = '11111111-1111-1111-1111-111111111111' $,
+     where id = '11111111-1111-1111-1111-111111111111' $$,
   'P0001',
   null,
   'editor B ne peut pas devenir owner de W1'
