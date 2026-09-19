@@ -89,7 +89,7 @@ grant execute on function public.is_workspace_owner(uuid), public.workspace_role
 --    seuls ne peuvent pas comparer OLD et NEW : trigger dédié.
 -- ===================================================================
 create or replace function public.prevent_workspace_reassignment() returns trigger
-  language plpgsql security definer set search_path = ''
+  language plpgsql security invoker set search_path = ''
   as $$
   begin
     if new.workspace_id is distinct from old.workspace_id then
@@ -98,7 +98,10 @@ create or replace function public.prevent_workspace_reassignment() returns trigg
     end if;
     return new;
   end;
-  $$;
+  $;
+
+revoke all on function public.prevent_workspace_reassignment() from public, anon, authenticated;
+grant execute on function public.prevent_workspace_reassignment() to service_role;
 
 drop trigger if exists prevent_workspace_reassignment on public.projets_actions;
 create trigger prevent_workspace_reassignment before update on public.projets_actions
@@ -111,6 +114,32 @@ create trigger prevent_workspace_reassignment before update on public.projets_re
 drop trigger if exists prevent_workspace_reassignment on public.projets_members;
 create trigger prevent_workspace_reassignment before update on public.projets_members
   for each row execute function public.prevent_workspace_reassignment();
+
+-- owner_id porte l'autorité du workspace. Les policies seules ne peuvent
+-- pas comparer OLD et NEW : un editor autorisé en UPDATE pourrait sinon
+-- se désigner lui-même comme owner. Les appels applicatifs (anon/authenticated)
+-- ne peuvent jamais transférer cette autorité ; une opération administrative
+-- explicite via service_role/postgres reste possible.
+create or replace function public.prevent_workspace_owner_reassignment() returns trigger
+  language plpgsql security invoker set search_path = ''
+  as $
+  begin
+    if current_user in ('anon', 'authenticated')
+       and new.owner_id is distinct from old.owner_id then
+      raise exception 'owner_id du workspace non modifiable depuis un rôle applicatif (workspace %, ancien %, nouveau %)',
+        old.id, old.owner_id, new.owner_id;
+    end if;
+    return new;
+  end;
+  $;
+
+revoke all on function public.prevent_workspace_owner_reassignment() from public, anon, authenticated;
+grant execute on function public.prevent_workspace_owner_reassignment() to service_role;
+
+drop trigger if exists prevent_workspace_owner_reassignment on public.projets_workspaces;
+create trigger prevent_workspace_owner_reassignment
+  before update of owner_id on public.projets_workspaces
+  for each row execute function public.prevent_workspace_owner_reassignment();
 
 -- ===================================================================
 -- 4. projets_workspace_members — policies
