@@ -90,9 +90,11 @@ select throws_ok(
 --          editor/owner autorisés
 -- ===================================================================
 select set_config('request.jwt.claim.sub', 'cccccccc-cccc-cccc-cccc-cccccccccccc', true);
-select lives_ok(
-  $$ update public.projets_actions set title = 'modifié par viewer' where id = '33333333-3333-3333-3333-333333333333' $$,
-  'UPDATE par viewer C ne lève pas d''exception (USING l''exclut silencieusement)'
+select throws_ok(
+  $ update public.projets_actions set title = 'modifié par viewer' where id = '33333333-3333-3333-3333-333333333333' $,
+  '42501',
+  'Rôle viewer : modification interdite',
+  'viewer C reçoit un refus explicite en UPDATE'
 );
 select is((select title from public.projets_actions where id = '33333333-3333-3333-3333-333333333333'), 'Action de référence W1', 'le titre n''a pas changé — viewer C refusé en UPDATE (0 ligne affectée)');
 
@@ -118,9 +120,11 @@ select throws_ok(
 -- DELETE — viewer refusé (0 ligne, pas d'exception), editor autorisé
 -- ===================================================================
 select set_config('request.jwt.claim.sub', 'cccccccc-cccc-cccc-cccc-cccccccccccc', true);
-select lives_ok(
-  $$ delete from public.projets_actions where id = '55555555-5555-5555-5555-555555555555' $$,
-  'DELETE par viewer C ne lève pas d''exception'
+select throws_ok(
+  $ delete from public.projets_actions where id = '55555555-5555-5555-5555-555555555555' $,
+  '42501',
+  'Rôle viewer : modification interdite',
+  'viewer C reçoit un refus explicite en DELETE'
 );
 select is((select count(*) from public.projets_actions where id = '55555555-5555-5555-5555-555555555555')::int, 1, 'la ligne existe toujours — viewer C refusé en DELETE (0 ligne affectée)');
 
