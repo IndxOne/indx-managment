@@ -14,7 +14,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(36);
 
 -- ===================================================================
 -- Fixtures
@@ -167,8 +167,8 @@ select throws_ok(
   $$ update public.projets_workspaces
      set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
      where id = '11111111-1111-1111-1111-111111111111' $$,
-  'P0001',
-  null,
+  '42501',
+  'owner_id/user_hash du workspace non modifiables depuis un rôle applicatif',
   'editor B ne peut pas devenir owner de W1'
 );
 reset role;
@@ -176,6 +176,25 @@ select is(
   (select owner_id from public.projets_workspaces where id = '11111111-1111-1111-1111-111111111111'),
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
   'owner_id de W1 reste A après la tentative de B'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', true);
+select throws_ok(
+  $ update public.projets_actions
+     set owner_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', user_hash = 'hash-editor-b'
+     where id = '33333333-3333-3333-3333-333333333333' $,
+  '42501',
+  'owner_id/user_hash d''une action ne sont pas modifiables depuis un rôle applicatif',
+  'editor B ne peut pas réattribuer les métadonnées d''ownership d''une action'
+);
+select throws_ok(
+  $ update public.projets_workspaces
+     set user_hash = 'hash-editor-b'
+     where id = '11111111-1111-1111-1111-111111111111' $,
+  '42501',
+  'owner_id/user_hash du workspace non modifiables depuis un rôle applicatif',
+  'editor B ne peut pas modifier le user_hash du workspace'
 );
 set local role authenticated;
 
