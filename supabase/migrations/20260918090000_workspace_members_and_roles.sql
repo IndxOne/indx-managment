@@ -125,9 +125,10 @@ create or replace function public.prevent_workspace_owner_reassignment() returns
   as $$
   begin
     if current_user in ('anon', 'authenticated')
-       and new.owner_id is distinct from old.owner_id then
-      raise exception 'owner_id du workspace non modifiable depuis un rôle applicatif (workspace %, ancien %, nouveau %)',
-        old.id, old.owner_id, new.owner_id;
+       and (new.owner_id is distinct from old.owner_id or new.user_hash is distinct from old.user_hash) then
+      raise exception using
+        errcode = '42501',
+        message = 'owner_id/user_hash du workspace non modifiables depuis un rôle applicatif';
     end if;
     return new;
   end;
