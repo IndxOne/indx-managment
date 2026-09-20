@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionStatus } from "../domain/types";
+import type { BriefSourceType } from "../domain/v3/brief/types";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
 import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
@@ -16,11 +17,13 @@ import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { AuthScreen } from "./screens/AuthScreen";
 import { BriefLauncherScreen } from "./screens/BriefLauncherScreen";
+import { BriefScreen } from "./screens/BriefScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
+import { ProjectV3Screen } from "./screens/ProjectV3Screen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
 import { RemindersScreen } from "./screens/RemindersScreen";
 import { RunHubScreen } from "./screens/RunHubScreen";
@@ -47,7 +50,8 @@ type Route =
   | { screen: "search" }
   | { screen: "app-settings" }
   | { screen: "auth" }
-  | { screen: "brief" };
+  | { screen: "brief"; projectId?: string }
+  | { screen: "project-v3"; projectId: string; focusType?: BriefSourceType; focusId?: string };
 
 /**
  * "run"/"settings" sont des routes/onglets primaires à part entière (cadrage
@@ -79,6 +83,7 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
     case "search":
     case "auth":
     case "brief":
+    case "project-v3":
       return "more";
     default:
       return "spaces";
@@ -305,7 +310,33 @@ function AppShell() {
           />
         )}
 
-        {route.screen === "brief" && <BriefLauncherScreen onBack={() => setRoute({ screen: "more" })} />}
+        {route.screen === "brief" &&
+          (route.projectId ? (
+            <BriefScreen
+              projectId={route.projectId}
+              onBack={() => setRoute({ screen: "more" })}
+              onOpenItem={(item) =>
+                setRoute({ screen: "project-v3", projectId: item.projectId, focusType: item.sourceType, focusId: item.sourceId })
+              }
+            />
+          ) : (
+            <BriefLauncherScreen
+              onBack={() => setRoute({ screen: "more" })}
+              onOpenItem={(item) =>
+                setRoute({ screen: "project-v3", projectId: item.projectId, focusType: item.sourceType, focusId: item.sourceId })
+              }
+            />
+          ))}
+
+        {route.screen === "project-v3" && (
+          <ProjectV3Screen
+            projectId={route.projectId}
+            focusType={route.focusType}
+            focusId={route.focusId}
+            onBack={() => setRoute({ screen: "more" })}
+            onOpenBrief={(projectId) => setRoute({ screen: "brief", projectId })}
+          />
+        )}
 
         {route.screen === "app-settings" && (
           <AppSettingsScreen
