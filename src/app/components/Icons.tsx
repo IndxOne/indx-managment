@@ -320,3 +320,13 @@ export function IconUsers(props: IconProps) {
     </svg>
   );
 }
+
+/** Mon Brief (Lot 3 UI) — fanion, symbole neutre de "point d'attention". */
+export function IconFlag(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 3.5 V20.5" />
+      <path d="M6 4.5 h11 l-2.6 3.5 L17 11.5 H6" />
+    </svg>
+  );
+}

@@ -138,4 +138,5 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     expect(await screen.findByText(/créée dans Refonte site client/)).toBeInTheDocument();
   });
+
 });

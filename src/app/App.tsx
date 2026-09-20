@@ -15,6 +15,7 @@ import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { AuthScreen } from "./screens/AuthScreen";
+import { BriefLauncherScreen } from "./screens/BriefLauncherScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -45,7 +46,8 @@ type Route =
   | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "search" }
   | { screen: "app-settings" }
-  | { screen: "auth" };
+  | { screen: "auth" }
+  | { screen: "brief" };
 
 /**
  * "run"/"settings" sont des routes/onglets primaires à part entière (cadrage
@@ -76,6 +78,7 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
     case "actions-by-status":
     case "search":
     case "auth":
+    case "brief":
       return "more";
     default:
       return "spaces";
@@ -166,7 +169,7 @@ function AppShell() {
         <button
           type="button"
           className="app-more-trigger tap-target"
-          aria-label="Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche"
+          aria-label="Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief"
           aria-current={activeTab === "more" ? "page" : undefined}
           onClick={() => setRoute({ screen: "more" })}
         >
@@ -301,6 +304,8 @@ function AppShell() {
             onNavigateToWorkspace={goToWorkspaceId}
           />
         )}
+
+        {route.screen === "brief" && <BriefLauncherScreen onBack={() => setRoute({ screen: "more" })} />}
 
         {route.screen === "app-settings" && (
           <AppSettingsScreen

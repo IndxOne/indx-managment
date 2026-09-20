@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MoreScreen } from "./MoreScreen";
 
 describe("MoreScreen", () => {
-  it("liste les 6 destinations secondaires et déclenche onSelect avec la bonne clé", async () => {
+  it("liste les 7 destinations secondaires et déclenche onSelect avec la bonne clé", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     render(<MoreScreen onSelect={onSelect} />);
@@ -32,5 +32,8 @@ describe("MoreScreen", () => {
 
     await user.click(screen.getByRole("button", { name: "Recherche" }));
     expect(onSelect).toHaveBeenCalledWith("search");
+
+    await user.click(screen.getByRole("button", { name: "Mon Brief" }));
+    expect(onSelect).toHaveBeenCalledWith("brief");
   });
 });

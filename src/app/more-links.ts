@@ -1,10 +1,10 @@
-import { IconBell, IconCalendar, IconCompass, IconLayers, IconNotebook, IconSearch } from "./components/Icons";
+import { IconBell, IconCalendar, IconCompass, IconLayers, IconNotebook, IconSearch, IconFlag } from "./components/Icons";
 
 // "app-settings" reste dans le type (utilisé par MoreSubNav pour marquer
 // Réglages comme section active depuis AppSettingsScreen) mais n'a plus
 // d'entrée dans MORE_LINKS : Réglages est désormais un onglet primaire de
 // BottomNav, plus une destination du menu secondaire.
-export type MoreDestination = "reminders" | "week" | "carnet" | "hub" | "roles" | "search" | "app-settings";
+export type MoreDestination = "reminders" | "week" | "carnet" | "hub" | "roles" | "search" | "app-settings" | "brief";
 
 /**
  * Réglages est désormais un onglet primaire de BottomNav (5 emplacements —
@@ -22,4 +22,5 @@ export const MORE_LINKS: { key: MoreDestination; label: string; Icon: typeof Ico
   { key: "hub", label: "Hub", Icon: IconLayers },
   { key: "roles", label: "Approches métier", Icon: IconCompass },
   { key: "search", label: "Recherche", Icon: IconSearch },
+  { key: "brief", label: "Mon Brief", Icon: IconFlag },
 ];
