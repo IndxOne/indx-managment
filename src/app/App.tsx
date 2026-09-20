@@ -15,6 +15,7 @@ import { AppSettingsScreen } from "./screens/AppSettingsScreen";
 import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { AuthScreen } from "./screens/AuthScreen";
+import { BriefLauncherScreen } from "./screens/BriefLauncherScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -304,27 +305,7 @@ function AppShell() {
           />
         )}
 
-        {route.screen === "brief" && (
-          <div>
-            <div className="top-bar">
-              <h1>Mon Brief</h1>
-            </div>
-            <div className="app-main">
-              {/* Aucune sélection de projet V3 n'existe encore dans l'app
-                  (V2 n'a que des workspaces, table distincte de
-                  projets_v3_projects) : BriefScreen exige un projectId réel,
-                  jamais inventé ici. Route/entrée de menu prêtes ; le
-                  branchement effectif vers BriefScreen suivra l'introduction
-                  d'un sélecteur de projet V3 (lot ultérieur). */}
-              <ErrorState
-                title="Mon Brief"
-                description="Aucun projet disponible pour le moment."
-                onRetry={() => setRoute({ screen: "more" })}
-                retryLabel="Retour"
-              />
-            </div>
-          </div>
-        )}
+        {route.screen === "brief" && <BriefLauncherScreen onBack={() => setRoute({ screen: "more" })} />}
 
         {route.screen === "app-settings" && (
           <AppSettingsScreen

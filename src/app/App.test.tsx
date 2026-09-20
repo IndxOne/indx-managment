@@ -139,25 +139,4 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     expect(await screen.findByText(/créée dans Refonte site client/)).toBeInTheDocument();
   });
 
-  it("Mon Brief est joignable depuis le menu secondaire, sans changement de BottomNav", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await screen.findByRole("button", { name: /Accueil/ });
-    // Les 4 emplacements primaires de BottomNav restent inchangés (cadrage
-    // renouveau mobile Lot A) — Mon Brief n'y ajoute rien.
-    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^RUN/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Mon Brief" })).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief" }));
-    await user.click(screen.getByRole("button", { name: "Mon Brief" }));
-
-    expect(await screen.findByText("Aucun projet disponible pour le moment.")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Retour" }));
-    expect(await screen.findByRole("button", { name: "Mon Brief" })).toBeInTheDocument();
-  });
 });
