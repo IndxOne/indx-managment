@@ -67,6 +67,58 @@
   --chip-gray-text: #636366;
 }
 
+/* Lot UX-1 (design system) — tokens additifs : typographie, tonalité
+   sémantique unifiée, surface/élévation, safe-area. Alias exclusivement sur
+   des tokens couleur déjà en place et vérifiés AA (chip-*-text notamment) —
+   aucune nouvelle couleur introduite, donc résolus automatiquement par
+   thème (clair/sombre/système) sans bloc dupliqué : une custom property se
+   résout au point d'usage, pas à la définition. */
+:root {
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.75rem;
+  --font-size-base: 0.875rem;
+  --font-size-md: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.0625rem;
+  --font-size-2xl: 1.25rem;
+  --font-size-3xl: 1.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.35;
+  --line-height-relaxed: 1.5;
+
+  --surface-0: var(--color-page);
+  --surface-1: var(--color-bg);
+  --surface-2: var(--color-fill);
+  --elevation-0: none;
+  --elevation-1: var(--shadow-card);
+  --elevation-2: var(--shadow-thumb);
+  --elevation-3: var(--shadow-sheet);
+
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* neutral/positive/attention/critical : vocabulaire unique pour tout ce
+     qui aujourd'hui mappe séparément severity (Brief), criticité et statut
+     projet vers une couleur — cf. src/app/utils/tone.ts pour la traduction
+     domaine -> tonalité (présentation pure, aucune règle métier ici). */
+  --tone-neutral-bg: var(--color-fill);
+  --tone-neutral-text: var(--color-text-muted);
+  --tone-neutral-border: var(--color-border);
+  --tone-positive-bg: var(--chip-green-bg);
+  --tone-positive-text: var(--chip-green-text);
+  --tone-positive-border: var(--color-success);
+  --tone-attention-bg: var(--chip-orange-bg);
+  --tone-attention-text: var(--chip-orange-text);
+  --tone-attention-border: var(--color-warning);
+  --tone-critical-bg: var(--chip-red-bg);
+  --tone-critical-text: var(--chip-red-text);
+  --tone-critical-border: var(--color-danger);
+}
+
 /* Thème : "système" (par défaut, aucun attribut) suit prefers-color-scheme ;
    data-theme="light"/"dark" force un choix explicite (Réglages) qui prime
    sur l'OS — cf. useThemePreference.ts. Les deux blocs ci-dessous portent
@@ -3066,4 +3118,36 @@ a {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-accent);
+}
+
+/* Lot UX-1 — badge de tonalité générique (src/app/components/SeverityBadge.tsx).
+   Remplace à terme les mappings couleur ad hoc (ex. .brief-item-card-severity
+   ci-dessus) par un vocabulaire visuel unique neutral/positive/attention/
+   critical, cf. src/app/utils/tone.ts. */
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: var(--tone-neutral-bg);
+  color: var(--tone-neutral-text);
+}
+
+.severity-badge[data-tone="positive"] {
+  background: var(--tone-positive-bg);
+  color: var(--tone-positive-text);
+}
+
+.severity-badge[data-tone="attention"] {
+  background: var(--tone-attention-bg);
+  color: var(--tone-attention-text);
+}
+
+.severity-badge[data-tone="critical"] {
+  background: var(--tone-critical-bg);
+  color: var(--tone-critical-text);
 }
