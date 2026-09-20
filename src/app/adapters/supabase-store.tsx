@@ -183,8 +183,14 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           .from("projets_recurrence_rules")
           .select("id, workspace_id, frequency, interval, start_date, end_date, phase_id, title, priority, item_type, created_at, owner_id")
           .order("created_at"),
-        client.from("projets_carnet_notes").select("*").order("created_at"),
-        client.from("projets_hub_settings").select("*").maybeSingle(),
+        client
+          .from("projets_carnet_notes")
+          .select("id, text, created_at, owner_id")
+          .order("created_at"),
+        client
+          .from("projets_hub_settings")
+          .select("monthly_objective, daily_rate, treasury_forecast, updated_at, owner_id")
+          .maybeSingle(),
         client
           .from("projets_members")
           .select("id, workspace_id, display_name, email, avatar_url, active, created_at, updated_at, owner_id")
