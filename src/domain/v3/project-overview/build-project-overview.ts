@@ -69,7 +69,7 @@ function orderWorkItems(items: WorkItemOverviewItem[], briefOrder: Map<string, n
 /** nextMilestone (§2 du correctif de gate) : projection de présentation,
  * aucune règle métier. Candidats status !== "accepted" avec targetDate ;
  * tri targetDate croissante puis id lexicographique. */
-function pickNextMilestone(milestones: Milestone[]): ProjectOverviewSummary["nextMilestone"] {
+export function pickNextMilestone(milestones: Milestone[]): ProjectOverviewSummary["nextMilestone"] {
   const candidates = milestones.filter((m) => m.status !== "accepted" && m.targetDate);
   if (candidates.length === 0) return undefined;
   const sorted = [...candidates].sort((a, b) => {
