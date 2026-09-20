@@ -200,6 +200,10 @@ function AppShell() {
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
             onOpenWeek={() => setRoute({ screen: "week" })}
+            onOpenBrief={() => setRoute({ screen: "brief" })}
+            onOpenProject={(projectId, focus) =>
+              setRoute({ screen: "project-v3", projectId, focusType: focus?.focusType, focusId: focus?.focusId })
+            }
             onQuickCreate={openQuickCreate}
           />
         )}
