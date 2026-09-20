@@ -177,7 +177,10 @@ describe("App — chargement Supabase", () => {
       pendingClient.resolveLoad();
     });
 
-    expect(await screen.findByRole("heading", { name: "Mes projets" })).toBeInTheDocument();
+    // L'onglet "Projets" ouvre désormais Project V3 (UX-3) — "Projets" est
+    // le titre de ProjectsV3ListScreen, plus "Mes projets" (WorkspaceListScreen,
+    // devenu l'écran legacy).
+    expect(await screen.findByRole("heading", { name: "Projets" })).toBeInTheDocument();
   });
 });
 

@@ -12,7 +12,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // L'app s'ouvre désormais sur Accueil (Home) — on rejoint Projets pour
     // créer un espace (décision produit validée, Lot 1 du renouveau produit).
     await screen.findByRole("button", { name: /Accueil/ });
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     expect(await screen.findByText("Aucun projet pour l'instant")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
@@ -39,7 +43,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     await user.click(screen.getByRole("button", { name: /^RUN$/ }));
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
 
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     expect(screen.queryByText("RUN SI quotidien")).not.toBeInTheDocument();
   });
 
@@ -48,7 +56,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Espace test");
@@ -76,7 +88,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
@@ -94,7 +110,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
@@ -121,7 +141,11 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
+    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
+    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
+    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Refonte site client");
     await user.click(screen.getByLabelText(/Projet avec étapes/));

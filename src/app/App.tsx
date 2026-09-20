@@ -24,6 +24,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectV3Screen } from "./screens/ProjectV3Screen";
+import { ProjectsV3ListScreen } from "./screens/ProjectsV3ListScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
 import { RemindersScreen } from "./screens/RemindersScreen";
 import { RunHubScreen } from "./screens/RunHubScreen";
@@ -37,6 +38,7 @@ type Route =
   | { screen: "today" }
   | { screen: "run" }
   | { screen: "week" }
+  | { screen: "projects-v3" }
   | { screen: "spaces-list" }
   | { screen: "spaces-create" }
   | { screen: "workspace-detail"; workspaceId: string }
@@ -83,8 +85,12 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
     case "search":
     case "auth":
     case "brief":
-    case "project-v3":
       return "more";
+    case "project-v3":
+      // Atteignable depuis Accueil, Projets ou Mon Brief — reste sur
+      // "Projets" (sa destination principale désormais, cf. UX-3) plutôt
+      // que de toujours retomber sur "Plus".
+      return "spaces";
     default:
       return "spaces";
   }
@@ -143,7 +149,11 @@ function AppShell() {
   }
 
   function handleNavChange(tab: NavTab) {
-    if (tab === "spaces") setRoute({ screen: "spaces-list" });
+    // Onglet "Projets" ouvre désormais directement la vue Project V3
+    // (décision d'architecture UX-3) — l'ancienne liste Workspace V2
+    // ("spaces-list") reste joignable via le lien "Anciens espaces projet"
+    // de ProjectsV3ListScreen, jamais depuis la barre de navigation.
+    if (tab === "spaces") setRoute({ screen: "projects-v3" });
     else if (tab === "settings") setRoute({ screen: "app-settings" });
     else setRoute({ screen: tab });
   }
@@ -225,6 +235,13 @@ function AppShell() {
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
             onBack={() => setRoute({ screen: "today" })}
+          />
+        )}
+
+        {route.screen === "projects-v3" && (
+          <ProjectsV3ListScreen
+            onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId })}
+            onOpenLegacy={() => setRoute({ screen: "spaces-list" })}
           />
         )}
 
