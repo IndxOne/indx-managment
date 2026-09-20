@@ -169,12 +169,26 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         { data: hubSettingsRow, error: hubSettingsError },
         { data: memberRows, error: membersError },
       ] = await Promise.all([
-        client.from("projets_workspaces").select("*").order("created_at"),
-        client.from("projets_actions").select("*").order("created_at"),
-        client.from("projets_recurrence_rules").select("*").order("created_at"),
+        client
+          .from("projets_workspaces")
+          .select("id, name, description, kind, approach, collaboration_mode, preset_version, created_at, updated_at, owner_id")
+          .order("created_at"),
+        client
+          .from("projets_actions")
+          .select(
+            "id, workspace_id, title, description, status, priority, item_type, phase_id, schedule, assignee_ids, tags, source_note_id, recurrence_rule_id, waiting_since, waiting_reminder, created_at, updated_at, completed_at, notes, linked_action_id, owner_id"
+          )
+          .order("created_at"),
+        client
+          .from("projets_recurrence_rules")
+          .select("id, workspace_id, frequency, interval, start_date, end_date, phase_id, title, priority, item_type, created_at, owner_id")
+          .order("created_at"),
         client.from("projets_carnet_notes").select("*").order("created_at"),
         client.from("projets_hub_settings").select("*").maybeSingle(),
-        client.from("projets_members").select("*").order("created_at"),
+        client
+          .from("projets_members")
+          .select("id, workspace_id, display_name, email, avatar_url, active, created_at, updated_at, owner_id")
+          .order("created_at"),
       ]);
       if (workspacesError) throw workspacesError;
       if (actionsError) throw actionsError;
