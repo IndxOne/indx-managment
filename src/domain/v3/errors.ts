@@ -29,7 +29,8 @@ export type DomainErrorCode =
   | "dependency_missing_responsible"
   | "change_request_missing_impact_analysis"
   | "change_request_invalid_transition"
-  | "evidence_missing_description";
+  | "evidence_missing_description"
+  | "project_pack_invalid";
 
 export interface DomainError {
   code: DomainErrorCode;

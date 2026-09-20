@@ -5,8 +5,9 @@
  *
  * Portée Lot 1 : seuls les événements couvrant les commandes implémentées
  * dans ce lot sont typés ci-dessous. Les événements listés au cahier mais
- * hors périmètre (project.pack_selected — Lot 5 ; brief.item_resolved —
- * Lot 3 ; rule.executed — Lot 2) seront ajoutés par leurs lots respectifs.
+ * hors périmètre (brief.item_resolved — Lot 3 ; rule.executed — Lot 2)
+ * seront ajoutés par leurs lots respectifs. project.pack_selected est
+ * ajouté par le Lot 5 (project-packs/apply-pack.ts).
  */
 
 import type { EntityId, IsoDateTime } from "./types";
@@ -124,8 +125,18 @@ export interface RuleExecutedEvent extends BaseEvent<"rule.executed"> {
   };
 }
 
+/**
+ * project.pack_selected (Lot 5, project-packs/) — émis une fois par
+ * applyProjectPack(). Jamais le pack entier stocké : uniquement de quoi
+ * retrouver la version exacte appliquée (packId@packVersion).
+ */
+export interface ProjectPackSelectedEvent extends BaseEvent<"project.pack_selected"> {
+  payload: { packId: string; packVersion: number };
+}
+
 export type DomainEvent =
   | ProjectCreatedEvent
+  | ProjectPackSelectedEvent
   | WorkItemAssignedEvent
   | WorkItemBlockedEvent
   | WorkItemTransitionedEvent
