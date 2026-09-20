@@ -2917,3 +2917,146 @@ a {
     bottom: var(--space-4);
   }
 }
+
+/* ===========================================================================
+   Mon Brief (Lot 3 UI) — réutilise les tokens existants (couleur, espace,
+   rayon, ombre), aucun nouveau design system. La sévérité n'est jamais
+   portée par la seule couleur : libellé + ordre restent toujours présents,
+   la couleur (bord de carte) n'est qu'un renforcement visuel.
+   =========================================================================== */
+
+.brief-summary {
+  display: flex;
+  overflow-x: auto;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+  -webkit-overflow-scrolling: touch;
+}
+
+.brief-summary-item {
+  flex: 0 0 auto;
+  min-width: 92px;
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  background: var(--color-fill);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brief-summary-count {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.brief-summary-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 1024px) {
+  .brief-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    overflow-x: visible;
+  }
+
+  .brief-summary-item {
+    min-width: 0;
+  }
+}
+
+.brief-section {
+  margin-top: var(--space-5);
+}
+
+.brief-section-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-3);
+}
+
+.brief-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.brief-filter-empty {
+  color: var(--color-text-muted);
+  padding: var(--space-4) 0;
+}
+
+.brief-item-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg);
+  border: none;
+  border-left: 3px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3) var(--space-4);
+}
+
+.brief-item-card-button {
+  cursor: pointer;
+}
+
+.brief-item-card-button:active {
+  box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
+}
+
+.brief-item-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+}
+
+.brief-item-card-severity {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.brief-item-card-severity[data-severity="blocking"] {
+  color: var(--color-danger);
+}
+
+.brief-item-card-severity[data-severity="warning"] {
+  color: var(--color-warning-text);
+}
+
+.brief-item-card-title {
+  font-weight: 600;
+  margin: 0 0 2px;
+  color: var(--color-text);
+}
+
+.brief-item-card-reason {
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.brief-item-card-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+  text-transform: capitalize;
+}
+
+.brief-item-card-action {
+  margin: var(--space-2) 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}

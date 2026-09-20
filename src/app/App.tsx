@@ -45,7 +45,8 @@ type Route =
   | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "search" }
   | { screen: "app-settings" }
-  | { screen: "auth" };
+  | { screen: "auth" }
+  | { screen: "brief" };
 
 /**
  * "run"/"settings" sont des routes/onglets primaires à part entière (cadrage
@@ -76,6 +77,7 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
     case "actions-by-status":
     case "search":
     case "auth":
+    case "brief":
       return "more";
     default:
       return "spaces";
@@ -166,7 +168,7 @@ function AppShell() {
         <button
           type="button"
           className="app-more-trigger tap-target"
-          aria-label="Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche"
+          aria-label="Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief"
           aria-current={activeTab === "more" ? "page" : undefined}
           onClick={() => setRoute({ screen: "more" })}
         >
@@ -300,6 +302,28 @@ function AppShell() {
             onNavigate={(destination) => setRoute({ screen: destination })}
             onNavigateToWorkspace={goToWorkspaceId}
           />
+        )}
+
+        {route.screen === "brief" && (
+          <div>
+            <div className="top-bar">
+              <h1>Mon Brief</h1>
+            </div>
+            <div className="app-main">
+              {/* Aucune sélection de projet V3 n'existe encore dans l'app
+                  (V2 n'a que des workspaces, table distincte de
+                  projets_v3_projects) : BriefScreen exige un projectId réel,
+                  jamais inventé ici. Route/entrée de menu prêtes ; le
+                  branchement effectif vers BriefScreen suivra l'introduction
+                  d'un sélecteur de projet V3 (lot ultérieur). */}
+              <ErrorState
+                title="Mon Brief"
+                description="Aucun projet disponible pour le moment."
+                onRetry={() => setRoute({ screen: "more" })}
+                retryLabel="Retour"
+              />
+            </div>
+          </div>
         )}
 
         {route.screen === "app-settings" && (
