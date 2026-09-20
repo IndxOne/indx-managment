@@ -113,6 +113,9 @@ describe("RunWorkspaceScreen — rupture de densité actif / résolu (renouveau 
     renderScreen([]);
     await user.type(screen.getByLabelText("Nouvelle action"), "Nouvelle intervention");
     await user.click(screen.getByRole("button", { name: "Ajouter" }));
-    expect(await screen.findByText("Action créée.")).toBeInTheDocument();
+    // Timeout élargi (au lieu du défaut 1000ms) : le toast (affiché de façon
+    // synchrone, cf. Toast.tsx) peut dépasser 1s sous une charge CI/runner
+    // partagée — jamais un signe de bug, juste une marge de robustesse.
+    expect(await screen.findByText("Action créée.", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 });
