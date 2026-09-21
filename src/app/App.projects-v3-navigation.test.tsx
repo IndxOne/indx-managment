@@ -25,6 +25,8 @@ function chainableEmptyQuery(): PromiseLike<{ data: unknown[]; error: null }> & 
     in: () => chain,
     order: () => chain,
     limit: () => chain,
+    range: () => chain,
+    maybeSingle: async () => ({ data: null, error: null }),
     then: result.then.bind(result),
   };
   return chain as unknown as PromiseLike<{ data: unknown[]; error: null }> & Record<string, unknown>;
@@ -33,10 +35,11 @@ function chainableEmptyQuery(): PromiseLike<{ data: unknown[]; error: null }> & 
 vi.mock("./adapters/supabase/client", () => ({
   getSupabaseClient: () => ({
     auth: {
-      getSession: async () => ({ data: { session: null }, error: null }),
+      getSession: async () => ({ data: { session: { user: { id: "test-auth-user" } } }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     from: () => chainableEmptyQuery(),
+    rpc: async () => ({ data: null, error: null }),
   }),
   isSupabaseConfigured: () => true,
 }));

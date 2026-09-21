@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import type { ProjectsListProjection } from "../../domain/v3/projects-list/types";
 import { readProjectsList } from "../../infrastructure/persistence/v3/repositories/projects-list-reader";
-import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
+import { getSupabaseClient } from "../adapters/supabase/client";
+import { useAuthState } from "../hooks/useAuthState";
 import { projectsListErrorToUserMessage } from "../utils/projects-list-labels";
 import { PROJECTS_LIST_FILTERS, type ProjectsFilterId } from "../utils/projects-list-filters";
-import { ErrorState, LoadingState } from "../components/StateBlocks";
+import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { HomeProjectCard } from "../components/home/HomeProjectCard";
 
@@ -13,6 +14,8 @@ type LoadState =
   | { status: "loading" }
   | { status: "error"; error: PersistenceError }
   | { status: "unavailable" }
+  /** Hotfix production (401 V3) : Supabase configuré mais aucune session Auth. */
+  | { status: "unauthenticated" }
   | { status: "ready"; projection: ProjectsListProjection };
 
 /**
@@ -25,17 +28,29 @@ type LoadState =
 export function ProjectsV3ListScreen({
   onOpenProject,
   onOpenLegacy,
+  onOpenAuth,
 }: {
   onOpenProject: (projectId: string) => void;
   onOpenLegacy: () => void;
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion tant que non authentifié. */
+  onOpenAuth: () => void;
 }) {
+  const auth = useAuthState();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const [filter, setFilter] = useState<ProjectsFilterId>("active");
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (auth.status === "unconfigured") {
       setState({ status: "unavailable" });
+      return;
+    }
+    if (auth.status === "loading") {
+      setState({ status: "loading" });
+      return;
+    }
+    if (auth.status === "unauthenticated") {
+      setState({ status: "unauthenticated" });
       return;
     }
     let cancelled = false;
@@ -54,7 +69,7 @@ export function ProjectsV3ListScreen({
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [auth.status, reloadToken]);
 
   const activeFilterDef = PROJECTS_LIST_FILTERS.find((f) => f.id === filter) ?? PROJECTS_LIST_FILTERS[0]!;
   const filteredProjects = useMemo(
@@ -80,6 +95,9 @@ export function ProjectsV3ListScreen({
           <ErrorState description={projectsListErrorToUserMessage(state.error)} onRetry={() => setReloadToken((t) => t + 1)} />
         )}
         {state.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+        {state.status === "unauthenticated" && (
+          <AuthRequiredState description="Connecte-toi pour voir tes Project V3." onOpenAuth={onOpenAuth} />
+        )}
 
         {state.status === "ready" &&
           (state.projection.projects.length === 0 ? (
