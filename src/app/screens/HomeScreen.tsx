@@ -10,7 +10,7 @@ import { STATUS_LABELS_DEFAULT } from "../labels";
 import { getSupabaseClient } from "../adapters/supabase/client";
 import { useStore } from "../adapters/temporary-store";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
-import { useAuthState } from "../hooks/useAuthState";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { homeOverviewErrorToUserMessage } from "../utils/home-overview-labels";
@@ -88,6 +88,7 @@ export function HomeScreen({
     useStore();
 
   const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [v3State, setV3State] = useState<V3LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -120,7 +121,7 @@ export function HomeScreen({
     return () => {
       cancelled = true;
     };
-  }, [auth.status, reloadToken]);
+  }, [auth.status, authKey, reloadToken]);
 
   const runWorkspaces = useMemo(() => state.workspaces.filter((workspace) => workspace.kind === "run"), [state.workspaces]);
 

@@ -3,7 +3,7 @@ import type { PersistenceError } from "../../infrastructure/persistence/v3/error
 import type { ProjectsListProjection } from "../../domain/v3/projects-list/types";
 import { readProjectsList } from "../../infrastructure/persistence/v3/repositories/projects-list-reader";
 import { getSupabaseClient } from "../adapters/supabase/client";
-import { useAuthState } from "../hooks/useAuthState";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { projectsListErrorToUserMessage } from "../utils/projects-list-labels";
 import { PROJECTS_LIST_FILTERS, type ProjectsFilterId } from "../utils/projects-list-filters";
 import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
@@ -36,6 +36,7 @@ export function ProjectsV3ListScreen({
   onOpenAuth: () => void;
 }) {
   const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const [filter, setFilter] = useState<ProjectsFilterId>("active");
@@ -69,7 +70,7 @@ export function ProjectsV3ListScreen({
     return () => {
       cancelled = true;
     };
-  }, [auth.status, reloadToken]);
+  }, [auth.status, authKey, reloadToken]);
 
   const activeFilterDef = PROJECTS_LIST_FILTERS.find((f) => f.id === filter) ?? PROJECTS_LIST_FILTERS[0]!;
   const filteredProjects = useMemo(

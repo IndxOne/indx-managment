@@ -3,7 +3,7 @@ import type { BriefItem } from "../../domain/v3/brief/types";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { listBriefProjects, type BriefProjectSummary } from "../../infrastructure/persistence/v3/repositories/brief-projects";
 import { getSupabaseClient } from "../adapters/supabase/client";
-import { useAuthState } from "../hooks/useAuthState";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { IconChevronRight } from "../components/Icons";
 import { AuthRequiredState, EmptyState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { BriefScreen } from "./BriefScreen";
@@ -50,6 +50,7 @@ export function BriefLauncherScreen({
   onOpenAuth: () => void;
 }) {
   const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<LauncherState>({ status: "loading" });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -79,7 +80,7 @@ export function BriefLauncherScreen({
     return () => {
       cancelled = true;
     };
-  }, [auth.status, reloadToken]);
+  }, [auth.status, authKey, reloadToken]);
 
   if (state.status === "loading") {
     return (

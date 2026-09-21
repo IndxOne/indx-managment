@@ -3,7 +3,7 @@ import type { BriefItem, BriefProjection } from "../../domain/v3/brief/types";
 import { readBrief } from "../../infrastructure/persistence/v3/repositories/brief-reader";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { getSupabaseClient } from "../adapters/supabase/client";
-import { useAuthState } from "../hooks/useAuthState";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { BriefSummary } from "../components/brief/BriefSummary";
 import { BriefFilters } from "../components/brief/BriefFilters";
 import { BriefSection } from "../components/brief/BriefSection";
@@ -47,6 +47,7 @@ export function BriefScreen({
   onOpenAuth: () => void;
 }) {
   const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<BriefLoadState>({ status: "loading" });
   const [activeFilter, setActiveFilter] = useState<BriefFilterId>("all");
   const [reloadToken, setReloadToken] = useState(0);
@@ -78,7 +79,7 @@ export function BriefScreen({
     return () => {
       cancelled = true;
     };
-  }, [auth.status, projectId, reloadToken]);
+  }, [auth.status, authKey, projectId, reloadToken]);
 
   return (
     <div>

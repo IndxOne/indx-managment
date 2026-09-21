@@ -60,12 +60,20 @@ function ensureStarted() {
     return;
   }
   const thisGeneration = generation;
+  // `getCurrentAuthUserId()` (lecture ponctuelle) et `onAuthStateChange()`
+  // (abonnement) démarrent en parallèle sans garantie d'ordre : un logout
+  // rapide juste après le montage peut faire arriver l'événement AVANT que
+  // la lecture initiale ne résolve. Sans ce garde-fou, la lecture initiale
+  // écraserait alors l'état plus récent avec une session obsolète — trouvé
+  // en review (PR #66), exactement le bug que ce hotfix corrige.
+  let eventObserved = false;
   getCurrentAuthUserId().then((authUserId) => {
-    if (thisGeneration !== generation) return;
+    if (thisGeneration !== generation || eventObserved) return;
     broadcast(toAuthState(authUserId));
   });
   unsubscribeSupabase = onAuthStateChange((authUserId) => {
     if (thisGeneration !== generation) return;
+    eventObserved = true;
     broadcast(toAuthState(authUserId));
   });
 }
@@ -84,6 +92,17 @@ export function useAuthState(): AuthState {
   }, []);
 
   return state;
+}
+
+/**
+ * Clé stable pour un tableau de dépendances de `useEffect` : `auth.status`
+ * seul ne change pas quand l'utilisateur authentifié change directement
+ * (compte A -> compte B, sans repasser par "loading"/"unauthenticated"),
+ * ce qui laisserait les anciennes données affichées — trouvé en review (PR
+ * #66). Inclut `authUserId` uniquement quand pertinent.
+ */
+export function authStateKey(auth: AuthState): string {
+  return auth.status === "authenticated" ? `authenticated:${auth.authUserId}` : auth.status;
 }
 
 /** Tests uniquement — réinitialise le singleton entre les cas de test. */

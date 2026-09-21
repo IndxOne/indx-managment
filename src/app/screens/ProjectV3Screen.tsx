@@ -4,7 +4,7 @@ import type { ProjectOverviewProjection } from "../../domain/v3/project-overview
 import { readProjectOverview } from "../../infrastructure/persistence/v3/repositories/project-overview-reader";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { getSupabaseClient } from "../adapters/supabase/client";
-import { useAuthState } from "../hooks/useAuthState";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { IconChevronRight } from "../components/Icons";
 import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { ProjectSummaryGrid } from "../components/project-overview/ProjectSummaryGrid";
@@ -46,6 +46,7 @@ export function ProjectV3Screen({
   onOpenAuth: () => void;
 }) {
   const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const focusRef = useRef<HTMLDivElement | null>(null);
@@ -76,7 +77,7 @@ export function ProjectV3Screen({
     return () => {
       cancelled = true;
     };
-  }, [auth.status, projectId, reloadToken]);
+  }, [auth.status, authKey, projectId, reloadToken]);
 
   // Scroll vers l'élément focus s'il est présent — vérification de
   // présence de scrollIntoView plutôt qu'un try/catch comme contrôle de
