@@ -53,7 +53,7 @@ type Route =
   | { screen: "app-settings" }
   | { screen: "auth" }
   | { screen: "brief"; projectId?: string }
-  | { screen: "project-v3"; projectId: string; focusType?: BriefSourceType; focusId?: string };
+  | { screen: "project-v3"; projectId: string; focusType?: BriefSourceType; focusId?: string; from?: "projects-v3" };
 
 /**
  * "run"/"settings" sont des routes/onglets primaires à part entière (cadrage
@@ -240,7 +240,7 @@ function AppShell() {
 
         {route.screen === "projects-v3" && (
           <ProjectsV3ListScreen
-            onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId })}
+            onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
             onOpenLegacy={() => setRoute({ screen: "spaces-list" })}
           />
         )}
@@ -354,7 +354,7 @@ function AppShell() {
             projectId={route.projectId}
             focusType={route.focusType}
             focusId={route.focusId}
-            onBack={() => setRoute({ screen: "more" })}
+            onBack={() => setRoute(route.from === "projects-v3" ? { screen: "projects-v3" } : { screen: "more" })}
             onOpenBrief={(projectId) => setRoute({ screen: "brief", projectId })}
           />
         )}
