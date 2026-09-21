@@ -10,6 +10,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
 
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
+    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "Suivi quotidien");

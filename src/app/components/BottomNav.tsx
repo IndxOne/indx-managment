@@ -32,18 +32,24 @@ export function BottomNav({
   workspaces,
   activeWorkspaceId,
   onSelectWorkspace,
-  onCreateWorkspace,
 }: {
   active: NavTab;
   onChange: (tab: NavTab) => void;
   /** Bouton central (mobile) / bouton dédié (sidebar desktop) : ouvre la création rapide globale, jamais un changement de route (cf. AppShell — résolution de l'espace cible par défaut). */
   onQuickCreate: () => void;
-  /** Liste des espaces affichée dans la barre latérale à partir de 1024px (masquée en CSS sur mobile, cf. .sidebar-workspaces). */
+  /**
+   * Liste des espaces affichée dans la barre latérale à partir de 1024px
+   * (masquée en CSS sur mobile, cf. .sidebar-workspaces). Uniquement les
+   * Workspace V2 `kind=run` : les `kind=project` sont legacy depuis UX-3
+   * (Projets = Project V3 uniquement) et ne doivent jamais apparaître dans
+   * la navigation primaire — seul « Anciens espaces projet » (accès legacy
+   * discret, ProjectsV3ListScreen) y mène encore, jamais cette sidebar.
+   */
   workspaces: Workspace[];
   activeWorkspaceId?: string;
   onSelectWorkspace: (workspaceId: string) => void;
-  onCreateWorkspace: () => void;
 }) {
+  const runWorkspaces = workspaces.filter((workspace) => workspace.kind === "run");
   // Rendu conditionnel (pas seulement masqué en CSS) : sur mobile, la liste
   // des espaces vit déjà dans l'onglet "Projets" — la dupliquer dans le DOM
   // créerait des boutons de même nom accessibles en double (lecteur d'écran,
@@ -131,29 +137,22 @@ export function BottomNav({
             <IconPlus width={16} height={16} strokeWidth={2.4} />
             Nouvelle action
           </button>
-          <span className="sidebar-workspaces-title">Mes espaces</span>
+          <span className="sidebar-workspaces-title">Mes espaces RUN</span>
           <ul className="sidebar-workspace-list">
-            {workspaces.map((workspace) => {
-              const Icon = workspace.kind === "run" ? IconTray : IconGrid;
-              return (
-                <li key={workspace.id}>
-                  <button
-                    type="button"
-                    className="sidebar-workspace-item tap-target"
-                    aria-current={activeWorkspaceId === workspace.id ? "page" : undefined}
-                    onClick={() => onSelectWorkspace(workspace.id)}
-                  >
-                    <Icon width={16} height={16} strokeWidth={1.6} aria-hidden="true" />
-                    <span>{workspace.name}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {runWorkspaces.map((workspace) => (
+              <li key={workspace.id}>
+                <button
+                  type="button"
+                  className="sidebar-workspace-item tap-target"
+                  aria-current={activeWorkspaceId === workspace.id ? "page" : undefined}
+                  onClick={() => onSelectWorkspace(workspace.id)}
+                >
+                  <IconTray width={16} height={16} strokeWidth={1.6} aria-hidden="true" />
+                  <span>{workspace.name}</span>
+                </button>
+              </li>
+            ))}
           </ul>
-          <button type="button" className="sidebar-workspace-create tap-target" onClick={onCreateWorkspace}>
-            <IconPlus width={14} height={14} strokeWidth={2} />
-            Nouveau projet
-          </button>
         </div>
       )}
     </nav>

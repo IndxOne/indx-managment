@@ -29,15 +29,7 @@ function stubDesktop() {
 
 function renderNav(overrides: Partial<Parameters<typeof BottomNav>[0]> = {}) {
   return render(
-    <BottomNav
-      active="today"
-      onChange={() => {}}
-      onQuickCreate={() => {}}
-      workspaces={[]}
-      onSelectWorkspace={() => {}}
-      onCreateWorkspace={() => {}}
-      {...overrides}
-    />
+    <BottomNav active="today" onChange={() => {}} onQuickCreate={() => {}} workspaces={[]} onSelectWorkspace={() => {}} {...overrides} />
   );
 }
 
@@ -137,33 +129,49 @@ describe("BottomNav", () => {
     vi.unstubAllGlobals();
   });
 
-  it("liste les espaces dans la barre latérale, marque l'espace actif et permet d'en créer un", async () => {
+  it("liste les espaces RUN dans la barre latérale et marque l'espace actif", async () => {
     // La liste n'est rendue qu'à partir de 1024px (useIsDesktop) : simule le
     // passage en desktop, sinon jsdom (sans matchMedia) reste en mobile.
     stubDesktop();
 
     const user = userEvent.setup();
     const onSelectWorkspace = vi.fn();
-    const onCreateWorkspace = vi.fn();
     const ws1 = workspace({ id: "w1", name: "Support quotidien" });
-    const ws2 = workspace({ id: "w2", name: "Refonte CRM", kind: "project", approach: "project_amoa" });
+    const ws2 = workspace({ id: "w2", name: "Autre RUN", kind: "run" });
 
     renderNav({
       active: "spaces",
       workspaces: [ws1, ws2],
       activeWorkspaceId: "w2",
       onSelectWorkspace,
-      onCreateWorkspace,
     });
 
     expect(screen.getByRole("button", { name: /Support quotidien/ })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: /Refonte CRM/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /Autre RUN/ })).toHaveAttribute("aria-current", "page");
 
     await user.click(screen.getByRole("button", { name: /Support quotidien/ }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("w1");
 
-    await user.click(screen.getByRole("button", { name: /Nouveau projet/ }));
-    expect(onCreateWorkspace).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  /**
+   * UX-3 (correction de review, PR #65) : Projets = Project V3 uniquement,
+   * Workspace V2 `kind=project` = legacy séparé et discret. La sidebar
+   * primaire desktop ne doit donc jamais afficher ni permettre de créer un
+   * Workspace V2 `kind=project` — seul « Anciens espaces projet »
+   * (ProjectsV3ListScreen) y mène encore.
+   */
+  it("un Workspace V2 kind=project n'apparaît jamais dans la sidebar primaire desktop, et aucun CTA primaire n'en crée un", () => {
+    stubDesktop();
+    const runWorkspace = workspace({ id: "w1", name: "Support quotidien", kind: "run" });
+    const legacyProject = workspace({ id: "w2", name: "Refonte CRM", kind: "project", approach: "project_amoa" });
+
+    renderNav({ workspaces: [runWorkspace, legacyProject] });
+
+    expect(screen.getByRole("button", { name: /Support quotidien/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Refonte CRM/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Nouveau projet/ })).not.toBeInTheDocument();
 
     vi.unstubAllGlobals();
   });
