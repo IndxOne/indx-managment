@@ -443,3 +443,78 @@ describe("buildProjectOverview — watchItems (UX-5.2, « À surveiller »)", ()
     expect(watchSourceTypes).toContain("dependency");
   });
 });
+
+describe("buildProjectOverview — recentChanges (UX-5.3, « Changé récemment »)", () => {
+  it("exclut une entité jamais modifiée (updatedAt === createdAt)", () => {
+    const overview = buildProjectOverview(
+      emptyInput({ workItems: [workItem({ id: "wi1", createdAt: NOW, updatedAt: NOW })] })
+    );
+    expect(overview.recentChanges).toEqual([]);
+  });
+
+  it("trie par updatedAt décroissant", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        workItems: [
+          workItem({ id: "wOld", createdAt: PAST, updatedAt: FUTURE }),
+          workItem({ id: "wNewer", createdAt: PAST, updatedAt: FUTURE_LATER }),
+        ],
+      })
+    );
+    expect(overview.recentChanges.map((c) => c.id)).toEqual(["wNewer", "wOld"]);
+  });
+
+  it("tie-break déterministe par id quand updatedAt est identique", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        workItems: [
+          workItem({ id: "wB", createdAt: PAST, updatedAt: FUTURE }),
+          workItem({ id: "wA", createdAt: PAST, updatedAt: FUTURE }),
+        ],
+      })
+    );
+    expect(overview.recentChanges.map((c) => c.id)).toEqual(["wA", "wB"]);
+  });
+
+  it("plafonne à 5 éléments", () => {
+    const many = Array.from({ length: 8 }, (_, i) => workItem({ id: `wi${i}`, createdAt: PAST, updatedAt: FUTURE }));
+    const overview = buildProjectOverview(emptyInput({ workItems: many }));
+    expect(overview.recentChanges).toHaveLength(5);
+  });
+
+  it.each([
+    ["objective" as const, () => objective({ id: "o1", createdAt: PAST, updatedAt: FUTURE }), "objectives" as const],
+    ["milestone" as const, () => milestone({ id: "m1", createdAt: PAST, updatedAt: FUTURE }), "milestones" as const],
+    ["work_item" as const, () => workItem({ id: "wi1", createdAt: PAST, updatedAt: FUTURE }), "workItems" as const],
+    ["decision" as const, () => decision({ id: "d1", createdAt: PAST, updatedAt: FUTURE }), "decisions" as const],
+    ["risk" as const, () => risk({ id: "r1", createdAt: PAST, updatedAt: FUTURE }), "risks" as const],
+    ["issue" as const, () => issue({ id: "i1", createdAt: PAST, updatedAt: FUTURE }), "issues" as const],
+  ])("couvre le type %s", (sourceType, buildEntity, collectionKey) => {
+    const overview = buildProjectOverview(emptyInput({ [collectionKey]: [buildEntity()] } as Partial<BuildProjectOverviewInput>));
+    expect(overview.recentChanges).toHaveLength(1);
+    expect(overview.recentChanges[0]!.sourceType).toBe(sourceType);
+  });
+
+  it("ne remonte jamais Dependency/ChangeRequest (différé, aucune catégorie Explorer pour eux)", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        dependencies: [dependency({ id: "dep1", createdAt: PAST, updatedAt: FUTURE })],
+        changeRequests: [changeRequest({ id: "cr1", createdAt: PAST, updatedAt: FUTURE })],
+      })
+    );
+    expect(overview.recentChanges).toEqual([]);
+  });
+
+  it("n'affecte ni focusItem ni watchItems (bloc informatif, aucune priorité)", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        workItems: [
+          workItem({ id: "wReady", status: "ready", responsibleId: "u1", dueDate: FUTURE, createdAt: PAST, updatedAt: FUTURE }),
+        ],
+      })
+    );
+    expect(overview.recentChanges).toHaveLength(1);
+    expect(overview.focusItem).toBeUndefined();
+    expect(overview.watchItems).toEqual([]);
+  });
+});

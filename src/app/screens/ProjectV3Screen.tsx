@@ -11,7 +11,9 @@ import { SeverityBadge } from "../components/SeverityBadge";
 import { ProjectFocusNow } from "../components/project-overview/ProjectFocusNow";
 import { ProjectNextUp } from "../components/project-overview/ProjectNextUp";
 import { ProjectWatchList } from "../components/project-overview/ProjectWatchList";
+import { ProjectRecentChanges } from "../components/project-overview/ProjectRecentChanges";
 import { ProjectExplorer } from "../components/project-overview/ProjectExplorer";
+import type { RecentChangeSourceType } from "../../domain/v3/project-overview/types";
 import { criticalityToTone, projectStatusToTone } from "../utils/tone";
 import { PROJECT_STATUS_LABELS, CRITICALITY_LABELS, projectOverviewErrorToUserMessage } from "../utils/project-overview-labels";
 
@@ -141,14 +143,24 @@ function ProjectPilotShell({
   focusId: string | undefined;
   onOpenBrief: () => void;
 }) {
-  const { summary, focusItem, watchItems, objectives, milestones, workItems, decisions, risks, issues } = overview;
+  const { summary, focusItem, watchItems, recentChanges, objectives, milestones, workItems, decisions, risks, issues } = overview;
 
-  // Deep-link (focusType/focusId) : si l'entité ciblée est déjà le focus ou
-  // le prochain jalon affichés, on la met en évidence sur place (pas de
-  // scroll nécessaire, elle est déjà en tête d'écran). Pour tout autre
-  // élément couvert par Mon Brief, voir ProjectExplorer (§7 CLAUDE_TASK.md
-  // UX-5.2) : Dependency/ChangeRequest restent hors Explorer, fallback non
-  // cassant (aucune erreur, accès Mon Brief toujours disponible).
+  // Cible Explorer courante : le deep-link de route au premier rendu, puis
+  // remplacée par un clic sur "Changé récemment" (§7 CLAUDE_TASK.md UX-5.3 —
+  // même mécanisme de présélection/scroll/surlignage que le deep-link de
+  // route, jamais une route dédiée par entité).
+  const [explorerTarget, setExplorerTarget] = useState<{ type: RecentChangeSourceType; id: string } | undefined>(
+    focusType && focusId ? { type: focusType, id: focusId } : undefined
+  );
+  const explorerFocusKey = explorerTarget ? `${explorerTarget.type}:${explorerTarget.id}` : undefined;
+
+  // Deep-link (focusType/focusId, route initiale uniquement) : si l'entité
+  // ciblée est déjà le focus ou le prochain jalon affichés, on la met en
+  // évidence sur place (pas de scroll nécessaire, elle est déjà en tête
+  // d'écran). Pour tout autre élément couvert par Mon Brief, voir
+  // ProjectExplorer (§7 CLAUDE_TASK.md UX-5.2) : Dependency/ChangeRequest
+  // restent hors Explorer, fallback non cassant (aucune erreur, accès Mon
+  // Brief toujours disponible).
   const focusItemMatchesDeepLink = !!focusItem && focusKey === focusItem.id;
   const nextMilestoneMatchesDeepLink = !!summary.nextMilestone && focusKey === `milestone:${summary.nextMilestone.id}`;
 
@@ -161,11 +173,18 @@ function ProjectPilotShell({
 
       <ProjectWatchList watchItems={watchItems} onOpenBrief={onOpenBrief} />
 
+      <ProjectRecentChanges recentChanges={recentChanges} onSelect={(type, id) => setExplorerTarget({ type, id })} />
+
       <ProjectExplorer
+        key={explorerFocusKey ?? "none"}
         data={{ objectives, milestones, workItems, decisions, risks, issues }}
-        focusType={focusType}
-        focusId={focusId}
-        alreadyVisibleElsewhere={focusItemMatchesDeepLink || nextMilestoneMatchesDeepLink}
+        focusType={explorerTarget?.type}
+        focusId={explorerTarget?.id}
+        alreadyVisibleElsewhere={
+          !explorerTarget || (explorerTarget.type === focusType && explorerTarget.id === focusId)
+            ? focusItemMatchesDeepLink || nextMilestoneMatchesDeepLink
+            : false
+        }
       />
 
       <div className="project-pilot-secondary">

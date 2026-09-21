@@ -80,6 +80,7 @@ const overviewFixture = {
       openIssuesCount: 0,
     },
     watchItems: [],
+    recentChanges: [],
   },
 };
 

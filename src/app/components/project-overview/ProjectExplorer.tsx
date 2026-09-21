@@ -5,6 +5,7 @@ import type {
   IssueOverviewItem,
   MilestoneOverviewItem,
   ObjectiveOverviewItem,
+  RecentChangeSourceType,
   RiskOverviewItem,
   WorkItemOverviewItem,
 } from "../../../domain/v3/project-overview/types";
@@ -25,12 +26,15 @@ const CATEGORY_LABELS: Record<CategoryId, string> = {
 
 const CATEGORY_ORDER: CategoryId[] = ["objectives", "milestones", "workItems", "decisions", "risks", "issues"];
 
-/** Deep-link (focusType/focusId) : seuls les 5 types déjà couverts par
- * Mon Brief ont une catégorie Explorer. Dependency/ChangeRequest restent
- * hors Explorer dans ce lot (§4 CLAUDE_TASK.md) — fallback non cassant,
- * simplement aucune catégorie n'est présélectionnée pour eux. */
-function categoryForSourceType(sourceType: BriefSourceType | undefined): CategoryId | undefined {
+/** Deep-link (focusType/focusId) : les 5 types couverts par Mon Brief, plus
+ * "objective" (UX-5.3, "Changé récemment" peut cibler un Objectif — Mon
+ * Brief ne le couvre jamais). Dependency/ChangeRequest restent hors
+ * Explorer (§4 CLAUDE_TASK.md UX-5.2) — fallback non cassant, simplement
+ * aucune catégorie n'est présélectionnée pour eux. */
+function categoryForSourceType(sourceType: RecentChangeSourceType | undefined): CategoryId | undefined {
   switch (sourceType) {
+    case "objective":
+      return "objectives";
     case "milestone":
       return "milestones";
     case "work_item":
@@ -70,7 +74,7 @@ export function ProjectExplorer({
   alreadyVisibleElsewhere,
 }: {
   data: ExplorerData;
-  focusType?: BriefSourceType;
+  focusType?: RecentChangeSourceType;
   focusId?: string;
   /** Correctif review Codex (P2, PR #68) : la cible du deep-link est déjà
    * visible/mise en évidence dans "Maintenant" ou "Ensuite" — Explorer la
