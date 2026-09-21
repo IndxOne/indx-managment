@@ -20,6 +20,12 @@ describe("buildProjectContextRows (UX-5.4, rail contextuel)", () => {
     expect(rows.find((r) => r.label === "Sponsor")?.value).toBe("Non renseigné");
   });
 
+  it("traite une valeur vide/blanche comme absente (correctif review Codex)", () => {
+    const rows = buildProjectContextRows(project({ projectManager: "   ", sponsor: "" }));
+    expect(rows.find((r) => r.label === "Chef de projet")?.value).toBe("Non renseigné");
+    expect(rows.find((r) => r.label === "Sponsor")?.value).toBe("Non renseigné");
+  });
+
   it("affiche les valeurs réelles quand présentes", () => {
     const rows = buildProjectContextRows(project({ projectManager: "Koffi N.", sponsor: "Direction IT" }));
     expect(rows.find((r) => r.label === "Chef de projet")?.value).toBe("Koffi N.");

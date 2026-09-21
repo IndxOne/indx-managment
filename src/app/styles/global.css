@@ -3423,23 +3423,55 @@ a {
 
 .project-context-row dt {
   color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
+/* Correctif review Codex (P2, PR #70) : une valeur longue et non
+   sécable (email, identifiant) pouvait dépasser la ligne, provoquant un
+   débordement horizontal en rail étroit comme en bloc compact 320px. */
 .project-context-row dd {
+  flex: 1;
+  min-width: 0;
   margin: 0;
   color: var(--color-text);
   font-weight: 600;
   text-align: right;
+  overflow-wrap: break-word;
 }
 
+/* Correctif review Codex (P2, PR #70) : `display: flex` supprimait le
+   triangle natif de <summary> sans le remplacer, laissant "Contexte du
+   projet" ressembler à du texte statique. Chevron explicite à la place,
+   qui pivote à l'ouverture (`details[open]`). */
 .project-context-compact-summary {
   display: flex;
   align-items: center;
+  gap: var(--space-2);
+  list-style: none;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
   padding: var(--space-2) 0;
+}
+
+.project-context-compact-summary::-webkit-details-marker {
+  display: none;
+}
+
+.project-context-compact-summary::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.project-context-compact[open] > .project-context-compact-summary::before {
+  transform: rotate(45deg);
 }
 
 .project-context-compact .project-context-rows {

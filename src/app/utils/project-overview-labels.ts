@@ -61,10 +61,18 @@ export interface ProjectContextRow {
  * chef de projet) affiche un fallback compact ("Non renseigné") ; une date
  * absente masque simplement sa ligne plutôt que d'afficher un tiret.
  */
+/** Correctif review Codex (P2, PR #70) : une valeur vide/blanche persistée
+ * (colonne texte non contrainte) doit être traitée comme absente au même
+ * titre qu'undefined — `??` seul ne le fait pas. */
+function orNonRenseigne(value: string | undefined): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : "Non renseigné";
+}
+
 export function buildProjectContextRows(project: ProjectOverviewProjection["project"]): ProjectContextRow[] {
   const rows: ProjectContextRow[] = [
-    { label: "Chef de projet", value: project.projectManager ?? "Non renseigné" },
-    { label: "Sponsor", value: project.sponsor ?? "Non renseigné" },
+    { label: "Chef de projet", value: orNonRenseigne(project.projectManager) },
+    { label: "Sponsor", value: orNonRenseigne(project.sponsor) },
     { label: "Méthode", value: PROJECT_METHOD_LABELS[project.method] },
   ];
   if (project.targetDate) rows.push({ label: "Date cible", value: formatContextDate(project.targetDate) });
