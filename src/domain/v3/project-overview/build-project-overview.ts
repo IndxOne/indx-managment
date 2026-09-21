@@ -1,4 +1,4 @@
-import type { Decision, Issue, Milestone, Project, Risk, WorkItem, Objective } from "../types";
+import type { ChangeRequest, Decision, Dependency, Issue, Milestone, Project, Risk, WorkItem, Objective } from "../types";
 import { buildBrief } from "../brief/build-brief";
 import type { BriefItem, BriefSourceType } from "../brief/types";
 import type {
@@ -21,6 +21,12 @@ export interface BuildProjectOverviewInput {
   risks: Risk[];
   issues: Issue[];
   milestones: Milestone[];
+  /** Correctif review Codex (P1, PR #67) : sans ces deux collections,
+   * `focusItem` (UX-5.1) ne pouvait pas remonter un Dependency/ChangeRequest
+   * pourtant plus prioritaire dans Mon Brief — même univers d'attention que
+   * `buildBrief()` attend, jamais un sous-ensemble silencieux. */
+  dependencies: Dependency[];
+  changeRequests: ChangeRequest[];
 }
 
 const WORK_ITEM_DISPLAY_STATUSES = new Set(["blocked", "in_progress", "ready"]);
@@ -93,8 +99,8 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     risks: input.risks,
     issues: input.issues,
     milestones: input.milestones,
-    dependencies: [],
-    changeRequests: [],
+    dependencies: input.dependencies,
+    changeRequests: input.changeRequests,
   });
   const attentionByKey = indexAttention(brief.attentionItems);
 

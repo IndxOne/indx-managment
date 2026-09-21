@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Project, Objective, WorkItem, Decision, Risk, Issue, Milestone } from "../types";
+import type { Project, Objective, WorkItem, Decision, Risk, Issue, Milestone, Dependency, ChangeRequest } from "../types";
 import { buildProjectOverview, type BuildProjectOverviewInput } from "./build-project-overview";
 
 const NOW = "2026-09-20T08:00:00.000Z";
@@ -32,6 +32,38 @@ function emptyInput(overrides: Partial<BuildProjectOverviewInput> = {}): BuildPr
     risks: [],
     issues: [],
     milestones: [],
+    dependencies: [],
+    changeRequests: [],
+    ...overrides,
+  };
+}
+
+function dependency(overrides: Partial<Dependency> = {}): Dependency {
+  return {
+    id: "dep1",
+    projectId: "p1",
+    sourceEntityId: "wi1",
+    dependentEntityId: "wi2",
+    type: "blocks",
+    responsibleId: "user-a",
+    status: "pending",
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...overrides,
+  };
+}
+
+function changeRequest(overrides: Partial<ChangeRequest> = {}): ChangeRequest {
+  return {
+    id: "cr1",
+    projectId: "p1",
+    request: "Ajouter un module reporting",
+    origin: "client",
+    impact: {},
+    options: [],
+    status: "submitted",
+    createdAt: NOW,
+    updatedAt: NOW,
     ...overrides,
   };
 }
@@ -149,6 +181,49 @@ describe("buildProjectOverview — focusItem (UX-5.1)", () => {
   it("undefined quand aucun élément ne demande attention (projet calme)", () => {
     const overview = buildProjectOverview(
       emptyInput({ workItems: [workItem({ status: "ready", responsibleId: "u1", dueDate: FUTURE })] })
+    );
+    expect(overview.focusItem).toBeUndefined();
+  });
+});
+
+describe("buildProjectOverview — focusItem couvre Dependency/ChangeRequest (correctif review Codex P1, PR #67)", () => {
+  it("un Dependency en retard (DEP-002) devient focus quand aucun WorkItem n'est en attention", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        workItems: [workItem({ status: "ready", responsibleId: "u1", dueDate: FUTURE })],
+        dependencies: [dependency({ status: "delayed" })],
+      })
+    );
+    expect(overview.focusItem?.sourceType).toBe("dependency");
+    expect(overview.focusItem?.sourceId).toBe("dep1");
+  });
+
+  it("un ChangeRequest sans analyse d'impact (CHG-001, blocking) devient focus devant un WorkItem en retard (warning)", () => {
+    const overview = buildProjectOverview(
+      emptyInput({
+        workItems: [workItem({ status: "ready", responsibleId: "u1", dueDate: PAST })],
+        changeRequests: [changeRequest({ status: "submitted", impact: {} })],
+      })
+    );
+    expect(overview.focusItem?.sourceType).toBe("change_request");
+    expect(overview.focusItem?.sourceId).toBe("cr1");
+  });
+
+  it("uniquement un Dependency critique (aucune autre collection) : pas d'état calme", () => {
+    const overview = buildProjectOverview(emptyInput({ dependencies: [dependency({ status: "delayed" })] }));
+    expect(overview.focusItem).toBeDefined();
+    expect(overview.focusItem?.sourceType).toBe("dependency");
+  });
+
+  it("uniquement un ChangeRequest critique (aucune autre collection) : pas d'état calme", () => {
+    const overview = buildProjectOverview(emptyInput({ changeRequests: [changeRequest({ status: "submitted", impact: {} })] }));
+    expect(overview.focusItem).toBeDefined();
+    expect(overview.focusItem?.sourceType).toBe("change_request");
+  });
+
+  it("zéro item dans toutes les collections (Dependency/ChangeRequest incluses) : état calme", () => {
+    const overview = buildProjectOverview(
+      emptyInput({ dependencies: [dependency({ status: "pending" })], changeRequests: [changeRequest({ status: "under_analysis" })] })
     );
     expect(overview.focusItem).toBeUndefined();
   });
