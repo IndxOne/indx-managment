@@ -66,4 +66,14 @@ describe("BriefItemCard — avec onOpen", () => {
     render(<BriefItemCard item={item({ severity: "blocking" })} onOpen={() => {}} />);
     expect(screen.getByText("Bloquant")).toBeInTheDocument();
   });
+
+  it("focused=true (UX-5.1, deep-link) : data-focused posé sur la carte", async () => {
+    render(<BriefItemCard item={item()} onOpen={() => {}} focused />);
+    expect(screen.getByRole("button", { name: /Configurer VPN/ })).toHaveAttribute("data-focused", "true");
+  });
+
+  it("focused par défaut (false) : aucun attribut data-focused", async () => {
+    render(<BriefItemCard item={item()} onOpen={() => {}} />);
+    expect(screen.getByRole("button", { name: /Configurer VPN/ })).not.toHaveAttribute("data-focused");
+  });
 });

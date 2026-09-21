@@ -49,6 +49,17 @@ function emptyOverview(overrides: Partial<ProjectOverviewProjection> = {}): Proj
   };
 }
 
+const focusItemFixture = {
+  id: "work_item:w1",
+  sourceType: "work_item" as const,
+  sourceId: "w1",
+  projectId: "p1",
+  severity: "blocking" as const,
+  title: "Configurer VPN",
+  reason: "Aucun responsable assigné.",
+  status: "ready",
+};
+
 beforeEach(() => {
   resetAuthStateForTests();
   getCurrentAuthUserIdMock.mockReset().mockResolvedValue("test-auth-user");
@@ -93,20 +104,88 @@ describe("ProjectV3Screen — états", () => {
     await user.click(screen.getByRole("button", { name: "Réessayer" }));
     await waitFor(() => expect(readProjectOverviewMock).toHaveBeenCalledTimes(2));
   });
+});
 
-  it("sections vides masquées, résumé et accès Mon Brief toujours visibles", async () => {
+describe("ProjectV3Screen — UX-5.1 shell (Focus maintenant / Ensuite)", () => {
+  it("Focus maintenant affiche l'élément le plus prioritaire de la projection", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ focusItem: focusItemFixture }) });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText("Configurer VPN")).toBeInTheDocument();
+    expect(screen.getByText("Aucun responsable assigné.")).toBeInTheDocument();
+  });
+
+  it("aucun focusItem : état positif compact, aucune erreur", async () => {
     readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
     render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
     await screen.findByText("Migration M365");
-    expect(screen.queryByText("Objectifs")).not.toBeInTheDocument();
-    expect(screen.queryByText("Jalons")).not.toBeInTheDocument();
-    expect(screen.queryByText("WorkItems")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mon Brief de ce projet" })).toBeInTheDocument();
+    expect(screen.getByText("Rien de critique à traiter maintenant.")).toBeInTheDocument();
   });
-});
 
-describe("ProjectV3Screen — projection correcte, ordre conservé, aucune mutation", () => {
-  it("affiche les sections non vides dans l'ordre de la projection", async () => {
+  it("Ensuite affiche le prochain jalon quand présent", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        summary: {
+          activeObjectivesCount: 0,
+          openWorkItemsCount: 0,
+          highCriticalRisksCount: 0,
+          pendingDecisionsCount: 0,
+          openIssuesCount: 0,
+          nextMilestone: { id: "m1", observableResult: "Design validé", targetDate: "2026-12-01T00:00:00.000Z" },
+        },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText("Design validé")).toBeInTheDocument();
+  });
+
+  it("Ensuite affiche le statut du jalon (ex. refused, correctif review Codex)", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        summary: {
+          activeObjectivesCount: 0,
+          openWorkItemsCount: 0,
+          highCriticalRisksCount: 0,
+          pendingDecisionsCount: 0,
+          openIssuesCount: 0,
+          nextMilestone: { id: "m1", observableResult: "Design validé", targetDate: "2026-12-01T00:00:00.000Z", status: "refused" },
+        },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText(/refused/)).toBeInTheDocument();
+  });
+
+  it("Focus maintenant : le CTA « Voir dans Mon Brief » est explicite et distinct de la carte", async () => {
+    const user = userEvent.setup();
+    const onOpenBrief = vi.fn();
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ focusItem: focusItemFixture }) });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={onOpenBrief} onOpenAuth={() => {}} />);
+    await screen.findByText("Configurer VPN");
+    await user.click(screen.getByRole("button", { name: "Voir dans Mon Brief" }));
+    expect(onOpenBrief).toHaveBeenCalledWith("p1");
+  });
+
+  it("aucun prochain jalon : état compact dédié", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText("Aucun jalon planifié.")).toBeInTheDocument();
+  });
+
+  it("n'affiche plus ProjectSummaryGrid (6 KPI) dans UX-5.1", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.queryByText("Objectifs actifs")).not.toBeInTheDocument();
+    expect(screen.queryByText("WorkItems ouverts")).not.toBeInTheDocument();
+  });
+
+  it("n'affiche plus les 6 anciennes sections détaillées dans UX-5.1", async () => {
     readProjectOverviewMock.mockResolvedValue({
       ok: true,
       value: emptyOverview({
@@ -114,86 +193,49 @@ describe("ProjectV3Screen — projection correcte, ordre conservé, aucune mutat
         milestones: [
           { id: "m1", observableResult: "Design validé", status: "planned", targetDate: "2026-12-01T00:00:00.000Z", needsAttention: false },
         ],
-        workItems: [
-          { id: "w1", title: "Configurer VPN", status: "ready", priority: "normal", needsAttention: true, reason: "Aucun responsable assigné." },
-        ],
       }),
     });
     render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-
-    await screen.findByText("Migrer 100% des boîtes mail");
-    expect(screen.getByText("Design validé")).toBeInTheDocument();
-    expect(screen.getByText("Configurer VPN")).toBeInTheDocument();
-    expect(screen.getByText("Aucun responsable assigné.")).toBeInTheDocument();
+    await screen.findByText("Migration M365");
+    expect(screen.queryByText("Objectifs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jalons")).not.toBeInTheDocument();
+    expect(screen.queryByText("WorkItems")).not.toBeInTheDocument();
+    expect(screen.queryByText("Décisions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Risques")).not.toBeInTheDocument();
+    expect(screen.queryByText("Issues")).not.toBeInTheDocument();
+    // La donnée existe toujours dans la projection (objectives non vide),
+    // simplement plus rendue sous forme de section détaillée ici.
+    expect(screen.queryByText("Migrer 100% des boîtes mail")).not.toBeInTheDocument();
   });
 
-  it("ne mute jamais la projection reçue", async () => {
-    const overview = emptyOverview({
-      objectives: [{ id: "o1", statement: "Migrer 100% des boîtes mail", status: "active", hasOwner: false }],
-    });
-    const snapshot = JSON.parse(JSON.stringify(overview));
-    readProjectOverviewMock.mockResolvedValue({ ok: true, value: overview });
-    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-    await screen.findByText("Migrer 100% des boîtes mail");
-    expect(overview).toEqual(snapshot);
-  });
-
-  it("n'affiche jamais un UUID brut (owner/decider/resolver, correctif §7)", async () => {
-    readProjectOverviewMock.mockResolvedValue({
-      ok: true,
-      value: emptyOverview({
-        objectives: [{ id: "o1", statement: "Objectif A", status: "active", hasOwner: true }],
-        decisions: [{ id: "d1", question: "Question A", status: "to_prepare", hasDecider: true, needsAttention: false }],
-      }),
-    });
-    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-    await screen.findByText("Objectif A");
-    expect(screen.queryByText(/user-[a-f0-9-]+/i)).not.toBeInTheDocument();
+  it("rendu mobile : shell en une colonne, aucune largeur fixe en px", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ focusItem: focusItemFixture }) });
+    const { container } = render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(container.querySelector(".project-pilot-shell")).toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(/width:\s*\d+px/);
   });
 });
 
-describe("ProjectV3Screen — focus (correctif §6)", () => {
-  it("met en évidence l'élément si focusId présent dans la projection", async () => {
-    readProjectOverviewMock.mockResolvedValue({
-      ok: true,
-      value: emptyOverview({
-        workItems: [
-          { id: "w1", title: "Item ciblé", status: "ready", priority: "normal", needsAttention: false },
-          { id: "w2", title: "Autre item", status: "ready", priority: "normal", needsAttention: false },
-        ],
-      }),
-    });
-    render(<ProjectV3Screen projectId="p1" focusType="work_item" focusId="w1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-    await screen.findByText("Item ciblé");
-    const focusedCard = screen.getByText("Item ciblé").closest("[data-focused]");
-    expect(focusedCard).toHaveAttribute("data-focused", "true");
-    const otherCard = screen.getByText("Autre item").closest("div.brief-item-card");
-    expect(otherCard).not.toHaveAttribute("data-focused", "true");
+describe("ProjectV3Screen — deep-link (focusType/focusId, §7)", () => {
+  it("cible le focus affiché : mis en évidence sur place, sans erreur", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ focusItem: focusItemFixture }) });
+    render(
+      <ProjectV3Screen projectId="p1" focusType="work_item" focusId="w1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />
+    );
+    await screen.findByText("Configurer VPN");
+    const card = screen.getByText("Configurer VPN").closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
   });
 
-  it("focusId absent de la projection : affichage normal, aucune erreur", async () => {
-    readProjectOverviewMock.mockResolvedValue({
-      ok: true,
-      value: emptyOverview({
-        workItems: [{ id: "w1", title: "Item existant", status: "ready", priority: "normal", needsAttention: false }],
-      }),
-    });
-    render(<ProjectV3Screen projectId="p1" focusType="work_item" focusId="disparu" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-    await screen.findByText("Item existant");
+  it("cible une entité non (encore) visible dans le shell : aucune erreur, navigation non cassée", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    render(
+      <ProjectV3Screen projectId="p1" focusType="risk" focusId="disparu" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />
+    );
+    await screen.findByText("Migration M365");
     expect(screen.queryByText(/erreur/i)).not.toBeInTheDocument();
-  });
-
-  it("aucun focusId : aucun élément mis en évidence, aucun modal", async () => {
-    readProjectOverviewMock.mockResolvedValue({
-      ok: true,
-      value: emptyOverview({
-        workItems: [{ id: "w1", title: "Item normal", status: "ready", priority: "normal", needsAttention: false }],
-      }),
-    });
-    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
-    await screen.findByText("Item normal");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(document.querySelector('[data-focused="true"]')).toBeNull();
   });
 });
 
@@ -205,6 +247,16 @@ describe("ProjectV3Screen — navigation", () => {
     render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={onOpenBrief} onOpenAuth={() => {}} />);
     await screen.findByText("Migration M365");
     await user.click(screen.getByRole("button", { name: "Mon Brief de ce projet" }));
+    expect(onOpenBrief).toHaveBeenCalledWith("p1");
+  });
+
+  it("« Explorer le reste du projet » appelle aussi onOpenBrief (fallback documenté, UX-5.2 différé)", async () => {
+    const user = userEvent.setup();
+    const onOpenBrief = vi.fn();
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={onOpenBrief} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    await user.click(screen.getByRole("button", { name: "Explorer le reste du projet" }));
     expect(onOpenBrief).toHaveBeenCalledWith("p1");
   });
 

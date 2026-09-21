@@ -196,6 +196,44 @@ function milestoneRow(overrides: Partial<Row> = {}): Row {
   };
 }
 
+function dependencyRow(overrides: Partial<Row> = {}): Row {
+  return {
+    id: "dep1",
+    project_id: "p1",
+    workspace_id: "w1",
+    source_entity_id: "wi1",
+    dependent_entity_id: "wi2",
+    type: "blocks",
+    responsible_id: "user-a",
+    needed_by_date: null,
+    status: "pending",
+    delay_impact: null,
+    created_at: NOW,
+    updated_at: NOW,
+    ...overrides,
+  };
+}
+
+function changeRequestRow(overrides: Partial<Row> = {}): Row {
+  return {
+    id: "cr1",
+    project_id: "p1",
+    workspace_id: "w1",
+    request: "Ajouter un module reporting",
+    origin: "client",
+    justification: null,
+    impact: {},
+    options: [],
+    recommendation: null,
+    decider_id: null,
+    status: "submitted",
+    linked_decision_id: null,
+    created_at: NOW,
+    updated_at: NOW,
+    ...overrides,
+  };
+}
+
 function evidenceRow(overrides: Partial<Row> = {}): Row {
   return {
     id: "ev1",
@@ -229,7 +267,7 @@ describe("readProjectOverview — projet valide", () => {
     expect(result.value.issues).toEqual([]);
   });
 
-  it("8 requêtes maximum : Project puis 7 en parallèle, zéro N+1", async () => {
+  it("10 requêtes maximum : Project puis 9 en parallèle, zéro N+1 (correctif review Codex P1, PR #67 : Dependency/ChangeRequest ajoutées)", async () => {
     const { client, calls } = createMockClient({
       projets_v3_projects: [projectRow()],
       projets_v3_objectives: [objectiveRow()],
@@ -239,10 +277,12 @@ describe("readProjectOverview — projet valide", () => {
       projets_v3_issues: [issueRow()],
       projets_v3_milestones: [milestoneRow()],
       projets_v3_evidence: [evidenceRow()],
+      projets_v3_dependencies: [dependencyRow()],
+      projets_v3_change_requests: [changeRequestRow()],
     });
     const result = await readProjectOverview(client, "p1", NOW);
     expect(result.ok).toBe(true);
-    expect(calls).toHaveLength(8);
+    expect(calls).toHaveLength(10);
     expect(calls[0]!.table).toBe("projets_v3_projects");
     const tables = new Set(calls.map((c) => c.table));
     expect(tables).toEqual(
@@ -255,17 +295,31 @@ describe("readProjectOverview — projet valide", () => {
         "projets_v3_issues",
         "projets_v3_milestones",
         "projets_v3_evidence",
+        "projets_v3_dependencies",
+        "projets_v3_change_requests",
       ])
     );
   });
 
-  it("n'interroge jamais Stage, Dependency ou ChangeRequest (différés, gate §9)", async () => {
+  it("n'interroge jamais Stage (toujours différé, gate §9) mais interroge désormais Dependency/ChangeRequest", async () => {
     const { client, calls } = createMockClient({ projets_v3_projects: [projectRow()] });
     await readProjectOverview(client, "p1", NOW);
     const tables = calls.map((c) => c.table);
     expect(tables).not.toContain("projets_v3_stages");
-    expect(tables).not.toContain("projets_v3_dependencies");
-    expect(tables).not.toContain("projets_v3_change_requests");
+    expect(tables).toContain("projets_v3_dependencies");
+    expect(tables).toContain("projets_v3_change_requests");
+  });
+
+  it("focusItem peut provenir d'un Dependency (correctif review Codex P1) : plus jamais un sous-ensemble silencieux de Mon Brief", async () => {
+    const { client } = createMockClient({
+      projets_v3_projects: [projectRow()],
+      projets_v3_dependencies: [dependencyRow({ id: "dep1", status: "delayed" })],
+    });
+    const result = await readProjectOverview(client, "p1", NOW);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.focusItem?.sourceType).toBe("dependency");
+    expect(result.value.focusItem?.sourceId).toBe("dep1");
   });
 
   it("Evidence limitée à proved_entity_type=milestone (reconstruction evidenceIds uniquement)", async () => {

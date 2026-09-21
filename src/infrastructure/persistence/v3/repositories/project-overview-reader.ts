@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { EntityId, IsoDateTime, Project, Objective, WorkItem, Decision, Risk, Issue, Milestone } from "../../../../domain/v3/types";
+import type { EntityId, IsoDateTime, Project, Objective, WorkItem, Decision, Risk, Issue, Milestone, Dependency, ChangeRequest } from "../../../../domain/v3/types";
 import type { ProjectOverviewProjection } from "../../../../domain/v3/project-overview/types";
 import { buildProjectOverview } from "../../../../domain/v3/project-overview/build-project-overview";
 import { projectFromRow, type ProjectRow } from "../mappers/project";
@@ -9,6 +9,8 @@ import { decisionFromRow, type DecisionRow } from "../mappers/decision";
 import { riskFromRow, type RiskRow } from "../mappers/risk";
 import { issueFromRow, type IssueRow } from "../mappers/issue";
 import { milestoneFromRow, type MilestoneRow } from "../mappers/milestone";
+import { dependencyFromRow, type DependencyRow } from "../mappers/dependency";
+import { changeRequestFromRow, type ChangeRequestRow } from "../mappers/change-request";
 import { failResult, fromPostgrestError, okResult, type PersistenceResult } from "../errors";
 
 const PROJECT_TABLE = "projets_v3_projects";
@@ -18,6 +20,8 @@ const DECISIONS_TABLE = "projets_v3_decisions";
 const RISKS_TABLE = "projets_v3_risks";
 const ISSUES_TABLE = "projets_v3_issues";
 const MILESTONES_TABLE = "projets_v3_milestones";
+const DEPENDENCIES_TABLE = "projets_v3_dependencies";
+const CHANGE_REQUESTS_TABLE = "projets_v3_change_requests";
 const EVIDENCE_TABLE = "projets_v3_evidence";
 
 /** Même choix que brief-reader.ts : Project seul, sans objectiveIds (les
@@ -65,6 +69,24 @@ async function listMilestoneRows(client: SupabaseClient, projectId: EntityId): P
   return okResult((data ?? []) as MilestoneRow[]);
 }
 
+/** Correctif review Codex (P1, PR #67) : mêmes requêtes que brief-reader.ts
+ * (`listDependencies`/`listChangeRequests`), ajoutées ici uniquement pour
+ * que `focusItem` (via buildProjectOverview() → buildBrief()) couvre le
+ * même univers d'attention que Mon Brief — sans ces deux collections,
+ * un Dependency/ChangeRequest plus prioritaire ne pouvait jamais devenir
+ * le focus, et "Rien de critique" pouvait être un faux négatif. */
+async function listDependencies(client: SupabaseClient, projectId: EntityId): Promise<PersistenceResult<Dependency[]>> {
+  const { data, error } = await client.from(DEPENDENCIES_TABLE).select().eq("project_id", projectId);
+  if (error) return failResult(fromPostgrestError(error));
+  return okResult((data ?? []).map((row) => dependencyFromRow(row as DependencyRow)));
+}
+
+async function listChangeRequests(client: SupabaseClient, projectId: EntityId): Promise<PersistenceResult<ChangeRequest[]>> {
+  const { data, error } = await client.from(CHANGE_REQUESTS_TABLE).select().eq("project_id", projectId);
+  if (error) return failResult(fromPostgrestError(error));
+  return okResult((data ?? []).map((row) => changeRequestFromRow(row as ChangeRequestRow)));
+}
+
 /** Même restriction que brief-reader.ts : Evidence limitée aux Milestones,
  * seule reconstruction de relation nécessaire à cet écran (gate §6/§9). */
 async function fetchMilestoneEvidenceIds(client: SupabaseClient, projectId: EntityId): Promise<PersistenceResult<Map<EntityId, EntityId[]>>> {
@@ -86,14 +108,17 @@ async function fetchMilestoneEvidenceIds(client: SupabaseClient, projectId: Enti
 
 /**
  * Lecteur infrastructure de l'écran Projet V3 (Lot 4, gate validée). Charge
- * le strict nécessaire (Project + Objectives + 4 collections + Evidence des
- * Milestones uniquement — jamais Stage/Dependency/ChangeRequest), reconstruit
- * via les mappers V3 existants, puis délègue tout le calcul (dont
- * needsAttention/reason, exclusivement via buildBrief()) à
- * buildProjectOverview(). Aucune logique métier ici, aucun service_role.
+ * le strict nécessaire (Project + Objectives + 6 collections + Evidence des
+ * Milestones uniquement — jamais Stage), reconstruit via les mappers V3
+ * existants, puis délègue tout le calcul (dont needsAttention/reason et
+ * focusItem, exclusivement via buildBrief()) à buildProjectOverview().
+ * Aucune logique métier ici, aucun service_role.
  *
- * Séquence : 1 requête Project (validation), puis, si trouvé, 7 requêtes
- * indépendantes en parallèle (Promise.all) — 8 requêtes au total, aucune
+ * Budget de requêtes (correctif review Codex P1, PR #67 — Dependency et
+ * ChangeRequest ajoutées pour que `focusItem` couvre le même univers
+ * d'attention que Mon Brief, cf. listDependencies/listChangeRequests
+ * ci-dessus) : 1 requête Project (validation), puis, si trouvé, 9 requêtes
+ * indépendantes en parallèle (Promise.all) — 10 requêtes au total, aucune
  * boucle, aucun N+1.
  */
 export async function readProjectOverview(
@@ -108,15 +133,18 @@ export async function readProjectOverview(
   }
   const project = projectResult.value;
 
-  const [objectives, workItems, decisions, risks, issues, milestoneRows, milestoneEvidenceIds] = await Promise.all([
-    listObjectives(client, projectId),
-    listWorkItems(client, projectId),
-    listDecisions(client, projectId),
-    listRisks(client, projectId),
-    listIssues(client, projectId),
-    listMilestoneRows(client, projectId),
-    fetchMilestoneEvidenceIds(client, projectId),
-  ]);
+  const [objectives, workItems, decisions, risks, issues, milestoneRows, milestoneEvidenceIds, dependencies, changeRequests] =
+    await Promise.all([
+      listObjectives(client, projectId),
+      listWorkItems(client, projectId),
+      listDecisions(client, projectId),
+      listRisks(client, projectId),
+      listIssues(client, projectId),
+      listMilestoneRows(client, projectId),
+      fetchMilestoneEvidenceIds(client, projectId),
+      listDependencies(client, projectId),
+      listChangeRequests(client, projectId),
+    ]);
 
   if (!objectives.ok) return objectives;
   if (!workItems.ok) return workItems;
@@ -125,6 +153,8 @@ export async function readProjectOverview(
   if (!issues.ok) return issues;
   if (!milestoneRows.ok) return milestoneRows;
   if (!milestoneEvidenceIds.ok) return milestoneEvidenceIds;
+  if (!dependencies.ok) return dependencies;
+  if (!changeRequests.ok) return changeRequests;
 
   const milestones: Milestone[] = milestoneRows.value.map((row) =>
     milestoneFromRow(row, [], milestoneEvidenceIds.value.get(row.id) ?? [])
@@ -140,6 +170,8 @@ export async function readProjectOverview(
       risks: risks.value,
       issues: issues.value,
       milestones,
+      dependencies: dependencies.value,
+      changeRequests: changeRequests.value,
     });
     return okResult(overview);
   } catch (e) {

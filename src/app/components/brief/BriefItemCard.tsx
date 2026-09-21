@@ -20,7 +20,18 @@ function formatDueDate(dueDate: string): string {
  * priorisation/inclusion (déjà tranchée par le domaine Brief). ruleId
  * volontairement non affiché ici (réservé à une future vue technique).
  */
-export function BriefItemCard({ item, onOpen }: { item: BriefItem; onOpen?: (item: BriefItem) => void }) {
+export function BriefItemCard({
+  item,
+  onOpen,
+  focused = false,
+}: {
+  item: BriefItem;
+  onOpen?: (item: BriefItem) => void;
+  /** UX-5.1 : mise en évidence deep-link (focusType/focusId) quand l'item
+   * ciblé est déjà l'élément affiché — même convention visuelle que
+   * `[data-focused="true"]` (ex-AttentionEntityCard, correctif §6). */
+  focused?: boolean;
+}) {
   const content = (
     <>
       <div className="brief-item-card-header">
@@ -45,7 +56,7 @@ export function BriefItemCard({ item, onOpen }: { item: BriefItem; onOpen?: (ite
   // aucune affordance de navigation (décision de gate §6).
   if (!onOpen) {
     return (
-      <div className="brief-item-card" style={{ borderLeftColor: borderColor }}>
+      <div className="brief-item-card" style={{ borderLeftColor: borderColor }} data-focused={focused || undefined}>
         {content}
       </div>
     );
@@ -58,6 +69,7 @@ export function BriefItemCard({ item, onOpen }: { item: BriefItem; onOpen?: (ite
       type="button"
       className="brief-item-card brief-item-card-button tap-target"
       style={{ borderLeftColor: borderColor }}
+      data-focused={focused || undefined}
       onClick={() => onOpen(item)}
       aria-label={`${SOURCE_TYPE_LABELS[item.sourceType]} : ${item.title}. ${item.reason}`}
     >

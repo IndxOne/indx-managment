@@ -1,4 +1,4 @@
-import type { Decision, Issue, Milestone, Project, Risk, WorkItem, Objective } from "../types";
+import type { ChangeRequest, Decision, Dependency, Issue, Milestone, Project, Risk, WorkItem, Objective } from "../types";
 import { buildBrief } from "../brief/build-brief";
 import type { BriefItem, BriefSourceType } from "../brief/types";
 import type {
@@ -21,6 +21,12 @@ export interface BuildProjectOverviewInput {
   risks: Risk[];
   issues: Issue[];
   milestones: Milestone[];
+  /** Correctif review Codex (P1, PR #67) : sans ces deux collections,
+   * `focusItem` (UX-5.1) ne pouvait pas remonter un Dependency/ChangeRequest
+   * pourtant plus prioritaire dans Mon Brief — même univers d'attention que
+   * `buildBrief()` attend, jamais un sous-ensemble silencieux. */
+  dependencies: Dependency[];
+  changeRequests: ChangeRequest[];
 }
 
 const WORK_ITEM_DISPLAY_STATUSES = new Set(["blocked", "in_progress", "ready"]);
@@ -77,7 +83,7 @@ export function pickNextMilestone(milestones: Milestone[]): ProjectOverviewSumma
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
   const winner = sorted[0]!;
-  return { id: winner.id, observableResult: winner.observableResult, targetDate: winner.targetDate };
+  return { id: winner.id, observableResult: winner.observableResult, targetDate: winner.targetDate, status: winner.status };
 }
 
 /** Construit la projection Projet V3. Jamais d'accès repository ici :
@@ -93,8 +99,8 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     risks: input.risks,
     issues: input.issues,
     milestones: input.milestones,
-    dependencies: [],
-    changeRequests: [],
+    dependencies: input.dependencies,
+    changeRequests: input.changeRequests,
   });
   const attentionByKey = indexAttention(brief.attentionItems);
 
@@ -202,5 +208,6 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     risks,
     issues,
     summary,
+    focusItem: brief.attentionItems[0],
   };
 }

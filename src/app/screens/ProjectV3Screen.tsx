@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { BriefSourceType } from "../../domain/v3/brief/types";
 import type { ProjectOverviewProjection } from "../../domain/v3/project-overview/types";
 import { readProjectOverview } from "../../infrastructure/persistence/v3/repositories/project-overview-reader";
@@ -7,10 +7,10 @@ import { getSupabaseClient } from "../adapters/supabase/client";
 import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { IconChevronRight } from "../components/Icons";
 import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
-import { ProjectSummaryGrid } from "../components/project-overview/ProjectSummaryGrid";
-import { ObjectiveCard } from "../components/project-overview/ObjectiveCard";
-import { AttentionEntityCard } from "../components/project-overview/AttentionEntityCard";
-import { ProjectOverviewSection } from "../components/project-overview/ProjectOverviewSection";
+import { SeverityBadge } from "../components/SeverityBadge";
+import { ProjectFocusNow } from "../components/project-overview/ProjectFocusNow";
+import { ProjectNextUp } from "../components/project-overview/ProjectNextUp";
+import { criticalityToTone, projectStatusToTone } from "../utils/tone";
 import { PROJECT_STATUS_LABELS, CRITICALITY_LABELS, projectOverviewErrorToUserMessage } from "../utils/project-overview-labels";
 
 type LoadState =
@@ -49,7 +49,6 @@ export function ProjectV3Screen({
   const authKey = authStateKey(auth);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
-  const focusRef = useRef<HTMLDivElement | null>(null);
   const focusKey = focusType && focusId ? `${focusType}:${focusId}` : undefined;
 
   useEffect(() => {
@@ -79,17 +78,6 @@ export function ProjectV3Screen({
     };
   }, [auth.status, authKey, projectId, reloadToken]);
 
-  // Scroll vers l'élément focus s'il est présent — vérification de
-  // présence de scrollIntoView plutôt qu'un try/catch comme contrôle de
-  // flux (correctif de gate §6). Aucun modal, aucune erreur si absent.
-  useEffect(() => {
-    if (state.status !== "ready" || !focusKey) return;
-    const el = focusRef.current;
-    if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ block: "center" });
-    }
-  }, [state.status, focusKey]);
-
   return (
     <div>
       <div className="top-bar">
@@ -100,6 +88,15 @@ export function ProjectV3Screen({
           <h1 className="project-title">{state.status === "ready" ? state.overview.project.name : "Projet"}</h1>
         </div>
       </div>
+      {state.status === "ready" && (
+        <div className="project-pilot-status-row">
+          <SeverityBadge tone={projectStatusToTone(state.overview.project.status)} label={PROJECT_STATUS_LABELS[state.overview.project.status]} />
+          <SeverityBadge
+            tone={criticalityToTone(state.overview.project.criticality)}
+            label={CRITICALITY_LABELS[state.overview.project.criticality]}
+          />
+        </div>
+      )}
       <div className="app-main">
         {state.status === "loading" && <LoadingState label="Chargement du projet…" />}
         {state.status === "error" && (
@@ -109,135 +106,63 @@ export function ProjectV3Screen({
           <AuthRequiredState description="Connecte-toi pour voir ce projet." onOpenAuth={onOpenAuth} />
         )}
         {state.status === "ready" && (
-          <ProjectOverviewContent overview={state.overview} focusKey={focusKey} focusRef={focusRef} onOpenBrief={() => onOpenBrief(projectId)} />
+          <ProjectPilotShell overview={state.overview} focusKey={focusKey} onOpenBrief={() => onOpenBrief(projectId)} />
         )}
       </div>
     </div>
   );
 }
 
-function ProjectOverviewContent({
+/**
+ * Shell UX-5.1 ("Focus maintenant" / "Ensuite" / accès secondaire) —
+ * remplace la grille de 6 KPI et les 6 sections empilées de l'ancien écran
+ * (UX-5.2+, différé). Le détail métier complet reste accessible via Mon
+ * Brief, jamais réintroduit ici sous forme de listes.
+ */
+function ProjectPilotShell({
   overview,
   focusKey,
-  focusRef,
   onOpenBrief,
 }: {
   overview: ProjectOverviewProjection;
   focusKey: string | undefined;
-  focusRef: React.MutableRefObject<HTMLDivElement | null>;
   onOpenBrief: () => void;
 }) {
-  const { project, objectives, milestones, workItems, decisions, risks, issues, summary } = overview;
+  const { summary, focusItem } = overview;
 
-  function refFor(sourceType: BriefSourceType, id: string) {
-    if (focusKey !== `${sourceType}:${id}`) return undefined;
-    return (el: HTMLDivElement | null) => {
-      focusRef.current = el;
-    };
-  }
-  function focusedFor(sourceType: BriefSourceType, id: string) {
-    return focusKey === `${sourceType}:${id}`;
-  }
+  // Deep-link (focusType/focusId) : si l'entité ciblée est déjà le focus ou
+  // le prochain jalon affichés, on la met en évidence sur place (pas de
+  // scroll nécessaire, elle est déjà en tête d'écran). Sinon, fallback
+  // documenté (§7 CLAUDE_TASK.md) : navigation non cassée, mais pas encore
+  // de mise en évidence pour une entité qui n'est plus visible tant que
+  // UX-5.2 (sections détaillées) n'est pas implémenté.
+  const focusItemMatchesDeepLink = !!focusItem && focusKey === focusItem.id;
+  const nextMilestoneMatchesDeepLink = !!summary.nextMilestone && focusKey === `milestone:${summary.nextMilestone.id}`;
 
   return (
-    <>
-      <div className="brief-item-card-header">
-        <span className="meta-chip">{PROJECT_STATUS_LABELS[project.status]}</span>
-        <span className="meta-chip">{CRITICALITY_LABELS[project.criticality]}</span>
+    <div className="project-pilot-shell">
+      <div className="project-pilot-main">
+        <ProjectFocusNow focusItem={focusItem} focused={focusItemMatchesDeepLink} onOpenBrief={onOpenBrief} />
+        <ProjectNextUp nextMilestone={summary.nextMilestone} focused={nextMilestoneMatchesDeepLink} onOpenBrief={onOpenBrief} />
       </div>
 
-      <ProjectSummaryGrid summary={summary} />
-
-      <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
-        <div className="action-card-body" style={{ alignItems: "center" }}>
-          <span className="card-title" style={{ flex: 1 }}>
-            Mon Brief de ce projet
-          </span>
-          <IconChevronRight className="chevron" width={18} height={18} />
-        </div>
-      </button>
-
-      <ProjectOverviewSection title="Objectifs" items={objectives} renderItem={(o) => <ObjectiveCard objective={o} />} />
-
-      <ProjectOverviewSection
-        title="Jalons"
-        items={milestones}
-        renderItem={(m) => (
-          <AttentionEntityCard
-            ref={refFor("milestone", m.id)}
-            focused={focusedFor("milestone", m.id)}
-            title={m.observableResult}
-            statusLabel={m.status}
-            dueDate={m.targetDate}
-            needsAttention={m.needsAttention}
-            reason={m.reason}
-          />
-        )}
-      />
-
-      <ProjectOverviewSection
-        title="WorkItems"
-        items={workItems}
-        renderItem={(w) => (
-          <AttentionEntityCard
-            ref={refFor("work_item", w.id)}
-            focused={focusedFor("work_item", w.id)}
-            title={w.title}
-            statusLabel={w.status}
-            dueDate={w.dueDate}
-            needsAttention={w.needsAttention}
-            reason={w.reason}
-          />
-        )}
-      />
-
-      <ProjectOverviewSection
-        title="Décisions"
-        items={decisions}
-        renderItem={(d) => (
-          <AttentionEntityCard
-            ref={refFor("decision", d.id)}
-            focused={focusedFor("decision", d.id)}
-            title={d.question}
-            statusLabel={d.status}
-            dueDate={d.dueDate}
-            needsAttention={d.needsAttention}
-            reason={d.reason}
-          />
-        )}
-      />
-
-      <ProjectOverviewSection
-        title="Risques"
-        items={risks}
-        renderItem={(r) => (
-          <AttentionEntityCard
-            ref={refFor("risk", r.id)}
-            focused={focusedFor("risk", r.id)}
-            title={r.event}
-            statusLabel={r.status}
-            needsAttention={r.needsAttention}
-            reason={r.reason}
-            extra={r.criticality ? CRITICALITY_LABELS[r.criticality] : undefined}
-          />
-        )}
-      />
-
-      <ProjectOverviewSection
-        title="Issues"
-        items={issues}
-        renderItem={(i) => (
-          <AttentionEntityCard
-            ref={refFor("issue", i.id)}
-            focused={focusedFor("issue", i.id)}
-            title={i.problem}
-            statusLabel={i.status}
-            dueDate={i.targetDate}
-            needsAttention={i.needsAttention}
-            reason={i.reason}
-          />
-        )}
-      />
-    </>
+      <div className="project-pilot-secondary">
+        <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
+          <div className="action-card-body" style={{ alignItems: "center" }}>
+            <span className="card-title" style={{ flex: 1 }}>
+              Mon Brief de ce projet
+            </span>
+            <IconChevronRight className="chevron" width={18} height={18} />
+          </div>
+        </button>
+        {/* Détail complet (Objectifs/Jalons/WorkItems/Décisions/Risques/Issues)
+            volontairement absent de UX-5.1 (§6 CLAUDE_TASK.md). En attendant
+            UX-5.2, "Explorer" renvoie vers Mon Brief — seul accès existant
+            au détail métier, fallback documenté plutôt qu'un lien mort. */}
+        <button type="button" className="project-pilot-explore-link" onClick={onOpenBrief}>
+          Explorer le reste du projet
+        </button>
+      </div>
+    </div>
   );
 }
