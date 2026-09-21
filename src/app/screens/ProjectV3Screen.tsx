@@ -13,9 +13,15 @@ import { ProjectNextUp } from "../components/project-overview/ProjectNextUp";
 import { ProjectWatchList } from "../components/project-overview/ProjectWatchList";
 import { ProjectRecentChanges } from "../components/project-overview/ProjectRecentChanges";
 import { ProjectExplorer } from "../components/project-overview/ProjectExplorer";
+import { ProjectContextRail, ProjectContextCompact } from "../components/project-overview/ProjectContextPanel";
 import type { RecentChangeSourceType } from "../../domain/v3/project-overview/types";
 import { criticalityToTone, projectStatusToTone } from "../utils/tone";
-import { PROJECT_STATUS_LABELS, CRITICALITY_LABELS, projectOverviewErrorToUserMessage } from "../utils/project-overview-labels";
+import {
+  PROJECT_STATUS_LABELS,
+  CRITICALITY_LABELS,
+  buildProjectContextRows,
+  projectOverviewErrorToUserMessage,
+} from "../utils/project-overview-labels";
 
 type LoadState =
   | { status: "loading" }
@@ -124,11 +130,15 @@ export function ProjectV3Screen({
 }
 
 /**
- * Shell Project V3 (UX-5.1 + UX-5.2) — "Maintenant" / "Ensuite" /
- * "À surveiller" / "Explorer" / accès secondaire. Remplace la grille de 6
- * KPI et les 6 sections empilées en permanence de l'ancien écran. Le détail
- * métier complet reste accessible (Explorer, un panneau à la fois — ou Mon
- * Brief), jamais 6 blocs simultanés en permanence.
+ * Shell Project V3 (UX-5.1 à UX-5.4) — "Maintenant" / "Ensuite" /
+ * "À surveiller" / "Changé récemment" / "Explorer" / accès secondaire, plus
+ * le contexte stable du projet (chef de projet, sponsor, méthode, dates,
+ * statut, criticité — UX-5.4) : rail à côté sur desktop (>=1024px, sticky,
+ * jamais devant la zone de pilotage), bloc compact repliable en dessous sur
+ * mobile/tablette (jamais un rail latéral en dessous de 1024px). Remplace
+ * la grille de 6 KPI et les 6 sections empilées en permanence de l'ancien
+ * écran. Le détail métier complet reste accessible (Explorer, un panneau à
+ * la fois — ou Mon Brief), jamais 6 blocs simultanés en permanence.
  */
 function ProjectPilotShell({
   overview,
@@ -143,7 +153,8 @@ function ProjectPilotShell({
   focusId: string | undefined;
   onOpenBrief: () => void;
 }) {
-  const { summary, focusItem, watchItems, recentChanges, objectives, milestones, workItems, decisions, risks, issues } = overview;
+  const { project, summary, focusItem, watchItems, recentChanges, objectives, milestones, workItems, decisions, risks, issues } = overview;
+  const contextRows = buildProjectContextRows(project);
 
   // Cible Explorer courante : le deep-link de route au premier rendu, puis
   // remplacée par un clic sur "Changé récemment" (§7 CLAUDE_TASK.md UX-5.3 —
@@ -170,40 +181,50 @@ function ProjectPilotShell({
 
   return (
     <div className="project-pilot-shell">
-      <div className="project-pilot-main">
-        <ProjectFocusNow focusItem={focusItem} focused={focusItemMatchesDeepLink} onOpenBrief={onOpenBrief} />
-        <ProjectNextUp nextMilestone={summary.nextMilestone} focused={nextMilestoneMatchesDeepLink} onOpenBrief={onOpenBrief} />
+      <div className="project-pilot-content">
+        <div className="project-pilot-main">
+          <ProjectFocusNow focusItem={focusItem} focused={focusItemMatchesDeepLink} onOpenBrief={onOpenBrief} />
+          <ProjectNextUp nextMilestone={summary.nextMilestone} focused={nextMilestoneMatchesDeepLink} onOpenBrief={onOpenBrief} />
+        </div>
+
+        <ProjectWatchList watchItems={watchItems} onOpenBrief={onOpenBrief} />
+
+        <ProjectRecentChanges
+          recentChanges={recentChanges}
+          onSelect={(type, id) => setExplorerTarget((prev) => ({ type, id, nonce: (prev?.nonce ?? -1) + 1 }))}
+        />
+
+        <ProjectExplorer
+          key={explorerTarget ? `${explorerFocusKey}:${explorerTarget.nonce}` : "none"}
+          data={{ objectives, milestones, workItems, decisions, risks, issues }}
+          focusType={explorerTarget?.type}
+          focusId={explorerTarget?.id}
+          alreadyVisibleElsewhere={
+            !explorerTarget || (explorerTarget.type === focusType && explorerTarget.id === focusId)
+              ? focusItemMatchesDeepLink || nextMilestoneMatchesDeepLink
+              : false
+          }
+        />
+
+        <div className="project-pilot-secondary">
+          <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
+            <div className="action-card-body" style={{ alignItems: "center" }}>
+              <span className="card-title" style={{ flex: 1 }}>
+                Mon Brief de ce projet
+              </span>
+              <IconChevronRight className="chevron" width={18} height={18} />
+            </div>
+          </button>
+        </div>
+
+        {/* Mobile/tablette (UX-5.4) : bloc compact repliable, masqué à partir
+            de 1024px (CSS) où le rail contextuel prend le relais. */}
+        <ProjectContextCompact rows={contextRows} />
       </div>
 
-      <ProjectWatchList watchItems={watchItems} onOpenBrief={onOpenBrief} />
-
-      <ProjectRecentChanges
-        recentChanges={recentChanges}
-        onSelect={(type, id) => setExplorerTarget((prev) => ({ type, id, nonce: (prev?.nonce ?? -1) + 1 }))}
-      />
-
-      <ProjectExplorer
-        key={explorerTarget ? `${explorerFocusKey}:${explorerTarget.nonce}` : "none"}
-        data={{ objectives, milestones, workItems, decisions, risks, issues }}
-        focusType={explorerTarget?.type}
-        focusId={explorerTarget?.id}
-        alreadyVisibleElsewhere={
-          !explorerTarget || (explorerTarget.type === focusType && explorerTarget.id === focusId)
-            ? focusItemMatchesDeepLink || nextMilestoneMatchesDeepLink
-            : false
-        }
-      />
-
-      <div className="project-pilot-secondary">
-        <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
-          <div className="action-card-body" style={{ alignItems: "center" }}>
-            <span className="card-title" style={{ flex: 1 }}>
-              Mon Brief de ce projet
-            </span>
-            <IconChevronRight className="chevron" width={18} height={18} />
-          </div>
-        </button>
-      </div>
+      {/* Desktop (UX-5.4, >=1024px) : rail contextuel à côté de la zone de
+          pilotage, masqué en dessous de 1024px (CSS) — voir ProjectContextCompact. */}
+      <ProjectContextRail rows={contextRows} />
     </div>
   );
 }
