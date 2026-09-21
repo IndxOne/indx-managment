@@ -10,8 +10,9 @@ interface MockCall {
   table: string;
   eqFilters: [string, unknown][];
   inFilters: [string, unknown[]][];
-  order?: { col: string; ascending: boolean };
+  order: { col: string; ascending: boolean }[];
   limit?: number;
+  range?: [number, number];
 }
 
 function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Record<string, { code?: string; message: string }>> = {}) {
@@ -20,25 +21,29 @@ function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Reco
   function from(table: string) {
     const eqFilters: [string, unknown][] = [];
     const inFilters: [string, unknown[]][] = [];
-    let order: MockCall["order"];
+    const order: MockCall["order"] = [];
     let limit: number | undefined;
+    let range: [number, number] | undefined;
 
     async function resolve() {
-      calls.push({ table, eqFilters: [...eqFilters], inFilters: [...inFilters], order, limit });
+      calls.push({ table, eqFilters: [...eqFilters], inFilters: [...inFilters], order: [...order], limit, range });
       if (errors[table]) return { data: null, error: errors[table] };
       let rows = tableRows[table] ?? [];
       for (const [col, val] of eqFilters) rows = rows.filter((r) => r[col] === val);
       for (const [col, vals] of inFilters) rows = rows.filter((r) => vals.includes(r[col]));
-      if (order) {
-        const { col, ascending } = order;
+      if (order.length > 0) {
         rows = [...rows].sort((a, b) => {
-          const av = a[col] as string;
-          const bv = b[col] as string;
-          if (av === bv) return 0;
-          return (av < bv ? -1 : 1) * (ascending ? 1 : -1);
+          for (const { col, ascending } of order) {
+            const av = a[col] as string;
+            const bv = b[col] as string;
+            if (av === bv) continue;
+            return (av < bv ? -1 : 1) * (ascending ? 1 : -1);
+          }
+          return 0;
         });
       }
       if (limit !== undefined) rows = rows.slice(0, limit);
+      if (range) rows = rows.slice(range[0], range[1] + 1);
       return { data: rows, error: null };
     }
 
@@ -55,11 +60,15 @@ function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Reco
         return builder;
       },
       order(col: string, opts?: { ascending?: boolean }) {
-        order = { col, ascending: opts?.ascending ?? true };
+        order.push({ col, ascending: opts?.ascending ?? true });
         return builder;
       },
       limit(n: number) {
         limit = n;
+        return builder;
+      },
+      range(from: number, to: number) {
+        range = [from, to];
         return builder;
       },
       then(onFulfilled: (value: { data: unknown; error: unknown }) => unknown, onRejected?: (reason: unknown) => unknown) {
@@ -171,8 +180,53 @@ describe("readProjectsList — liste des projets", () => {
 
     const projectCall = calls.find((c) => c.table === "projets_v3_projects")!;
     expect(projectCall.eqFilters).toEqual([]);
-    expect(projectCall.order).toEqual({ col: "updated_at", ascending: false });
+    expect(projectCall.order).toEqual([
+      { col: "updated_at", ascending: false },
+      { col: "id", ascending: true },
+    ]);
     expect(projectCall.limit).toBeUndefined();
+  });
+});
+
+describe("readProjectsList — pagination (cap PostgREST 1000 lignes/page)", () => {
+  it("plus de 1000 projets -> aucune ligne perdue, pagination transparente via .range()", async () => {
+    const projects = Array.from({ length: 1250 }, (_, i) =>
+      projectRow({ id: `p${String(i).padStart(4, "0")}`, updated_at: NOW })
+    );
+    const { client, calls } = createMockClient({ projets_v3_projects: projects });
+    const result = await readProjectsList(client, NOW);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.projects).toHaveLength(1250);
+
+    const projectCalls = calls.filter((c) => c.table === "projets_v3_projects");
+    // 2 pages : [0,999] puis [1000,1249] (1250 lignes, page = 1000).
+    expect(projectCalls).toHaveLength(2);
+    expect(projectCalls[0]!.range).toEqual([0, 999]);
+    expect(projectCalls[1]!.range).toEqual([1000, 1999]);
+  });
+
+  it("plus de 1000 lignes dans une collection enfant (work items) -> aucune perte, budget = 9 + pages supplémentaires", async () => {
+    const workItems = Array.from({ length: 1500 }, (_, i) => workItemRow({ id: `wi${String(i).padStart(4, "0")}` }));
+    const { client, calls } = createMockClient({
+      projets_v3_projects: [projectRow({ id: "p1" })],
+      projets_v3_work_items: workItems,
+    });
+    const result = await readProjectsList(client, NOW);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Les 1500 work items appartiennent tous à p1 : le projet doit être
+    // marqué needsAttention (statut par défaut "to_scope"), preuve indirecte
+    // qu'aucune ligne n'a été perdue en route.
+    expect(result.value.projects[0]!.needsAttention).toBe(true);
+
+    const workItemCalls = calls.filter((c) => c.table === "projets_v3_work_items");
+    expect(workItemCalls).toHaveLength(2);
+    expect(workItemCalls[0]!.range).toEqual([0, 999]);
+    expect(workItemCalls[1]!.range).toEqual([1000, 1999]);
+    // Budget total : 1 (projets) + 8 (collections, 7 en 1 page + work_items
+    // en 2 pages) = 10, jamais une requête par projet.
+    expect(calls).toHaveLength(10);
   });
 });
 

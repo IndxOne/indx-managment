@@ -9,7 +9,8 @@ import { issueFromRow, type IssueRow } from "../mappers/issue";
 import { milestoneFromRow, type MilestoneRow } from "../mappers/milestone";
 import { dependencyFromRow, type DependencyRow } from "../mappers/dependency";
 import { changeRequestFromRow, type ChangeRequestRow } from "../mappers/change-request";
-import { failResult, fromPostgrestError, okResult, type PersistenceResult } from "../errors";
+import { failResult, okResult, type PersistenceResult } from "../errors";
+import { fetchAllRows } from "./pagination";
 
 const WORK_ITEMS_TABLE = "projets_v3_work_items";
 const DECISIONS_TABLE = "projets_v3_decisions";
@@ -20,61 +21,86 @@ const DEPENDENCIES_TABLE = "projets_v3_dependencies";
 const CHANGE_REQUESTS_TABLE = "projets_v3_change_requests";
 const EVIDENCE_TABLE = "projets_v3_evidence";
 
+/**
+ * Chaque collection est paginée indépendamment (`fetchAllRows`, cf.
+ * pagination.ts) : le cap PostgREST à 1000 lignes par réponse s'applique par
+ * requête, pas par projet — toujours une pagination par collection, jamais
+ * une requête par projet (ça resterait du N+1 déguisé). `.order("id")` sert
+ * uniquement de tie-break déterministe pour que `.range()` soit stable d'une
+ * page à l'autre ; l'ordre des lignes n'a aucune signification métier ici
+ * (buildBrief() les regroupe par project_id, jamais consommées dans l'ordre).
+ */
 async function listWorkItems(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<WorkItem[]>> {
-  const { data, error } = await client.from(WORK_ITEMS_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => workItemFromRow(row as WorkItemRow, [], [])));
+  const result = await fetchAllRows<WorkItemRow>((from, to) =>
+    client.from(WORK_ITEMS_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => workItemFromRow(row, [], [])));
 }
 
 async function listDecisions(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<Decision[]>> {
-  const { data, error } = await client.from(DECISIONS_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => decisionFromRow(row as DecisionRow, [], [])));
+  const result = await fetchAllRows<DecisionRow>((from, to) =>
+    client.from(DECISIONS_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => decisionFromRow(row, [], [])));
 }
 
 async function listRisks(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<Risk[]>> {
-  const { data, error } = await client.from(RISKS_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => riskFromRow(row as RiskRow)));
+  const result = await fetchAllRows<RiskRow>((from, to) =>
+    client.from(RISKS_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => riskFromRow(row)));
 }
 
 async function listIssues(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<Issue[]>> {
-  const { data, error } = await client.from(ISSUES_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => issueFromRow(row as IssueRow)));
+  const result = await fetchAllRows<IssueRow>((from, to) =>
+    client.from(ISSUES_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => issueFromRow(row)));
 }
 
 async function listMilestoneRows(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<MilestoneRow[]>> {
-  const { data, error } = await client.from(MILESTONES_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []) as MilestoneRow[]);
+  return fetchAllRows<MilestoneRow>((from, to) =>
+    client.from(MILESTONES_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
 }
 
 async function listDependencies(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<Dependency[]>> {
-  const { data, error } = await client.from(DEPENDENCIES_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => dependencyFromRow(row as DependencyRow)));
+  const result = await fetchAllRows<DependencyRow>((from, to) =>
+    client.from(DEPENDENCIES_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => dependencyFromRow(row)));
 }
 
 async function listChangeRequests(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<ChangeRequest[]>> {
-  const { data, error } = await client.from(CHANGE_REQUESTS_TABLE).select().in("project_id", projectIds);
-  if (error) return failResult(fromPostgrestError(error));
-  return okResult((data ?? []).map((row) => changeRequestFromRow(row as ChangeRequestRow)));
+  const result = await fetchAllRows<ChangeRequestRow>((from, to) =>
+    client.from(CHANGE_REQUESTS_TABLE).select().in("project_id", projectIds).order("id", { ascending: true }).range(from, to)
+  );
+  if (!result.ok) return result;
+  return okResult(result.value.map((row) => changeRequestFromRow(row)));
 }
 
 /** Même périmètre que brief-reader.ts : uniquement les preuves rattachées à
  * un Milestone (proved_entity_type = "milestone"), seule relation Evidence
  * dont buildBrief a besoin (JAL-002). */
 async function fetchMilestoneEvidenceIds(client: SupabaseClient, projectIds: EntityId[]): Promise<PersistenceResult<Map<EntityId, EntityId[]>>> {
-  const { data, error } = await client
-    .from(EVIDENCE_TABLE)
-    .select("id, proved_entity_id")
-    .in("project_id", projectIds)
-    .eq("proved_entity_type", "milestone");
-  if (error) return failResult(fromPostgrestError(error));
+  const result = await fetchAllRows<{ id: string; proved_entity_id: string }>((from, to) =>
+    client
+      .from(EVIDENCE_TABLE)
+      .select("id, proved_entity_id")
+      .in("project_id", projectIds)
+      .eq("proved_entity_type", "milestone")
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  if (!result.ok) return result;
 
   const evidenceIdsByMilestoneId = new Map<EntityId, EntityId[]>();
-  for (const row of (data ?? []) as { id: string; proved_entity_id: string }[]) {
+  for (const row of result.value) {
     const existing = evidenceIdsByMilestoneId.get(row.proved_entity_id) ?? [];
     existing.push(row.id);
     evidenceIdsByMilestoneId.set(row.proved_entity_id, existing);
@@ -99,10 +125,13 @@ export interface BriefsAndMilestones {
 
 /**
  * Cœur partagé Home V3 (UX-2) / Projets V3 (UX-3) — extrait de
- * home-overview-reader.ts sans changement de comportement (même 8 requêtes
- * batchées `.in("project_id", ids)`, même appel `buildBrief()` par projet en
- * mémoire, aucune règle réévaluée). Le nombre de projets n'affecte jamais le
- * nombre de requêtes : seule leur taille varie selon `projectIds`.
+ * home-overview-reader.ts. 8 collections batchées `.in("project_id", ids)`,
+ * chacune paginée indépendamment (`fetchAllRows`, cap PostgREST 1000
+ * lignes/page) : budget = 8 + somme(pages nécessaires par collection au-delà
+ * de la 1ʳᵉ), jamais une requête par projet. En dessous de 1000 lignes par
+ * collection (cas réel actuel), c'est toujours exactement 8 requêtes.
+ * `buildBrief()` est appelé une fois par projet en mémoire, aucune règle
+ * réévaluée.
  */
 export async function fetchBriefsAndMilestones(
   client: SupabaseClient,

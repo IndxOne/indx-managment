@@ -12,14 +12,16 @@ interface MockCall {
   eqFilters: [string, unknown][];
   inFilters: [string, unknown[]][];
   neqFilters: [string, unknown][];
-  order?: { col: string; ascending: boolean };
+  order: { col: string; ascending: boolean }[];
   limit?: number;
+  range?: [number, number];
 }
 
 /**
  * Même patron que brief-reader.test.ts, étendu avec .neq()/.in()/.order()/
- * .limit() — nécessaires pour vérifier le budget de requêtes de
- * readHomeOverview (liste bornée + 8 requêtes batchées `.in()`).
+ * .limit()/.range() — nécessaires pour vérifier le budget de requêtes de
+ * readHomeOverview (liste bornée + 8 requêtes batchées `.in()`, chacune
+ * paginée par `fetchAllRows`).
  */
 function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Record<string, { code?: string; message: string }>> = {}) {
   const calls: MockCall[] = [];
@@ -28,26 +30,30 @@ function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Reco
     const eqFilters: [string, unknown][] = [];
     const inFilters: [string, unknown[]][] = [];
     const neqFilters: [string, unknown][] = [];
-    let order: MockCall["order"];
+    const order: MockCall["order"] = [];
     let limit: number | undefined;
+    let range: [number, number] | undefined;
 
     async function resolve() {
-      calls.push({ table, eqFilters: [...eqFilters], inFilters: [...inFilters], neqFilters: [...neqFilters], order, limit });
+      calls.push({ table, eqFilters: [...eqFilters], inFilters: [...inFilters], neqFilters: [...neqFilters], order: [...order], limit, range });
       if (errors[table]) return { data: null, error: errors[table] };
       let rows = tableRows[table] ?? [];
       for (const [col, val] of eqFilters) rows = rows.filter((r) => r[col] === val);
       for (const [col, val] of neqFilters) rows = rows.filter((r) => r[col] !== val);
       for (const [col, vals] of inFilters) rows = rows.filter((r) => vals.includes(r[col]));
-      if (order) {
-        const { col, ascending } = order;
+      if (order.length > 0) {
         rows = [...rows].sort((a, b) => {
-          const av = a[col] as string;
-          const bv = b[col] as string;
-          if (av === bv) return 0;
-          return (av < bv ? -1 : 1) * (ascending ? 1 : -1);
+          for (const { col, ascending } of order) {
+            const av = a[col] as string;
+            const bv = b[col] as string;
+            if (av === bv) continue;
+            return (av < bv ? -1 : 1) * (ascending ? 1 : -1);
+          }
+          return 0;
         });
       }
       if (limit !== undefined) rows = rows.slice(0, limit);
+      if (range) rows = rows.slice(range[0], range[1] + 1);
       return { data: rows, error: null };
     }
 
@@ -68,11 +74,15 @@ function createMockClient(tableRows: Record<string, Row[]>, errors: Partial<Reco
         return builder;
       },
       order(col: string, opts?: { ascending?: boolean }) {
-        order = { col, ascending: opts?.ascending ?? true };
+        order.push({ col, ascending: opts?.ascending ?? true });
         return builder;
       },
       limit(n: number) {
         limit = n;
+        return builder;
+      },
+      range(from: number, to: number) {
+        range = [from, to];
         return builder;
       },
       then(onFulfilled: (value: { data: unknown; error: unknown }) => unknown, onRejected?: (reason: unknown) => unknown) {
@@ -206,7 +216,7 @@ describe("readHomeOverview — liste des projets", () => {
 
     const projectCall = calls.find((c) => c.table === "projets_v3_projects")!;
     expect(projectCall.neqFilters).toEqual([["status", "closed"]]);
-    expect(projectCall.order).toEqual({ col: "updated_at", ascending: false });
+    expect(projectCall.order).toEqual([{ col: "updated_at", ascending: false }]);
     expect(projectCall.limit).toBe(5);
   });
 });

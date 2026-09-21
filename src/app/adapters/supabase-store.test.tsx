@@ -99,15 +99,36 @@ function makePendingMockClient() {
     resolveLoad = resolve;
   });
 
+  /**
+   * Chainable : ce mock est aussi sollicité par ProjectsV3ListScreen quand
+   * ce test rend `<App />` (isSupabaseConfigured mocké à true pour tout le
+   * fichier) — `readProjectsList`/`fetchBriefsAndMilestones` enchaînent
+   * `.order().order().range()` (pagination, PR #65), pas juste `.order()`.
+   */
+  function resolvedQuery() {
+    const resolve = async () => {
+      await loadGate;
+      return { data: [], error: null };
+    };
+    const builder = {
+      eq: () => builder,
+      neq: () => builder,
+      in: () => builder,
+      order: () => builder,
+      limit: () => builder,
+      range: () => resolve(),
+      then: (onFulfilled: (value: { data: unknown; error: unknown }) => unknown, onRejected?: (reason: unknown) => unknown) =>
+        resolve().then(onFulfilled, onRejected),
+    };
+    return builder;
+  }
+
   return {
     client: {
       from() {
         return {
           select: () => ({
-            order: async () => {
-              await loadGate;
-              return { data: [], error: null };
-            },
+            ...resolvedQuery(),
             maybeSingle: async () => {
               await loadGate;
               return { data: null, error: null };

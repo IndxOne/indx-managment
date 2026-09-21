@@ -198,7 +198,6 @@ function AppShell() {
         workspaces={state.workspaces}
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
-        onCreateWorkspace={() => setRoute({ screen: "spaces-create" })}
       />
       <main className="app-content">
         {!booted || isLoading ? (
