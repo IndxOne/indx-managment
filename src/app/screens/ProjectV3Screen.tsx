@@ -148,9 +148,13 @@ function ProjectPilotShell({
   // Cible Explorer courante : le deep-link de route au premier rendu, puis
   // remplacée par un clic sur "Changé récemment" (§7 CLAUDE_TASK.md UX-5.3 —
   // même mécanisme de présélection/scroll/surlignage que le deep-link de
-  // route, jamais une route dédiée par entité).
-  const [explorerTarget, setExplorerTarget] = useState<{ type: RecentChangeSourceType; id: string } | undefined>(
-    focusType && focusId ? { type: focusType, id: focusId } : undefined
+  // route, jamais une route dédiée par entité). `nonce` (correctif review
+  // Codex) : incrémenté à chaque clic, même sur la même cible — sans lui,
+  // recliquer un changement déjà ciblé après avoir manuellement changé
+  // d'onglet Explorer ne reproduisait plus la présélection/scroll (la clé
+  // de remount ne changeait pas).
+  const [explorerTarget, setExplorerTarget] = useState<{ type: RecentChangeSourceType; id: string; nonce: number } | undefined>(
+    focusType && focusId ? { type: focusType, id: focusId, nonce: 0 } : undefined
   );
   const explorerFocusKey = explorerTarget ? `${explorerTarget.type}:${explorerTarget.id}` : undefined;
 
@@ -173,10 +177,13 @@ function ProjectPilotShell({
 
       <ProjectWatchList watchItems={watchItems} onOpenBrief={onOpenBrief} />
 
-      <ProjectRecentChanges recentChanges={recentChanges} onSelect={(type, id) => setExplorerTarget({ type, id })} />
+      <ProjectRecentChanges
+        recentChanges={recentChanges}
+        onSelect={(type, id) => setExplorerTarget((prev) => ({ type, id, nonce: (prev?.nonce ?? -1) + 1 }))}
+      />
 
       <ProjectExplorer
-        key={explorerFocusKey ?? "none"}
+        key={explorerTarget ? `${explorerFocusKey}:${explorerTarget.nonce}` : "none"}
         data={{ objectives, milestones, workItems, decisions, risks, issues }}
         focusType={explorerTarget?.type}
         focusId={explorerTarget?.id}

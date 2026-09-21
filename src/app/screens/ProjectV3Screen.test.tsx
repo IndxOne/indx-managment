@@ -516,7 +516,7 @@ describe("ProjectV3Screen — UX-5.3 : Changé récemment", () => {
     expect(card).toHaveAttribute("data-focused", "true");
   });
 
-  it("clic sur un changement Objective (jamais couvert par Mon Brief) : présélectionne la catégorie Objectifs", async () => {
+  it("clic sur un changement Objective (jamais couvert par Mon Brief) : présélectionne la catégorie Objectifs et surligne l'élément (correctif review Codex)", async () => {
     const user = userEvent.setup();
     readProjectOverviewMock.mockResolvedValue({
       ok: true,
@@ -529,6 +529,33 @@ describe("ProjectV3Screen — UX-5.3 : Changé récemment", () => {
     await screen.findByText("Migration M365");
     await user.click(screen.getByText("Migrer 100% des boîtes mail"));
     expect(screen.getByRole("tab", { name: "Objectifs 1" })).toHaveAttribute("aria-selected", "true");
+    const card = screen.getAllByText("Migrer 100% des boîtes mail")[1]?.closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
+  });
+
+  it("re-cliquer le même changement après avoir changé d'onglet manuellement reproduit la présélection/surlignage (correctif review Codex)", async () => {
+    const user = userEvent.setup();
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        recentChanges: [{ id: "w1", sourceType: "work_item" as const, title: "Configurer VPN", updatedAt: "2026-09-19T08:00:00.000Z" }],
+        workItems: [{ id: "w1", title: "Configurer VPN", status: "ready", priority: "normal", needsAttention: false }],
+        decisions: [{ id: "d1", question: "Quel ERP ?", status: "to_prepare", hasDecider: false, needsAttention: false }],
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+
+    await user.click(screen.getAllByText("Configurer VPN")[0]!);
+    expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getByRole("tab", { name: /Décisions/ }));
+    expect(screen.getByRole("tab", { name: /Décisions/ })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getAllByText("Configurer VPN")[0]!);
+    expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+    const card = screen.getAllByText("Configurer VPN")[1]?.closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
   });
 
   it("aucune régression Maintenant/Ensuite/À surveiller/Explorer avec recentChanges rempli", async () => {

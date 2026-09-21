@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "react";
-import type { BriefSourceType } from "../../../domain/v3/brief/types";
 import type {
   DecisionOverviewItem,
   IssueOverviewItem,
@@ -116,13 +115,13 @@ export function ProjectExplorer({
     );
   }
 
-  function refFor(sourceType: BriefSourceType, id: string) {
+  function refFor(sourceType: RecentChangeSourceType, id: string) {
     if (focusKey !== `${sourceType}:${id}`) return undefined;
     return (el: HTMLDivElement | null) => {
       focusRef.current = el;
     };
   }
-  function focusedFor(sourceType: BriefSourceType, id: string) {
+  function focusedFor(sourceType: RecentChangeSourceType, id: string) {
     return focusKey === `${sourceType}:${id}`;
   }
 
@@ -154,7 +153,7 @@ export function ProjectExplorer({
               {selected === "objectives" &&
                 data.objectives.map((o) => (
                   <li key={o.id}>
-                    <ObjectiveCard objective={o} />
+                    <ObjectiveCard objective={o} ref={refFor("objective", o.id)} focused={focusedFor("objective", o.id)} />
                   </li>
                 ))}
               {selected === "milestones" &&
