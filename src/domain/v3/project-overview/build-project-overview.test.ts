@@ -132,6 +132,25 @@ describe("buildProjectOverview — sections vides", () => {
     expect(overview.risks).toEqual([]);
     expect(overview.issues).toEqual([]);
     expect(overview.summary.nextMilestone).toBeUndefined();
+    expect(overview.focusItem).toBeUndefined();
+  });
+});
+
+describe("buildProjectOverview — focusItem (UX-5.1)", () => {
+  it("expose brief.attentionItems[0] tel quel, sans recalcul", () => {
+    const overview = buildProjectOverview(
+      emptyInput({ workItems: [workItem({ id: "wBlocked", status: "blocked" })] })
+    );
+    expect(overview.focusItem?.sourceType).toBe("work_item");
+    expect(overview.focusItem?.sourceId).toBe("wBlocked");
+    expect(overview.focusItem?.id).toBe("work_item:wBlocked");
+  });
+
+  it("undefined quand aucun élément ne demande attention (projet calme)", () => {
+    const overview = buildProjectOverview(
+      emptyInput({ workItems: [workItem({ status: "ready", responsibleId: "u1", dueDate: FUTURE })] })
+    );
+    expect(overview.focusItem).toBeUndefined();
   });
 });
 

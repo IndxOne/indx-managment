@@ -6,6 +6,7 @@
  */
 
 import type { Criticality, EntityId, IsoDateTime, ObjectiveStatus, ProjectMethod, ProjectStatus } from "../types";
+import type { BriefItem } from "../brief/types";
 
 export interface ObjectiveOverviewItem {
   id: EntityId;
@@ -92,4 +93,9 @@ export interface ProjectOverviewProjection {
   risks: RiskOverviewItem[];
   issues: IssueOverviewItem[];
   summary: ProjectOverviewSummary;
+  /** UX-5.1 (Focus maintenant) — élément le plus prioritaire de Mon Brief
+   * pour ce projet, réutilisé tel quel : buildBrief() est déjà appelé par
+   * buildProjectOverview(), aucun recalcul ni nouvelle requête. undefined
+   * si aucun élément ne demande attention (projet calme). */
+  focusItem?: BriefItem;
 }

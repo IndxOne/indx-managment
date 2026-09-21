@@ -3151,3 +3151,130 @@ a {
   background: var(--tone-critical-bg);
   color: var(--tone-critical-text);
 }
+
+/* ===========================================================================
+   Project V3 — shell de pilotage (UX-5.1). Remplace la grille de 6 KPI et
+   les 6 sections empilées par Focus maintenant / Ensuite / accès
+   secondaire (§2-3 CLAUDE_TASK.md) — rupture visuelle volontaire avec
+   l'ancien langage de dashboard technique, pas un restylage.
+   =========================================================================== */
+
+.project-pilot-status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 max(20px, env(safe-area-inset-right)) var(--space-3) max(20px, env(safe-area-inset-left));
+}
+
+.project-pilot-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.project-pilot-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.project-pilot-zone-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+.project-focus-now-empty {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-muted);
+}
+
+.project-next-up-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.project-next-up-card[data-focused="true"] {
+  background: var(--color-fill);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.project-next-up-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.project-next-up-title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.project-next-up-date {
+  font-size: 0.8125rem;
+  color: var(--color-text-tertiary);
+}
+
+.project-next-up-empty {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-muted);
+}
+
+.project-pilot-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.project-pilot-explore-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Desktop (même seuil que .columns-view/.app-shell, cf. §4 plus haut) :
+   Focus maintenant / Ensuite côte à côte — pas encore de rail contextuel
+   (UX-5.4, différé), l'accès secondaire reste en pleine largeur sous les
+   deux zones principales. */
+@media (min-width: 1024px) {
+  .project-pilot-main {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .project-pilot-main > .project-focus-now {
+    flex: 3;
+  }
+
+  .project-pilot-main > .project-next-up {
+    flex: 2;
+  }
+}

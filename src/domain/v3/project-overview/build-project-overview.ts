@@ -202,5 +202,6 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     risks,
     issues,
     summary,
+    focusItem: brief.attentionItems[0],
   };
 }
