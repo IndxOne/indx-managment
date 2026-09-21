@@ -431,6 +431,47 @@ describe("ProjectV3Screen — UX-5.2 : Explorer", () => {
     await screen.findByText("Migration M365");
     expect(screen.getByRole("tab", { name: /Jalons/ })).toHaveAttribute("aria-selected", "true");
   });
+
+  it("re-cliquer une catégorie déjà sélectionnée la laisse ouverte (correctif review Codex : sémantique tab, pas de désélection)", async () => {
+    const user = userEvent.setup();
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        objectives: [{ id: "o1", statement: "Migrer 100% des boîtes mail", status: "active", hasOwner: false }],
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    const chip = screen.getByRole("tab", { name: "Objectifs 1" });
+    await user.click(chip);
+    expect(chip).toHaveAttribute("aria-selected", "true");
+    await user.click(chip);
+    expect(chip).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Migrer 100% des boîtes mail")).toBeInTheDocument();
+  });
+
+  it("cible déjà visible dans Maintenant : Explorer la présélectionne sans faire défiler vers son doublon (correctif review Codex)", async () => {
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const scrollIntoViewMock = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoViewMock;
+    try {
+      readProjectOverviewMock.mockResolvedValue({
+        ok: true,
+        value: emptyOverview({
+          focusItem: focusItemFixture,
+          workItems: [{ id: "w1", title: "Configurer VPN", status: "blocked", priority: "high", needsAttention: true, reason: "Bloqué." }],
+        }),
+      });
+      render(
+        <ProjectV3Screen projectId="p1" focusType="work_item" focusId="w1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />
+      );
+      await screen.findByText("Migration M365");
+      expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
 });
 
 describe("ProjectV3Screen — navigation", () => {

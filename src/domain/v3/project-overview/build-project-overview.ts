@@ -29,9 +29,7 @@ export interface BuildProjectOverviewInput {
   changeRequests: ChangeRequest[];
 }
 
-const WORK_ITEM_DISPLAY_STATUSES = new Set(["blocked", "in_progress", "ready"]);
 const WORK_ITEM_STATUS_RANK: Record<string, number> = { blocked: 0, in_progress: 1, ready: 2 };
-const WORK_ITEM_DISPLAY_LIMIT = 8;
 
 /** Index attentionItems par `${sourceType}:${sourceId}` (même format que
  * BriefItem.id) — seule source de needsAttention/reason (§3/§6 de la gate,
@@ -128,10 +126,7 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     if (item.sourceType === "work_item") briefWorkItemOrder.set(item.sourceId, index);
   });
 
-  const overdueOrDisplayStatus = (item: WorkItem) =>
-    WORK_ITEM_DISPLAY_STATUSES.has(item.status) || (item.dueDate !== undefined && item.dueDate < now);
-
-  const allWorkItems: WorkItemOverviewItem[] = input.workItems.filter(overdueOrDisplayStatus).map((w) => {
+  const allWorkItems: WorkItemOverviewItem[] = input.workItems.map((w) => {
     const attention = attentionOf(attentionByKey, "work_item", w.id);
     return {
       id: w.id,
@@ -142,7 +137,12 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
       ...attention,
     };
   });
-  const workItems = orderWorkItems(allWorkItems, briefWorkItemOrder).slice(0, WORK_ITEM_DISPLAY_LIMIT);
+  // Correctif review Codex (P2, PR #68) : jeu complet, jamais filtré ni
+  // plafonné — Explorer ("Actions") est désormais le seul consommateur de
+  // ce tableau et doit pouvoir montrer/compter chaque WorkItem, y compris
+  // une cible de deep-link autrement omise. L'ordre de priorité reste utile
+  // (Brief d'abord), mais ne sert plus à exclure quoi que ce soit.
+  const workItems = orderWorkItems(allWorkItems, briefWorkItemOrder);
 
   const decisions: DecisionOverviewItem[] = input.decisions.map((d) => {
     const attention = attentionOf(attentionByKey, "decision", d.id);

@@ -165,6 +165,7 @@ function ProjectPilotShell({
         data={{ objectives, milestones, workItems, decisions, risks, issues }}
         focusType={focusType}
         focusId={focusId}
+        alreadyVisibleElsewhere={focusItemMatchesDeepLink || nextMilestoneMatchesDeepLink}
       />
 
       <div className="project-pilot-secondary">

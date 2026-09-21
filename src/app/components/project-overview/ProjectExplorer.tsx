@@ -63,14 +63,28 @@ interface ExplorerData {
  * (`AttentionEntityCard`/`ObjectiveCard`, jamais recréés) sur des données
  * déjà chargées par `readProjectOverview()` — aucune nouvelle requête.
  */
-export function ProjectExplorer({ data, focusType, focusId }: { data: ExplorerData; focusType?: BriefSourceType; focusId?: string }) {
+export function ProjectExplorer({
+  data,
+  focusType,
+  focusId,
+  alreadyVisibleElsewhere,
+}: {
+  data: ExplorerData;
+  focusType?: BriefSourceType;
+  focusId?: string;
+  /** Correctif review Codex (P2, PR #68) : la cible du deep-link est déjà
+   * visible/mise en évidence dans "Maintenant" ou "Ensuite" — Explorer la
+   * présélectionne et la surligne quand même (cohérence de navigation),
+   * mais ne doit jamais faire défiler la page vers son propre doublon. */
+  alreadyVisibleElsewhere: boolean;
+}) {
   const initialCategory = categoryForSourceType(focusType);
   const [selected, setSelected] = useState<CategoryId | null>(initialCategory ?? null);
   const focusRef = useRef<HTMLDivElement | null>(null);
   const focusKey = focusType && focusId ? `${focusType}:${focusId}` : undefined;
 
   useEffect(() => {
-    if (!initialCategory || !focusKey) return;
+    if (!initialCategory || !focusKey || alreadyVisibleElsewhere) return;
     const el = focusRef.current;
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ block: "center" });
@@ -120,7 +134,7 @@ export function ProjectExplorer({ data, focusType, focusId }: { data: ExplorerDa
             aria-selected={selected === id}
             className="project-explorer-chip tap-target"
             data-active={selected === id || undefined}
-            onClick={() => setSelected(selected === id ? null : id)}
+            onClick={() => setSelected(id)}
           >
             {CATEGORY_LABELS[id]} <span className="project-explorer-chip-count">{counts[id]}</span>
           </button>

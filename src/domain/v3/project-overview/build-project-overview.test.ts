@@ -309,8 +309,8 @@ describe("buildProjectOverview — summary.nextMilestone (correctif §2)", () =>
   });
 });
 
-describe("buildProjectOverview — filtre et ordre WorkItems (correctif §3)", () => {
-  it("filtre à blocked/in_progress/ready/overdue, exclut les autres statuts", () => {
+describe("buildProjectOverview — ordre WorkItems (correctif §3), jeu complet (correctif review Codex, PR #68)", () => {
+  it("expose tous les WorkItems, quel que soit leur statut (Explorer doit pouvoir tout montrer/compter)", () => {
     const overview = buildProjectOverview(
       emptyInput({
         workItems: [
@@ -322,10 +322,8 @@ describe("buildProjectOverview — filtre et ordre WorkItems (correctif §3)", (
       })
     );
     const ids = overview.workItems.map((w) => w.id);
-    expect(ids).toContain("wC");
-    expect(ids).toContain("wD");
-    expect(ids).not.toContain("wA");
-    expect(ids).not.toContain("wB");
+    expect(ids).toEqual(expect.arrayContaining(["wA", "wB", "wC", "wD"]));
+    expect(ids).toHaveLength(4);
   });
 
   it("priorise les items needsAttention (ordre du Brief) avant les autres blocked/in_progress/ready", () => {
@@ -354,12 +352,12 @@ describe("buildProjectOverview — filtre et ordre WorkItems (correctif §3)", (
     expect(overview.workItems.map((w) => w.id)).toEqual(["wEarly", "wLate", "wNoDate"]);
   });
 
-  it("limite à 8 éléments affichés", () => {
+  it("aucune limite : au-delà de 8 éléments, tous restent présents (Explorer, pas l'ancien affichage plafonné)", () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       workItem({ id: `w${i}`, status: "ready", responsibleId: "u1", dueDate: FUTURE })
     );
     const overview = buildProjectOverview(emptyInput({ workItems: many }));
-    expect(overview.workItems).toHaveLength(8);
+    expect(overview.workItems).toHaveLength(12);
   });
 });
 
