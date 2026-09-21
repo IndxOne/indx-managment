@@ -3187,6 +3187,23 @@ a {
   margin: 0 0 var(--space-2);
 }
 
+.project-focus-now-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.project-focus-now-cta {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: var(--space-1) 0;
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .project-focus-now-empty {
   margin: 0;
   padding: var(--space-4);

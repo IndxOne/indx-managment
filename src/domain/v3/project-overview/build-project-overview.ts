@@ -77,7 +77,7 @@ export function pickNextMilestone(milestones: Milestone[]): ProjectOverviewSumma
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
   const winner = sorted[0]!;
-  return { id: winner.id, observableResult: winner.observableResult, targetDate: winner.targetDate };
+  return { id: winner.id, observableResult: winner.observableResult, targetDate: winner.targetDate, status: winner.status };
 }
 
 /** Construit la projection Projet V3. Jamais d'accès repository ici :

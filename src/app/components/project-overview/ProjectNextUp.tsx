@@ -12,6 +12,12 @@ function formatTargetDate(iso: string): string {
  * nouvelle requête). Tap => Mon Brief : aucune route détail jalon
  * n'existe (décision de gate déjà actée), le renvoi vers Mon Brief est le
  * fallback documenté au lieu d'une navigation cassée (§7 CLAUDE_TASK.md).
+ *
+ * pickNextMilestone() n'exclut que le statut "accepted" (§ build-project-
+ * overview.ts) : un jalon "refused" reste candidat tant qu'il n'est pas
+ * resoumis. L'ancienne section détaillée affichait ce statut ; cette carte
+ * doit continuer à le montrer explicitement (correctif review Codex),
+ * sinon un jalon refusé se lit comme un jalon normal à venir.
  */
 export function ProjectNextUp({
   nextMilestone,
@@ -35,7 +41,10 @@ export function ProjectNextUp({
         >
           <span className="project-next-up-label">Prochain jalon</span>
           <span className="project-next-up-title">{nextMilestone.observableResult}</span>
-          <span className="project-next-up-date">{formatTargetDate(nextMilestone.targetDate)}</span>
+          <span className="project-next-up-date">
+            {formatTargetDate(nextMilestone.targetDate)}
+            {nextMilestone.status ? ` · ${nextMilestone.status.replace(/_/g, " ")}` : ""}
+          </span>
         </button>
       ) : (
         <p className="project-next-up-empty">Aucun jalon planifié.</p>

@@ -5,7 +5,7 @@
  * exclusivement de buildBrief() (Lot 2), jamais recalculés ici.
  */
 
-import type { Criticality, EntityId, IsoDateTime, ObjectiveStatus, ProjectMethod, ProjectStatus } from "../types";
+import type { Criticality, EntityId, IsoDateTime, MilestoneStatus, ObjectiveStatus, ProjectMethod, ProjectStatus } from "../types";
 import type { BriefItem } from "../brief/types";
 
 export interface ObjectiveOverviewItem {
@@ -71,7 +71,7 @@ export interface ProjectOverviewSummary {
   highCriticalRisksCount: number;
   pendingDecisionsCount: number;
   openIssuesCount: number;
-  nextMilestone?: { id: EntityId; observableResult: string; targetDate: IsoDateTime };
+  nextMilestone?: { id: EntityId; observableResult: string; targetDate: IsoDateTime; status?: MilestoneStatus };
 }
 
 export interface ProjectOverviewProjection {

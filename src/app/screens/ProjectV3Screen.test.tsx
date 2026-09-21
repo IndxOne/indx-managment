@@ -141,6 +141,35 @@ describe("ProjectV3Screen — UX-5.1 shell (Focus maintenant / Ensuite)", () => 
     expect(screen.getByText("Design validé")).toBeInTheDocument();
   });
 
+  it("Ensuite affiche le statut du jalon (ex. refused, correctif review Codex)", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        summary: {
+          activeObjectivesCount: 0,
+          openWorkItemsCount: 0,
+          highCriticalRisksCount: 0,
+          pendingDecisionsCount: 0,
+          openIssuesCount: 0,
+          nextMilestone: { id: "m1", observableResult: "Design validé", targetDate: "2026-12-01T00:00:00.000Z", status: "refused" },
+        },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText(/refused/)).toBeInTheDocument();
+  });
+
+  it("Focus maintenant : le CTA « Voir dans Mon Brief » est explicite et distinct de la carte", async () => {
+    const user = userEvent.setup();
+    const onOpenBrief = vi.fn();
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ focusItem: focusItemFixture }) });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={onOpenBrief} onOpenAuth={() => {}} />);
+    await screen.findByText("Configurer VPN");
+    await user.click(screen.getByRole("button", { name: "Voir dans Mon Brief" }));
+    expect(onOpenBrief).toHaveBeenCalledWith("p1");
+  });
+
   it("aucun prochain jalon : état compact dédié", async () => {
     readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
     render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);

@@ -208,11 +208,12 @@ describe("buildProjectOverview — summary.nextMilestone (correctif §2)", () =>
     expect(overview.summary.nextMilestone?.id).toBe("m2");
   });
 
-  it("un Milestone refused reste candidat tant qu'il n'est pas accepted", () => {
+  it("un Milestone refused reste candidat tant qu'il n'est pas accepted, statut exposé (correctif review Codex)", () => {
     const overview = buildProjectOverview(
       emptyInput({ milestones: [milestone({ id: "m1", targetDate: FUTURE, status: "refused" })] })
     );
     expect(overview.summary.nextMilestone?.id).toBe("m1");
+    expect(overview.summary.nextMilestone?.status).toBe("refused");
   });
 
   it("tie-break par id lexicographique à date égale", () => {
