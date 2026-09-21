@@ -1,12 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectsListProjection } from "../../domain/v3/projects-list/types";
+import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { ProjectsV3ListScreen } from "./ProjectsV3ListScreen";
 
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
   isSupabaseConfigured: () => true,
+}));
+
+/** Authentifié par défaut (hotfix 401 V3, cf. useAuthState.ts) — les tests
+ * dédiés surchargent `getCurrentAuthUserIdMock` localement. */
+const getCurrentAuthUserIdMock = vi.fn(async (): Promise<string | null> => "test-auth-user");
+vi.mock("../adapters/supabase/auth", () => ({
+  getCurrentAuthUserId: () => getCurrentAuthUserIdMock(),
+  onAuthStateChange: () => () => {},
 }));
 
 const readProjectsListMock = vi.fn();
@@ -17,16 +26,27 @@ vi.mock("../../infrastructure/persistence/v3/repositories/projects-list-reader",
 const NOW = "2026-09-20T08:00:00.000Z";
 
 beforeEach(() => {
+  resetAuthStateForTests();
+  getCurrentAuthUserIdMock.mockReset().mockResolvedValue("test-auth-user");
   readProjectsListMock.mockClear();
+});
+afterEach(() => {
+  resetAuthStateForTests();
 });
 
 function projection(overrides: Partial<ProjectsListProjection> = {}): ProjectsListProjection {
   return { generatedAt: NOW, projects: [], ...overrides };
 }
 
-function renderScreen(handlers: { onOpenProject?: ReturnType<typeof vi.fn>; onOpenLegacy?: ReturnType<typeof vi.fn> } = {}) {
+function renderScreen(
+  handlers: { onOpenProject?: ReturnType<typeof vi.fn>; onOpenLegacy?: ReturnType<typeof vi.fn>; onOpenAuth?: ReturnType<typeof vi.fn> } = {}
+) {
   return render(
-    <ProjectsV3ListScreen onOpenProject={handlers.onOpenProject ?? vi.fn()} onOpenLegacy={handlers.onOpenLegacy ?? vi.fn()} />
+    <ProjectsV3ListScreen
+      onOpenProject={handlers.onOpenProject ?? vi.fn()}
+      onOpenLegacy={handlers.onOpenLegacy ?? vi.fn()}
+      onOpenAuth={handlers.onOpenAuth ?? vi.fn()}
+    />
   );
 }
 
@@ -141,5 +161,30 @@ describe("ProjectsV3ListScreen — états", () => {
     renderScreen();
     await waitFor(() => expect(screen.getByText(/Aucun projet V3 pour le moment/)).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /Créer/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("ProjectsV3ListScreen — hotfix 401 : session Auth requise avant toute lecture V3", () => {
+  it("sans session : 0 lecture réseau V3, CTA Se connecter, lien legacy toujours fonctionnel", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    const onOpenAuth = vi.fn();
+    const onOpenLegacy = vi.fn();
+    const user = userEvent.setup();
+    renderScreen({ onOpenAuth, onOpenLegacy });
+
+    await waitFor(() => expect(screen.getByText("Connexion requise")).toBeInTheDocument());
+    expect(readProjectsListMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Se connecter" }));
+    expect(onOpenAuth).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Anciens espaces projet" }));
+    expect(onOpenLegacy).toHaveBeenCalledTimes(1);
+  });
+
+  it("authentifié : readProjectsList s'exécute normalement", async () => {
+    readProjectsListMock.mockResolvedValue({ ok: true, value: projection() });
+    renderScreen();
+    await waitFor(() => expect(readProjectsListMock).toHaveBeenCalledTimes(1));
   });
 });

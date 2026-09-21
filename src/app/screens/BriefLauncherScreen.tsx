@@ -3,13 +3,16 @@ import type { BriefItem } from "../../domain/v3/brief/types";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { listBriefProjects, type BriefProjectSummary } from "../../infrastructure/persistence/v3/repositories/brief-projects";
 import { getSupabaseClient } from "../adapters/supabase/client";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { IconChevronRight } from "../components/Icons";
-import { EmptyState, ErrorState, LoadingState } from "../components/StateBlocks";
+import { AuthRequiredState, EmptyState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { BriefScreen } from "./BriefScreen";
 
 type LauncherState =
   | { status: "loading" }
   | { status: "error"; error: PersistenceError }
+  /** Hotfix production (401 V3) : Supabase configuré mais aucune session Auth. */
+  | { status: "unauthenticated" }
   | { status: "ready"; projects: BriefProjectSummary[] };
 
 function LauncherFrame({ onBack, children }: { onBack: () => void; children: React.ReactNode }) {
@@ -39,15 +42,28 @@ function LauncherFrame({ onBack, children }: { onBack: () => void; children: Rea
 export function BriefLauncherScreen({
   onBack,
   onOpenItem,
+  onOpenAuth,
 }: {
   onBack: () => void;
   onOpenItem?: (item: BriefItem) => void;
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion tant que non authentifié. */
+  onOpenAuth: () => void;
 }) {
+  const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<LauncherState>({ status: "loading" });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    if (auth.status === "loading") {
+      setState({ status: "loading" });
+      return;
+    }
+    if (auth.status === "unauthenticated") {
+      setState({ status: "unauthenticated" });
+      return;
+    }
     let cancelled = false;
     setState({ status: "loading" });
     setSelectedProjectId(null);
@@ -64,7 +80,7 @@ export function BriefLauncherScreen({
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [auth.status, authKey, reloadToken]);
 
   if (state.status === "loading") {
     return (
@@ -78,6 +94,14 @@ export function BriefLauncherScreen({
     return (
       <LauncherFrame onBack={onBack}>
         <ErrorState description="Impossible de charger la liste des projets." onRetry={() => setReloadToken((token) => token + 1)} />
+      </LauncherFrame>
+    );
+  }
+
+  if (state.status === "unauthenticated") {
+    return (
+      <LauncherFrame onBack={onBack}>
+        <AuthRequiredState description="Connecte-toi pour voir Mon Brief." onOpenAuth={onOpenAuth} />
       </LauncherFrame>
     );
   }
@@ -96,14 +120,14 @@ export function BriefLauncherScreen({
   // 1 projet : ouverture directe, aucune étape de sélection inutile.
   if (projects.length === 1) {
     const only = projects[0]!;
-    return <BriefScreen projectId={only.id} projectName={only.name} onBack={onBack} onOpenItem={onOpenItem} />;
+    return <BriefScreen projectId={only.id} projectName={only.name} onBack={onBack} onOpenItem={onOpenItem} onOpenAuth={onOpenAuth} />;
   }
 
   const selected = selectedProjectId ? projects.find((project) => project.id === selectedProjectId) : undefined;
   if (selected) {
     // Retour depuis le Brief d'un projet choisi : vers le sélecteur, pas
     // directement hors de Mon Brief (cohérent avec l'origine de la navigation).
-    return <BriefScreen projectId={selected.id} projectName={selected.name} onBack={() => setSelectedProjectId(null)} onOpenItem={onOpenItem} />;
+    return <BriefScreen projectId={selected.id} projectName={selected.name} onBack={() => setSelectedProjectId(null)} onOpenItem={onOpenItem} onOpenAuth={onOpenAuth} />;
   }
 
   // Plusieurs projets : liste tactile minimale, réutilise le patron déjà

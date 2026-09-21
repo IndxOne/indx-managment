@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { todayInTimeZone } from "../../calendar/calendar-engine";
 import { addDays } from "../../calendar/iso-week";
 import type { Action } from "../../domain/types";
@@ -10,12 +10,36 @@ import type { HomeOverviewProjection } from "../../domain/v3/home/types";
 import { AnnouncerProvider } from "../a11y/announcer";
 import { StoreProvider, type AppState } from "../adapters/temporary-store";
 import { ToastProvider } from "../components/Toast";
+import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { HomeScreen } from "./HomeScreen";
 
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
   isSupabaseConfigured: () => true,
 }));
+
+/** Authentifié par défaut : préserve le comportement/assertions existants
+ * (hotfix 401 V3, cf. useAuthState.ts) — les tests d'états non authentifiés
+ * surchargent `getCurrentAuthUserIdMock` localement. */
+const getCurrentAuthUserIdMock = vi.fn(async (): Promise<string | null> => "test-auth-user");
+const authStateChangeListeners = new Set<(authUserId: string | null) => void>();
+vi.mock("../adapters/supabase/auth", () => ({
+  getCurrentAuthUserId: () => getCurrentAuthUserIdMock(),
+  onAuthStateChange: (listener: (authUserId: string | null) => void) => {
+    authStateChangeListeners.add(listener);
+    return () => authStateChangeListeners.delete(listener);
+  },
+}));
+
+beforeEach(() => {
+  resetAuthStateForTests();
+  getCurrentAuthUserIdMock.mockReset().mockResolvedValue("test-auth-user");
+  authStateChangeListeners.clear();
+  readHomeOverviewMock.mockClear();
+});
+afterEach(() => {
+  resetAuthStateForTests();
+});
 
 const readHomeOverviewMock = vi.fn();
 vi.mock("../../infrastructure/persistence/v3/repositories/home-overview-reader", () => ({
@@ -81,7 +105,13 @@ function overview(overrides: Partial<HomeOverviewProjection> = {}): HomeOverview
 
 function renderHome(
   state: AppState,
-  handlers: { onOpenWeek?: ReturnType<typeof vi.fn>; onOpenBrief?: ReturnType<typeof vi.fn>; onOpenProject?: ReturnType<typeof vi.fn>; onQuickCreate?: ReturnType<typeof vi.fn> } = {}
+  handlers: {
+    onOpenWeek?: ReturnType<typeof vi.fn>;
+    onOpenBrief?: ReturnType<typeof vi.fn>;
+    onOpenProject?: ReturnType<typeof vi.fn>;
+    onQuickCreate?: ReturnType<typeof vi.fn>;
+    onOpenAuth?: ReturnType<typeof vi.fn>;
+  } = {}
 ) {
   return render(
     <AnnouncerProvider>
@@ -94,6 +124,7 @@ function renderHome(
             onOpenBrief={handlers.onOpenBrief ?? vi.fn()}
             onOpenProject={handlers.onOpenProject ?? vi.fn()}
             onQuickCreate={handlers.onQuickCreate ?? vi.fn()}
+            onOpenAuth={handlers.onOpenAuth ?? vi.fn()}
           />
         </StoreProvider>
       </ToastProvider>
@@ -253,5 +284,69 @@ describe("HomeScreen V3 — Bloc RUN (V2, store existant, aucune requête)", () 
     await waitFor(() => screen.getByRole("button", { name: "Voir la semaine complète" }));
     await user.click(screen.getByRole("button", { name: "Voir la semaine complète" }));
     expect(onOpenWeek).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Hotfix production (401 V3, cf. PROJECT_HANDOFF.md) : les lectures
+ * `projets_v3_*` échouaient en 401 pour un utilisateur sans session Auth
+ * (RLS + `revoke all ... from anon`). Aucune requête V3 ne doit plus partir
+ * tant que `useAuthState()` ne confirme pas une session valide.
+ */
+describe("HomeScreen V3 — hotfix 401 : session Auth requise avant toute lecture V3", () => {
+  it("sans session : 0 appel readHomeOverview, aucun message d'erreur, RUN toujours rendu", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    renderHome(emptyState);
+
+    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
+    expect(readHomeOverviewMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // RUN reste indépendant de l'état Auth V3 (store V2 local, aucune requête).
+    expect(screen.getByText("Rien à traiter côté RUN pour l'instant.")).toBeInTheDocument();
+  });
+
+  it("authentifié : la lecture V3 s'exécute normalement", async () => {
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
+    renderHome(emptyState);
+    await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
+  });
+
+  it("CTA « Se connecter » sur le bloc Aujourd'hui/Mes projets/Mon Brief route vers Connexion", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    const onOpenAuth = vi.fn();
+    const user = userEvent.setup();
+    renderHome(emptyState, { onOpenAuth });
+
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Se connecter" }).length).toBeGreaterThan(0));
+    await user.click(screen.getAllByRole("button", { name: "Se connecter" })[0]!);
+    expect(onOpenAuth).toHaveBeenCalledTimes(1);
+
+    // "Mon Brief" devient lui aussi un CTA de connexion tant que non authentifié.
+    await user.click(screen.getByRole("button", { name: /Se connecter pour voir Mon Brief/ }));
+    expect(onOpenAuth).toHaveBeenCalledTimes(2);
+  });
+
+  it("transition logout -> login reflétée sans rechargement complet : readHomeOverview se déclenche après connexion", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
+    renderHome(emptyState);
+
+    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
+    expect(readHomeOverviewMock).not.toHaveBeenCalled();
+
+    for (const listener of authStateChangeListeners) listener("test-auth-user");
+
+    await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
+  });
+
+  it("transition login -> logout : Home revient à « Connexion requise », aucune nouvelle lecture V3", async () => {
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
+    renderHome(emptyState);
+    await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
+
+    for (const listener of authStateChangeListeners) listener(null);
+
+    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
+    expect(readHomeOverviewMock).toHaveBeenCalledTimes(1);
   });
 });

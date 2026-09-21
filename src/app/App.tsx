@@ -214,6 +214,7 @@ function AppShell() {
               setRoute({ screen: "project-v3", projectId, focusType: focus?.focusType, focusId: focus?.focusId })
             }
             onQuickCreate={openQuickCreate}
+            onOpenAuth={() => setRoute({ screen: "auth" })}
           />
         )}
 
@@ -241,6 +242,7 @@ function AppShell() {
           <ProjectsV3ListScreen
             onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
             onOpenLegacy={() => setRoute({ screen: "spaces-list" })}
+            onOpenAuth={() => setRoute({ screen: "auth" })}
           />
         )}
 
@@ -338,6 +340,7 @@ function AppShell() {
               onOpenItem={(item) =>
                 setRoute({ screen: "project-v3", projectId: item.projectId, focusType: item.sourceType, focusId: item.sourceId })
               }
+              onOpenAuth={() => setRoute({ screen: "auth" })}
             />
           ) : (
             <BriefLauncherScreen
@@ -345,6 +348,7 @@ function AppShell() {
               onOpenItem={(item) =>
                 setRoute({ screen: "project-v3", projectId: item.projectId, focusType: item.sourceType, focusId: item.sourceId })
               }
+              onOpenAuth={() => setRoute({ screen: "auth" })}
             />
           ))}
 
@@ -355,6 +359,7 @@ function AppShell() {
             focusId={route.focusId}
             onBack={() => setRoute(route.from === "projects-v3" ? { screen: "projects-v3" } : { screen: "more" })}
             onOpenBrief={(projectId) => setRoute({ screen: "brief", projectId })}
+            onOpenAuth={() => setRoute({ screen: "auth" })}
           />
         )}
 

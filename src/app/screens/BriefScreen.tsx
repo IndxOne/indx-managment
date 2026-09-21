@@ -3,18 +3,21 @@ import type { BriefItem, BriefProjection } from "../../domain/v3/brief/types";
 import { readBrief } from "../../infrastructure/persistence/v3/repositories/brief-reader";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { getSupabaseClient } from "../adapters/supabase/client";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { BriefSummary } from "../components/brief/BriefSummary";
 import { BriefFilters } from "../components/brief/BriefFilters";
 import { BriefSection } from "../components/brief/BriefSection";
 import { BriefEmptyState } from "../components/brief/BriefEmptyState";
 import { BriefErrorState } from "../components/brief/BriefErrorState";
 import { IconChevronRight } from "../components/Icons";
-import { LoadingState } from "../components/StateBlocks";
+import { AuthRequiredState, LoadingState } from "../components/StateBlocks";
 import { BRIEF_FILTERS, type BriefFilterId } from "../utils/brief-labels";
 
 type BriefLoadState =
   | { status: "loading" }
   | { status: "error"; error: PersistenceError }
+  /** Hotfix production (401 V3) : Supabase configuré mais aucune session Auth. */
+  | { status: "unauthenticated" }
   | { status: "ready"; brief: BriefProjection };
 
 /**
@@ -29,6 +32,7 @@ export function BriefScreen({
   projectName,
   onBack,
   onOpenItem,
+  onOpenAuth,
 }: {
   projectId: string;
   /** Fourni par l'écran appelant (déjà en contexte) — jamais une requête
@@ -37,12 +41,26 @@ export function BriefScreen({
   onBack: () => void;
   /** Absent = cartes non interactives (décision de gate §6). */
   onOpenItem?: (item: BriefItem) => void;
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion tant que non
+   * authentifié — nécessaire car cet écran est aussi atteignable en direct
+   * (route "brief" avec projectId), pas seulement via BriefLauncherScreen. */
+  onOpenAuth: () => void;
 }) {
+  const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<BriefLoadState>({ status: "loading" });
   const [activeFilter, setActiveFilter] = useState<BriefFilterId>("all");
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
+    if (auth.status === "loading") {
+      setState({ status: "loading" });
+      return;
+    }
+    if (auth.status === "unauthenticated") {
+      setState({ status: "unauthenticated" });
+      return;
+    }
     let cancelled = false;
     setState({ status: "loading" });
     const client = getSupabaseClient();
@@ -61,7 +79,7 @@ export function BriefScreen({
     return () => {
       cancelled = true;
     };
-  }, [projectId, reloadToken]);
+  }, [auth.status, authKey, projectId, reloadToken]);
 
   return (
     <div>
@@ -77,6 +95,9 @@ export function BriefScreen({
         {state.status === "loading" && <LoadingState label="Chargement de Mon Brief…" />}
         {state.status === "error" && (
           <BriefErrorState error={state.error} onRetry={() => setReloadToken((token) => token + 1)} />
+        )}
+        {state.status === "unauthenticated" && (
+          <AuthRequiredState description="Connecte-toi pour voir Mon Brief." onOpenAuth={onOpenAuth} />
         )}
         {state.status === "ready" && (
           <BriefContent

@@ -1,11 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import type { BriefItem, BriefProjection } from "../../domain/v3/brief/types";
+import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { BriefScreen } from "./BriefScreen";
 
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
+  isSupabaseConfigured: () => true,
+}));
+
+/** Authentifié par défaut (hotfix 401 V3, cf. useAuthState.ts) — les tests
+ * dédiés surchargent `getCurrentAuthUserIdMock` localement. */
+const getCurrentAuthUserIdMock = vi.fn(async (): Promise<string | null> => "test-auth-user");
+vi.mock("../adapters/supabase/auth", () => ({
+  getCurrentAuthUserId: () => getCurrentAuthUserIdMock(),
+  onAuthStateChange: () => () => {},
 }));
 
 const readBriefMock = vi.fn();
@@ -59,13 +69,18 @@ function briefFixture(overrides: Partial<BriefProjection> = {}): BriefProjection
 }
 
 beforeEach(() => {
+  resetAuthStateForTests();
+  getCurrentAuthUserIdMock.mockReset().mockResolvedValue("test-auth-user");
   readBriefMock.mockReset();
+});
+afterEach(() => {
+  resetAuthStateForTests();
 });
 
 describe("BriefScreen — filtres respectent les projections du domaine", () => {
   it("Tous conserve l'ordre exact de attentionItems", async () => {
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
 
     const titles = await screen.findAllByText(/^Item [ABC]$/);
     expect(titles.map((t) => t.textContent)).toEqual(["Item A", "Item B", "Item C"]);
@@ -74,7 +89,7 @@ describe("BriefScreen — filtres respectent les projections du domaine", () => 
   it("Bloquants affiche exactement blockedItems (Item C), jamais un recalcul severity===blocking (Item A)", async () => {
     const user = userEvent.setup();
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
 
     await screen.findByText("Item A");
     await user.click(screen.getByRole("button", { name: "Bloquants" }));
@@ -87,7 +102,7 @@ describe("BriefScreen — filtres respectent les projections du domaine", () => 
   it("Retards affiche exactement overdueItems (Item B)", async () => {
     const user = userEvent.setup();
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
 
     await screen.findByText("Item A");
     await user.click(screen.getByRole("button", { name: "Retards" }));
@@ -99,7 +114,7 @@ describe("BriefScreen — filtres respectent les projections du domaine", () => 
 
   it("now est transmis tel quel jusqu'à readBrief", async () => {
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     await screen.findByText("Item A");
     expect(readBriefMock).toHaveBeenCalledWith(expect.anything(), "p1", expect.any(String));
   });
@@ -109,7 +124,7 @@ describe("BriefScreen — filtres respectent les projections du domaine", () => 
     const snapshot = JSON.parse(JSON.stringify(brief));
     readBriefMock.mockResolvedValue({ ok: true, value: brief });
     const user = userEvent.setup();
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     await screen.findByText("Item A");
     await user.click(screen.getByRole("button", { name: "Bloquants" }));
     await user.click(screen.getByRole("button", { name: "Tous" }));
@@ -120,7 +135,7 @@ describe("BriefScreen — filtres respectent les projections du domaine", () => 
 describe("BriefScreen — états", () => {
   it("loading avant résolution", () => {
     readBriefMock.mockReturnValue(new Promise(() => {}));
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     expect(screen.getByText("Chargement de Mon Brief…")).toBeInTheDocument();
   });
 
@@ -129,20 +144,20 @@ describe("BriefScreen — états", () => {
       ok: true,
       value: briefFixture({ attentionItems: [], blockedItems: [], overdueItems: [], decisions: [], risks: [], milestones: [] }),
     });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     expect(await screen.findByText("Rien ne nécessite ton attention actuellement.")).toBeInTheDocument();
   });
 
   it("erreur technique : message utilisateur déterministe, jamais PersistenceError.message brut", async () => {
     readBriefMock.mockResolvedValue({ ok: false, error: { kind: "persistence", code: "unknown", message: "duplicate key value violates constraint xyz_pkey" } });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     expect(await screen.findByText("Impossible de charger Mon Brief.")).toBeInTheDocument();
     expect(screen.queryByText(/xyz_pkey/)).not.toBeInTheDocument();
   });
 
   it("erreur projet absent : message dédié", async () => {
     readBriefMock.mockResolvedValue({ ok: false, error: { kind: "persistence", code: "not_found", message: "Project p1 introuvable ou inaccessible." } });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     expect(await screen.findByText("Brief indisponible pour ce projet.")).toBeInTheDocument();
   });
 
@@ -150,7 +165,7 @@ describe("BriefScreen — états", () => {
     const user = userEvent.setup();
     readBriefMock.mockResolvedValueOnce({ ok: false, error: { kind: "persistence", code: "unknown", message: "x" } });
     readBriefMock.mockResolvedValueOnce({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     await screen.findByText("Impossible de charger Mon Brief.");
     await user.click(screen.getByRole("button", { name: "Réessayer" }));
     await screen.findByText("Item A");
@@ -161,7 +176,7 @@ describe("BriefScreen — états", () => {
 describe("BriefScreen — navigation d'un BriefItem", () => {
   it("sans onOpen : cartes non interactives", async () => {
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
     await screen.findByText("Item A");
     expect(screen.queryByRole("button", { name: /Item A/ })).not.toBeInTheDocument();
   });
@@ -170,7 +185,7 @@ describe("BriefScreen — navigation d'un BriefItem", () => {
     const user = userEvent.setup();
     const onOpenItem = vi.fn();
     readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
-    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenItem={onOpenItem} />);
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenItem={onOpenItem} onOpenAuth={() => {}} />);
     await screen.findByText("Item A");
 
     const cardA = screen.getByRole("button", { name: /Item A/ });
@@ -180,5 +195,27 @@ describe("BriefScreen — navigation d'un BriefItem", () => {
     cardA.focus();
     await user.keyboard("{Enter}");
     expect(onOpenItem).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("BriefScreen — hotfix 401 : session Auth requise avant toute lecture V3", () => {
+  it("sans session : 0 lecture réseau V3, CTA Se connecter", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    const onOpenAuth = vi.fn();
+    const user = userEvent.setup();
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={onOpenAuth} />);
+
+    expect(await screen.findByText("Connexion requise")).toBeInTheDocument();
+    expect(readBriefMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Se connecter" }));
+    expect(onOpenAuth).toHaveBeenCalledTimes(1);
+  });
+
+  it("authentifié : readBrief s'exécute normalement", async () => {
+    readBriefMock.mockResolvedValue({ ok: true, value: briefFixture() });
+    render(<BriefScreen projectId="p1" onBack={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Item A");
+    expect(readBriefMock).toHaveBeenCalledTimes(1);
   });
 });

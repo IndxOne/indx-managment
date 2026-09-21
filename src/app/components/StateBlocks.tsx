@@ -61,6 +61,30 @@ export function ErrorState({
   );
 }
 
+/**
+ * État "connexion requise" (hotfix production, 401 V3) — jamais un
+ * ErrorState : l'absence de session Auth Supabase est un état attendu, pas
+ * une panne. Utilisé par tous les écrans V3 (Home, Projets, Mon Brief,
+ * Projet V3) tant que `useAuthState()` ne rapporte pas "authenticated".
+ */
+export function AuthRequiredState({
+  description = "Connecte-toi pour accéder à cette fonctionnalité.",
+  onOpenAuth,
+}: {
+  description?: string;
+  onOpenAuth: () => void;
+}) {
+  return (
+    <div className="state-block" role="status">
+      <p style={{ fontWeight: 600, color: "var(--color-text)" }}>Connexion requise</p>
+      <p>{description}</p>
+      <button type="button" className="btn tap-target" onClick={onOpenAuth}>
+        Se connecter
+      </button>
+    </div>
+  );
+}
+
 export function NoResultsState({ onClearFilters }: { onClearFilters: () => void }) {
   return (
     <div className="state-block" role="status">

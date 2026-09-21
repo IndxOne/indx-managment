@@ -4,8 +4,9 @@ import type { ProjectOverviewProjection } from "../../domain/v3/project-overview
 import { readProjectOverview } from "../../infrastructure/persistence/v3/repositories/project-overview-reader";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { getSupabaseClient } from "../adapters/supabase/client";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { IconChevronRight } from "../components/Icons";
-import { ErrorState, LoadingState } from "../components/StateBlocks";
+import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { ProjectSummaryGrid } from "../components/project-overview/ProjectSummaryGrid";
 import { ObjectiveCard } from "../components/project-overview/ObjectiveCard";
 import { AttentionEntityCard } from "../components/project-overview/AttentionEntityCard";
@@ -15,6 +16,8 @@ import { PROJECT_STATUS_LABELS, CRITICALITY_LABELS, projectOverviewErrorToUserMe
 type LoadState =
   | { status: "loading" }
   | { status: "error"; error: PersistenceError }
+  /** Hotfix production (401 V3) : Supabase configuré mais aucune session Auth. */
+  | { status: "unauthenticated" }
   | { status: "ready"; overview: ProjectOverviewProjection };
 
 /**
@@ -30,19 +33,34 @@ export function ProjectV3Screen({
   focusId,
   onBack,
   onOpenBrief,
+  onOpenAuth,
 }: {
   projectId: string;
   focusType?: BriefSourceType;
   focusId?: string;
   onBack: () => void;
   onOpenBrief: (projectId: string) => void;
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion tant que non
+   * authentifié — cet écran est atteignable en deep-link direct (Accueil,
+   * Projets V3, Mon Brief), sans garantie qu'une session existe déjà. */
+  onOpenAuth: () => void;
 }) {
+  const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const focusRef = useRef<HTMLDivElement | null>(null);
   const focusKey = focusType && focusId ? `${focusType}:${focusId}` : undefined;
 
   useEffect(() => {
+    if (auth.status === "loading") {
+      setState({ status: "loading" });
+      return;
+    }
+    if (auth.status === "unauthenticated") {
+      setState({ status: "unauthenticated" });
+      return;
+    }
     let cancelled = false;
     setState({ status: "loading" });
     const client = getSupabaseClient();
@@ -59,7 +77,7 @@ export function ProjectV3Screen({
     return () => {
       cancelled = true;
     };
-  }, [projectId, reloadToken]);
+  }, [auth.status, authKey, projectId, reloadToken]);
 
   // Scroll vers l'élément focus s'il est présent — vérification de
   // présence de scrollIntoView plutôt qu'un try/catch comme contrôle de
@@ -86,6 +104,9 @@ export function ProjectV3Screen({
         {state.status === "loading" && <LoadingState label="Chargement du projet…" />}
         {state.status === "error" && (
           <ErrorState description={projectOverviewErrorToUserMessage(state.error)} onRetry={() => setReloadToken((t) => t + 1)} />
+        )}
+        {state.status === "unauthenticated" && (
+          <AuthRequiredState description="Connecte-toi pour voir ce projet." onOpenAuth={onOpenAuth} />
         )}
         {state.status === "ready" && (
           <ProjectOverviewContent overview={state.overview} focusKey={focusKey} focusRef={focusRef} onOpenBrief={() => onOpenBrief(projectId)} />

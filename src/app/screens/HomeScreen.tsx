@@ -7,9 +7,10 @@ import type { PersistenceError } from "../../infrastructure/persistence/v3/error
 import { readHomeOverview } from "../../infrastructure/persistence/v3/repositories/home-overview-reader";
 import { resolveWorkspacePreset } from "../../presets/preset-registry";
 import { STATUS_LABELS_DEFAULT } from "../labels";
-import { getSupabaseClient, isSupabaseConfigured } from "../adapters/supabase/client";
+import { getSupabaseClient } from "../adapters/supabase/client";
 import { useStore } from "../adapters/temporary-store";
 import { useActionSyncStatus } from "../hooks/useActionSyncStatus";
+import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { useDeleteWithUndo } from "../hooks/useDeleteWithUndo";
 import { useMoveWithUndo } from "../hooks/useMoveWithUndo";
 import { homeOverviewErrorToUserMessage } from "../utils/home-overview-labels";
@@ -21,7 +22,7 @@ import { EditActionSheet } from "../components/EditActionSheet";
 import { LinkActionSheet } from "../components/LinkActionSheet";
 import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
-import { ErrorState, LoadingState } from "../components/StateBlocks";
+import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { TodaySection } from "../components/TodaySection";
 import { BriefItemCard } from "../components/brief/BriefItemCard";
 import { HomeProjectCard } from "../components/home/HomeProjectCard";
@@ -36,7 +37,11 @@ type V3LoadState =
    * projets sont indisponibles sans que ce soit une erreur réseau — même
    * contrainte que readHomeOverview()/getSupabaseClient() ailleurs dans
    * l'app (BriefScreen, ProjectV3Screen). RUN reste fonctionnel (§7 gate). */
-  | { status: "unavailable" };
+  | { status: "unavailable" }
+  /** Hotfix production (401 V3) : Supabase configuré mais aucune session
+   * Auth — jamais une requête `projets_v3_*` dans cet état, jamais une
+   * ErrorState (l'absence de session est un état attendu, pas une panne). */
+  | { status: "unauthenticated" };
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -67,6 +72,7 @@ export function HomeScreen({
   onOpenBrief,
   onOpenProject,
   onQuickCreate,
+  onOpenAuth,
 }: {
   timezone: string;
   onNavigateToWorkspace: (workspaceId: string) => void;
@@ -75,16 +81,28 @@ export function HomeScreen({
   onOpenProject: (projectId: string, focus?: { focusType: BriefItem["sourceType"]; focusId: string }) => void;
   /** Ouvre la création rapide globale (bouton central de la barre basse) — utilisé par l'état vide RUN. */
   onQuickCreate: () => void;
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion depuis les blocs V3 tant que non authentifié. */
+  onOpenAuth: () => void;
 }) {
   const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
     useStore();
 
+  const auth = useAuthState();
+  const authKey = authStateKey(auth);
   const [v3State, setV3State] = useState<V3LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    if (auth.status === "unconfigured") {
       setV3State({ status: "unavailable" });
+      return;
+    }
+    if (auth.status === "loading") {
+      setV3State({ status: "loading" });
+      return;
+    }
+    if (auth.status === "unauthenticated") {
+      setV3State({ status: "unauthenticated" });
       return;
     }
     let cancelled = false;
@@ -103,7 +121,7 @@ export function HomeScreen({
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [auth.status, authKey, reloadToken]);
 
   const runWorkspaces = useMemo(() => state.workspaces.filter((workspace) => workspace.kind === "run"), [state.workspaces]);
 
@@ -215,6 +233,9 @@ export function HomeScreen({
             <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
           )}
           {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+          {v3State.status === "unauthenticated" && (
+            <AuthRequiredState description="Connecte-toi pour voir ce qui nécessite ton attention." onOpenAuth={onOpenAuth} />
+          )}
           {v3State.status === "ready" && (
             <>
               <p className="action-sub">{attentionSummary(v3State.overview.attentionItems)}</p>
@@ -238,6 +259,9 @@ export function HomeScreen({
             <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
           )}
           {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+          {v3State.status === "unauthenticated" && (
+            <AuthRequiredState description="Connecte-toi pour voir tes projets." onOpenAuth={onOpenAuth} />
+          )}
           {v3State.status === "ready" &&
             (v3State.overview.projects.length === 0 ? (
               <p className="action-sub">Aucun projet actif pour l&apos;instant.</p>
@@ -254,13 +278,18 @@ export function HomeScreen({
           <h2 id="home-brief-heading" className="section-title">
             Mon Brief
           </h2>
-          <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
+          <button
+            type="button"
+            className="action-card tap-target"
+            style={{ width: "100%", border: "none", textAlign: "left" }}
+            onClick={v3State.status === "unauthenticated" ? onOpenAuth : onOpenBrief}
+          >
             <div className="action-card-body" style={{ alignItems: "center" }}>
               <span className="more-icon" aria-hidden="true">
                 <IconFlag width={20} height={20} />
               </span>
               <span className="card-title" style={{ flex: 1 }}>
-                Voir Mon Brief
+                {v3State.status === "unauthenticated" ? "Se connecter pour voir Mon Brief" : "Voir Mon Brief"}
                 {v3State.status === "ready" && (
                   <span className="action-sub" style={{ display: "block" }}>
                     Mis à jour à {formatUpdatedAt(v3State.overview.generatedAt)}
