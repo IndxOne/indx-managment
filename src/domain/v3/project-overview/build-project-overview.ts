@@ -209,5 +209,6 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     issues,
     summary,
     focusItem: brief.attentionItems[0],
+    watchItems: brief.attentionItems.slice(1, 4),
   };
 }

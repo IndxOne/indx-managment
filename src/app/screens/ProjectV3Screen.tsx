@@ -10,6 +10,8 @@ import { AuthRequiredState, ErrorState, LoadingState } from "../components/State
 import { SeverityBadge } from "../components/SeverityBadge";
 import { ProjectFocusNow } from "../components/project-overview/ProjectFocusNow";
 import { ProjectNextUp } from "../components/project-overview/ProjectNextUp";
+import { ProjectWatchList } from "../components/project-overview/ProjectWatchList";
+import { ProjectExplorer } from "../components/project-overview/ProjectExplorer";
 import { criticalityToTone, projectStatusToTone } from "../utils/tone";
 import { PROJECT_STATUS_LABELS, CRITICALITY_LABELS, projectOverviewErrorToUserMessage } from "../utils/project-overview-labels";
 
@@ -106,7 +108,13 @@ export function ProjectV3Screen({
           <AuthRequiredState description="Connecte-toi pour voir ce projet." onOpenAuth={onOpenAuth} />
         )}
         {state.status === "ready" && (
-          <ProjectPilotShell overview={state.overview} focusKey={focusKey} onOpenBrief={() => onOpenBrief(projectId)} />
+          <ProjectPilotShell
+            overview={state.overview}
+            focusKey={focusKey}
+            focusType={focusType}
+            focusId={focusId}
+            onOpenBrief={() => onOpenBrief(projectId)}
+          />
         )}
       </div>
     </div>
@@ -114,28 +122,33 @@ export function ProjectV3Screen({
 }
 
 /**
- * Shell UX-5.1 ("Focus maintenant" / "Ensuite" / accès secondaire) —
- * remplace la grille de 6 KPI et les 6 sections empilées de l'ancien écran
- * (UX-5.2+, différé). Le détail métier complet reste accessible via Mon
- * Brief, jamais réintroduit ici sous forme de listes.
+ * Shell Project V3 (UX-5.1 + UX-5.2) — "Maintenant" / "Ensuite" /
+ * "À surveiller" / "Explorer" / accès secondaire. Remplace la grille de 6
+ * KPI et les 6 sections empilées en permanence de l'ancien écran. Le détail
+ * métier complet reste accessible (Explorer, un panneau à la fois — ou Mon
+ * Brief), jamais 6 blocs simultanés en permanence.
  */
 function ProjectPilotShell({
   overview,
   focusKey,
+  focusType,
+  focusId,
   onOpenBrief,
 }: {
   overview: ProjectOverviewProjection;
   focusKey: string | undefined;
+  focusType: BriefSourceType | undefined;
+  focusId: string | undefined;
   onOpenBrief: () => void;
 }) {
-  const { summary, focusItem } = overview;
+  const { summary, focusItem, watchItems, objectives, milestones, workItems, decisions, risks, issues } = overview;
 
   // Deep-link (focusType/focusId) : si l'entité ciblée est déjà le focus ou
   // le prochain jalon affichés, on la met en évidence sur place (pas de
-  // scroll nécessaire, elle est déjà en tête d'écran). Sinon, fallback
-  // documenté (§7 CLAUDE_TASK.md) : navigation non cassée, mais pas encore
-  // de mise en évidence pour une entité qui n'est plus visible tant que
-  // UX-5.2 (sections détaillées) n'est pas implémenté.
+  // scroll nécessaire, elle est déjà en tête d'écran). Pour tout autre
+  // élément couvert par Mon Brief, voir ProjectExplorer (§7 CLAUDE_TASK.md
+  // UX-5.2) : Dependency/ChangeRequest restent hors Explorer, fallback non
+  // cassant (aucune erreur, accès Mon Brief toujours disponible).
   const focusItemMatchesDeepLink = !!focusItem && focusKey === focusItem.id;
   const nextMilestoneMatchesDeepLink = !!summary.nextMilestone && focusKey === `milestone:${summary.nextMilestone.id}`;
 
@@ -146,6 +159,14 @@ function ProjectPilotShell({
         <ProjectNextUp nextMilestone={summary.nextMilestone} focused={nextMilestoneMatchesDeepLink} onOpenBrief={onOpenBrief} />
       </div>
 
+      <ProjectWatchList watchItems={watchItems} onOpenBrief={onOpenBrief} />
+
+      <ProjectExplorer
+        data={{ objectives, milestones, workItems, decisions, risks, issues }}
+        focusType={focusType}
+        focusId={focusId}
+      />
+
       <div className="project-pilot-secondary">
         <button type="button" className="action-card tap-target" style={{ width: "100%", border: "none", textAlign: "left" }} onClick={onOpenBrief}>
           <div className="action-card-body" style={{ alignItems: "center" }}>
@@ -154,13 +175,6 @@ function ProjectPilotShell({
             </span>
             <IconChevronRight className="chevron" width={18} height={18} />
           </div>
-        </button>
-        {/* Détail complet (Objectifs/Jalons/WorkItems/Décisions/Risques/Issues)
-            volontairement absent de UX-5.1 (§6 CLAUDE_TASK.md). En attendant
-            UX-5.2, "Explorer" renvoie vers Mon Brief — seul accès existant
-            au détail métier, fallback documenté plutôt qu'un lien mort. */}
-        <button type="button" className="project-pilot-explore-link" onClick={onOpenBrief}>
-          Explorer le reste du projet
         </button>
       </div>
     </div>

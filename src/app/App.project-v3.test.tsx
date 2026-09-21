@@ -79,6 +79,7 @@ const overviewFixture = {
       pendingDecisionsCount: 0,
       openIssuesCount: 0,
     },
+    watchItems: [],
   },
 };
 
