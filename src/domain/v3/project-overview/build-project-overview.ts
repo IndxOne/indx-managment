@@ -8,6 +8,8 @@ import type {
   ObjectiveOverviewItem,
   ProjectOverviewProjection,
   ProjectOverviewSummary,
+  RecentChangeItem,
+  RecentChangeSourceType,
   RiskOverviewItem,
   WorkItemOverviewItem,
 } from "./types";
@@ -68,6 +70,31 @@ function orderWorkItems(items: WorkItemOverviewItem[], briefOrder: Map<string, n
 
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
+}
+
+interface RecentChangeCandidate {
+  id: string;
+  sourceType: RecentChangeSourceType;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * "Changé récemment" (UX-5.3) : exclut les créations (updatedAt ===
+ * createdAt — une entité jamais modifiée depuis sa création n'est pas un
+ * "changement"), trie par updatedAt décroissant, tie-break id, plafonne à 5.
+ * Projection de présentation pure, aucune règle métier réévaluée.
+ */
+function buildRecentChanges(candidates: RecentChangeCandidate[]): RecentChangeItem[] {
+  return candidates
+    .filter((c) => c.updatedAt !== c.createdAt)
+    .sort((a, b) => {
+      if (a.updatedAt !== b.updatedAt) return a.updatedAt > b.updatedAt ? -1 : 1;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    })
+    .slice(0, 5)
+    .map(({ id, sourceType, title, updatedAt }) => ({ id, sourceType, title, updatedAt }));
 }
 
 /** nextMilestone (§2 du correctif de gate) : projection de présentation,
@@ -210,5 +237,13 @@ export function buildProjectOverview(input: BuildProjectOverviewInput): ProjectO
     summary,
     focusItem: brief.attentionItems[0],
     watchItems: brief.attentionItems.slice(1, 4),
+    recentChanges: buildRecentChanges([
+      ...input.objectives.map((o) => ({ id: o.id, sourceType: "objective" as const, title: o.statement, createdAt: o.createdAt, updatedAt: o.updatedAt })),
+      ...input.milestones.map((m) => ({ id: m.id, sourceType: "milestone" as const, title: m.observableResult, createdAt: m.createdAt, updatedAt: m.updatedAt })),
+      ...input.workItems.map((w) => ({ id: w.id, sourceType: "work_item" as const, title: w.title, createdAt: w.createdAt, updatedAt: w.updatedAt })),
+      ...input.decisions.map((d) => ({ id: d.id, sourceType: "decision" as const, title: d.question, createdAt: d.createdAt, updatedAt: d.updatedAt })),
+      ...input.risks.map((r) => ({ id: r.id, sourceType: "risk" as const, title: r.event, createdAt: r.createdAt, updatedAt: r.updatedAt })),
+      ...input.issues.map((i) => ({ id: i.id, sourceType: "issue" as const, title: i.problem, createdAt: i.createdAt, updatedAt: i.updatedAt })),
+    ]),
   };
 }

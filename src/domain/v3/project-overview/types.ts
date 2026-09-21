@@ -6,7 +6,18 @@
  */
 
 import type { Criticality, EntityId, IsoDateTime, MilestoneStatus, ObjectiveStatus, ProjectMethod, ProjectStatus } from "../types";
-import type { BriefItem } from "../brief/types";
+import type { BriefItem, BriefSourceType } from "../brief/types";
+
+/** UX-5.3 ("Changé récemment") : mêmes types que Mon Brief, plus Objective
+ * (jamais couvert par Mon Brief, mais explicitement demandé ici). */
+export type RecentChangeSourceType = BriefSourceType | "objective";
+
+export interface RecentChangeItem {
+  id: EntityId;
+  sourceType: RecentChangeSourceType;
+  title: string;
+  updatedAt: IsoDateTime;
+}
 
 export interface ObjectiveOverviewItem {
   id: EntityId;
@@ -103,4 +114,9 @@ export interface ProjectOverviewProjection {
    * exclu. Même source que focusItem : aucun recalcul, aucune nouvelle
    * requête. Tableau vide si rien d'autre ne demande attention. */
   watchItems: BriefItem[];
+  /** UX-5.3 (Changé récemment) — jusqu'à 5 entités dont `updatedAt` diffère
+   * de `createdAt`, triées par `updatedAt` décroissant (tie-break id). Bloc
+   * informatif, jamais prioritaire : n'affecte ni focusItem ni watchItems.
+   * Dependency/ChangeRequest différés (pas de catégorie Explorer pour eux). */
+  recentChanges: RecentChangeItem[];
 }

@@ -95,6 +95,7 @@ function projectOverview(): ProjectOverviewProjection {
       openIssuesCount: 0,
     },
     watchItems: [],
+    recentChanges: [],
   };
 }
 

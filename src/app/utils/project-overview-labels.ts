@@ -1,5 +1,7 @@
 import type { ProjectStatus, ProjectMethod, ObjectiveStatus, Criticality } from "../../domain/v3/types";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
+import type { RecentChangeSourceType } from "../../domain/v3/project-overview/types";
+import { SOURCE_TYPE_LABELS } from "./brief-labels";
 
 /** Libellés d'affichage — présentation pure, aucune logique métier. */
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -27,6 +29,13 @@ export const CRITICALITY_LABELS: Record<Criticality, string> = {
   medium: "Moyenne",
   high: "Haute",
   critical: "Critique",
+};
+
+/** UX-5.3 ("Changé récemment") : réutilise SOURCE_TYPE_LABELS (Mon Brief),
+ * complété par "objective" (jamais couvert par Mon Brief). */
+export const RECENT_CHANGE_TYPE_LABELS: Record<RecentChangeSourceType, string> = {
+  ...SOURCE_TYPE_LABELS,
+  objective: "Objectif",
 };
 
 /**

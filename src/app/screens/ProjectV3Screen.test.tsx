@@ -46,6 +46,7 @@ function emptyOverview(overrides: Partial<ProjectOverviewProjection> = {}): Proj
       openIssuesCount: 0,
     },
     watchItems: [],
+    recentChanges: [],
     ...overrides,
   };
 }
@@ -471,6 +472,102 @@ describe("ProjectV3Screen — UX-5.2 : Explorer", () => {
     } finally {
       Element.prototype.scrollIntoView = originalScrollIntoView;
     }
+  });
+});
+
+describe("ProjectV3Screen — UX-5.3 : Changé récemment", () => {
+  const recentChangesFixture = [
+    { id: "d1", sourceType: "decision" as const, title: "Quel fournisseur ERP retenir ?", updatedAt: "2026-09-19T08:00:00.000Z" },
+    { id: "o1", sourceType: "objective" as const, title: "Migrer 100% des boîtes mail", updatedAt: "2026-09-18T08:00:00.000Z" },
+  ];
+
+  it("affiche le type, le titre métier et une date courte — jamais un id technique ou updated_at brut", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ recentChanges: recentChangesFixture }) });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByRole("heading", { name: "Changé récemment" })).toBeInTheDocument();
+    expect(screen.getByText("Quel fournisseur ERP retenir ?")).toBeInTheDocument();
+    expect(screen.getByText("Migrer 100% des boîtes mail")).toBeInTheDocument();
+    expect(screen.queryByText("d1")).not.toBeInTheDocument();
+    expect(screen.queryByText(/updated_at/)).not.toBeInTheDocument();
+  });
+
+  it("recentChanges vide : le bloc est masqué entièrement, aucun espace réservé", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview({ recentChanges: [] }) });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.queryByText("Changé récemment")).not.toBeInTheDocument();
+  });
+
+  it("clic sur un changement WorkItem : présélectionne la catégorie Actions et surligne l'élément", async () => {
+    const user = userEvent.setup();
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        recentChanges: [{ id: "w1", sourceType: "work_item" as const, title: "Configurer VPN", updatedAt: "2026-09-19T08:00:00.000Z" }],
+        workItems: [{ id: "w1", title: "Configurer VPN", status: "ready", priority: "normal", needsAttention: false }],
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    await user.click(screen.getAllByText("Configurer VPN")[0]!);
+    expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+    const card = screen.getAllByText("Configurer VPN")[1]?.closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
+  });
+
+  it("clic sur un changement Objective (jamais couvert par Mon Brief) : présélectionne la catégorie Objectifs et surligne l'élément (correctif review Codex)", async () => {
+    const user = userEvent.setup();
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        recentChanges: [{ id: "o1", sourceType: "objective" as const, title: "Migrer 100% des boîtes mail", updatedAt: "2026-09-19T08:00:00.000Z" }],
+        objectives: [{ id: "o1", statement: "Migrer 100% des boîtes mail", status: "active", hasOwner: false }],
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    await user.click(screen.getByText("Migrer 100% des boîtes mail"));
+    expect(screen.getByRole("tab", { name: "Objectifs 1" })).toHaveAttribute("aria-selected", "true");
+    const card = screen.getAllByText("Migrer 100% des boîtes mail")[1]?.closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
+  });
+
+  it("re-cliquer le même changement après avoir changé d'onglet manuellement reproduit la présélection/surlignage (correctif review Codex)", async () => {
+    const user = userEvent.setup();
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        recentChanges: [{ id: "w1", sourceType: "work_item" as const, title: "Configurer VPN", updatedAt: "2026-09-19T08:00:00.000Z" }],
+        workItems: [{ id: "w1", title: "Configurer VPN", status: "ready", priority: "normal", needsAttention: false }],
+        decisions: [{ id: "d1", question: "Quel ERP ?", status: "to_prepare", hasDecider: false, needsAttention: false }],
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+
+    await user.click(screen.getAllByText("Configurer VPN")[0]!);
+    expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getByRole("tab", { name: /Décisions/ }));
+    expect(screen.getByRole("tab", { name: /Décisions/ })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getAllByText("Configurer VPN")[0]!);
+    expect(screen.getByRole("tab", { name: "Actions 1" })).toHaveAttribute("aria-selected", "true");
+    const card = screen.getAllByText("Configurer VPN")[1]?.closest("[data-focused]");
+    expect(card).toHaveAttribute("data-focused", "true");
+  });
+
+  it("aucune régression Maintenant/Ensuite/À surveiller/Explorer avec recentChanges rempli", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({ focusItem: focusItemFixture, recentChanges: recentChangesFixture }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText("Configurer VPN")).toBeInTheDocument();
+    expect(screen.getByText("Aucun jalon planifié.")).toBeInTheDocument();
+    expect(screen.getByText("Rien à explorer pour l'instant.")).toBeInTheDocument();
   });
 });
 
