@@ -3266,15 +3266,87 @@ a {
   gap: var(--space-3);
 }
 
-.project-pilot-explore-link {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: var(--space-2) 0;
-  color: var(--color-text-muted);
+/* ===========================================================================
+   Project V3 — "À surveiller" (UX-5.2). Cartes compactes (BriefItemCard,
+   non interactives — même convention que "Maintenant"), un seul CTA de
+   navigation en bas de liste, jamais une par carte.
+   =========================================================================== */
+
+.project-watch-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+}
+
+/* ===========================================================================
+   Project V3 — "Explorer" (UX-5.2). Sélecteur de catégories compact
+   (chips horizontalement scrollables sur mobile) + un seul panneau de
+   détail à la fois — jamais 6 blocs permanents simultanés.
+   =========================================================================== */
+
+.project-explorer-chips {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+
+.project-explorer-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 14px;
   font-size: 0.875rem;
-  text-decoration: underline;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.project-explorer-chip[data-active="true"] {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.project-explorer-chip-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.project-explorer-panel {
+  margin-top: var(--space-3);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.project-explorer-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.project-explorer-empty {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-muted);
 }
 
 /* Desktop (même seuil que .columns-view/.app-shell, cf. §4 plus haut) :
@@ -3293,5 +3365,10 @@ a {
 
   .project-pilot-main > .project-next-up {
     flex: 2;
+  }
+
+  .project-explorer-chips {
+    overflow-x: visible;
+    flex-wrap: wrap;
   }
 }

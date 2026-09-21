@@ -98,4 +98,9 @@ export interface ProjectOverviewProjection {
    * buildProjectOverview(), aucun recalcul ni nouvelle requête. undefined
    * si aucun élément ne demande attention (projet calme). */
   focusItem?: BriefItem;
+  /** UX-5.2 (À surveiller) — jusqu'à 3 éléments suivants de
+   * `brief.attentionItems`, dans le même ordre de priorité, focusItem
+   * exclu. Même source que focusItem : aucun recalcul, aucune nouvelle
+   * requête. Tableau vide si rien d'autre ne demande attention. */
+  watchItems: BriefItem[];
 }
