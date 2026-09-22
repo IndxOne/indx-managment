@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import type { ProjectOverviewProjection } from "../../domain/v3/project-overview/types";
@@ -568,6 +568,104 @@ describe("ProjectV3Screen — UX-5.3 : Changé récemment", () => {
     expect(screen.getByText("Configurer VPN")).toBeInTheDocument();
     expect(screen.getByText("Aucun jalon planifié.")).toBeInTheDocument();
     expect(screen.getByText("Rien à explorer pour l'instant.")).toBeInTheDocument();
+  });
+});
+
+describe("ProjectV3Screen — UX-5.4 : Contexte projet", () => {
+  it("rail desktop affiche chef de projet/sponsor/méthode/statut/criticité disponibles", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        project: {
+          id: "p1",
+          name: "Migration M365",
+          status: "at_risk",
+          method: "agile",
+          criticality: "critical",
+          sponsor: "Direction IT",
+          projectManager: "Koffi N.",
+        },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    const rail = screen.getByRole("complementary", { name: "Contexte du projet" });
+    expect(within(rail).getByText("Koffi N.")).toBeInTheDocument();
+    expect(within(rail).getByText("Direction IT")).toBeInTheDocument();
+    expect(within(rail).getByText("Agile")).toBeInTheDocument();
+    expect(within(rail).getByText("À risque")).toBeInTheDocument();
+    expect(within(rail).getByText("Critique")).toBeInTheDocument();
+  });
+
+  it("valeurs absentes : 'Non renseigné' pour chef de projet/sponsor, aucune ligne de date vide", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    const rail = screen.getByRole("complementary", { name: "Contexte du projet" });
+    expect(within(rail).getAllByText("Non renseigné")).toHaveLength(2);
+    expect(within(rail).queryByText("Date cible")).not.toBeInTheDocument();
+    expect(within(rail).queryByText("Prévision")).not.toBeInTheDocument();
+  });
+
+  it("targetDate et forecastDate affichées formatées, jamais un ISO brut", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        project: {
+          id: "p1",
+          name: "Migration M365",
+          status: "on_track",
+          method: "predictive",
+          criticality: "high",
+          targetDate: "2026-12-01T00:00:00.000Z",
+          forecastDate: "2027-01-15T00:00:00.000Z",
+        },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    const rail = screen.getByRole("complementary", { name: "Contexte du projet" });
+    expect(within(rail).getByText("Date cible")).toBeInTheDocument();
+    expect(within(rail).getByText("Prévision")).toBeInTheDocument();
+    expect(screen.queryByText(/2026-12-01T00:00:00/)).not.toBeInTheDocument();
+  });
+
+  it("bloc compact mobile ne duplique pas Statut/Criticité (déjà visibles dans le header)", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({
+        project: { id: "p1", name: "Migration M365", status: "at_risk", method: "agile", criticality: "critical" },
+      }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    const compact = screen.getByText("Contexte du projet").closest("details");
+    expect(compact).not.toBeNull();
+    expect(within(compact!).queryByText("Statut")).not.toBeInTheDocument();
+    expect(within(compact!).queryByText("Criticité")).not.toBeInTheDocument();
+    expect(within(compact!).getByText("Méthode")).toBeInTheDocument();
+  });
+
+  it("rail et bloc compact coexistent dans le DOM (bascule visuelle CSS au breakpoint 1024px), aucun overflow", async () => {
+    readProjectOverviewMock.mockResolvedValue({ ok: true, value: emptyOverview() });
+    const { container } = render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(container.querySelector(".project-context-rail")).toBeInTheDocument();
+    expect(container.querySelector(".project-context-compact")).toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(/width:\s*\d+px/);
+  });
+
+  it("aucune régression : Maintenant/Ensuite/À surveiller/Explorer toujours rendus avec le rail", async () => {
+    readProjectOverviewMock.mockResolvedValue({
+      ok: true,
+      value: emptyOverview({ focusItem: focusItemFixture }),
+    });
+    render(<ProjectV3Screen projectId="p1" onBack={() => {}} onOpenBrief={() => {}} onOpenAuth={() => {}} />);
+    await screen.findByText("Migration M365");
+    expect(screen.getByText("Configurer VPN")).toBeInTheDocument();
+    expect(screen.getByText("Aucun jalon planifié.")).toBeInTheDocument();
+    expect(screen.getByText("Rien à explorer pour l'instant.")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Contexte du projet" })).toBeInTheDocument();
   });
 });
 
