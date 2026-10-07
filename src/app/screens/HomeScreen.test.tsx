@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { todayInTimeZone } from "../../calendar/calendar-engine";
@@ -293,60 +293,78 @@ describe("HomeScreen V3 — Bloc RUN (V2, store existant, aucune requête)", () 
  * (RLS + `revoke all ... from anon`). Aucune requête V3 ne doit plus partir
  * tant que `useAuthState()` ne confirme pas une session valide.
  */
-describe("HomeScreen V3 — hotfix 401 : session Auth requise avant toute lecture V3", () => {
-  it("sans session : 0 appel readHomeOverview, aucun message d'erreur, RUN toujours rendu", async () => {
-    getCurrentAuthUserIdMock.mockResolvedValue(null);
-    renderHome(emptyState);
+describe("HomeScreen — état global de connexion MGMT-003", () => {
+  const protectedOverview = overview({
+    attentionItems: [briefItem({ title: "Attention protégée" })],
+    projects: [{ id: "p1", name: "Projet protégé", status: "on_track", criticality: "high", needsAttention: false }],
+  });
 
-    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
-    expect(readHomeOverviewMock).not.toHaveBeenCalled();
+  function expectSignedOutHome() {
+    expect(screen.getAllByText("Connexion requise")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Se connecter/ })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Aujourd'hui" })).toBeInTheDocument();
+    for (const name of ["Aujourd'hui", "Mes projets", "Mon Brief"]) {
+      expect(screen.queryByRole("heading", { level: 2, name })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByText("Attention protégée")).not.toBeInTheDocument();
+    expect(screen.queryByText("Projet protégé")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Indisponible/)).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    // RUN reste indépendant de l'état Auth V3 (store V2 local, aucune requête).
+  }
+
+  it("sans session : un seul bloc/CTA, aucune section V3 ni lecture protégée, RUN indépendant conservé", async () => {
+    getCurrentAuthUserIdMock.mockResolvedValue(null);
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: protectedOverview });
+    renderHome(emptyState);
+    await screen.findByText("Connexion requise");
+    expectSignedOutHome();
+    expect(readHomeOverviewMock).not.toHaveBeenCalled();
     expect(screen.getByText("Rien à traiter côté RUN pour l'instant.")).toBeInTheDocument();
   });
 
-  it("authentifié : la lecture V3 s'exécute normalement", async () => {
-    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
-    renderHome(emptyState);
-    await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
-  });
-
-  it("CTA « Se connecter » sur le bloc Aujourd'hui/Mes projets/Mon Brief route vers Connexion", async () => {
+  it("le CTA unique appelle le parcours de connexion existant", async () => {
     getCurrentAuthUserIdMock.mockResolvedValue(null);
     const onOpenAuth = vi.fn();
     const user = userEvent.setup();
     renderHome(emptyState, { onOpenAuth });
-
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Se connecter" }).length).toBeGreaterThan(0));
-    await user.click(screen.getAllByRole("button", { name: "Se connecter" })[0]!);
+    await user.click(await screen.findByRole("button", { name: "Se connecter" }));
     expect(onOpenAuth).toHaveBeenCalledTimes(1);
-
-    // "Mon Brief" devient lui aussi un CTA de connexion tant que non authentifié.
-    await user.click(screen.getByRole("button", { name: /Se connecter pour voir Mon Brief/ }));
-    expect(onOpenAuth).toHaveBeenCalledTimes(2);
   });
 
-  it("transition logout -> login reflétée sans rechargement complet : readHomeOverview se déclenche après connexion", async () => {
+  it("après connexion, les quatre sections normales et les données V3 sont restaurées sans rechargement", async () => {
     getCurrentAuthUserIdMock.mockResolvedValue(null);
-    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: protectedOverview });
     renderHome(emptyState);
-
-    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
+    await screen.findByText("Connexion requise");
     expect(readHomeOverviewMock).not.toHaveBeenCalled();
-
-    for (const listener of authStateChangeListeners) listener("test-auth-user");
-
-    await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
+    act(() => { for (const listener of authStateChangeListeners) listener("test-auth-user"); });
+    await screen.findByText("Projet protégé");
+    expect(screen.getByText("Attention protégée")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Voir Mon Brief/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent))
+      .toEqual(["Aujourd'hui", "Mes projets", "Mon Brief", "RUN"]);
+    expect(screen.queryByText("Connexion requise")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Se connecter/ })).not.toBeInTheDocument();
+    expect(readHomeOverviewMock).toHaveBeenCalledTimes(1);
   });
 
-  it("transition login -> logout : Home revient à « Connexion requise », aucune nouvelle lecture V3", async () => {
-    readHomeOverviewMock.mockResolvedValue({ ok: true, value: overview() });
+  it("déconnexion : masque immédiatement les données précédemment chargées, sans nouvelle lecture V3", async () => {
+    readHomeOverviewMock.mockResolvedValue({ ok: true, value: protectedOverview });
+    renderHome(emptyState);
+    await screen.findByText("Projet protégé");
+    act(() => { for (const listener of authStateChangeListeners) listener(null); });
+    expectSignedOutHome();
+    expect(readHomeOverviewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("une lecture commencée avant déconnexion et résolue tardivement ne réaffiche aucune donnée protégée", async () => {
+    let resolveOverview!: (result: { ok: true; value: HomeOverviewProjection }) => void;
+    readHomeOverviewMock.mockReturnValue(new Promise((resolve) => { resolveOverview = resolve; }));
     renderHome(emptyState);
     await waitFor(() => expect(readHomeOverviewMock).toHaveBeenCalledTimes(1));
-
-    for (const listener of authStateChangeListeners) listener(null);
-
-    await waitFor(() => expect(screen.getAllByText("Connexion requise").length).toBeGreaterThan(0));
+    act(() => { for (const listener of authStateChangeListeners) listener(null); });
+    await act(async () => { resolveOverview({ ok: true, value: protectedOverview }); });
+    expectSignedOutHome();
     expect(readHomeOverviewMock).toHaveBeenCalledTimes(1);
   });
 });

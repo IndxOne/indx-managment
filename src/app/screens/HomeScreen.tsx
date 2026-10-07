@@ -37,11 +37,7 @@ type V3LoadState =
    * projets sont indisponibles sans que ce soit une erreur réseau — même
    * contrainte que readHomeOverview()/getSupabaseClient() ailleurs dans
    * l'app (BriefScreen, ProjectV3Screen). RUN reste fonctionnel (§7 gate). */
-  | { status: "unavailable" }
-  /** Hotfix production (401 V3) : Supabase configuré mais aucune session
-   * Auth — jamais une requête `projets_v3_*` dans cet état, jamais une
-   * ErrorState (l'absence de session est un état attendu, pas une panne). */
-  | { status: "unauthenticated" };
+  | { status: "unavailable" };
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -81,7 +77,7 @@ export function HomeScreen({
   onOpenProject: (projectId: string, focus?: { focusType: BriefItem["sourceType"]; focusId: string }) => void;
   /** Ouvre la création rapide globale (bouton central de la barre basse) — utilisé par l'état vide RUN. */
   onQuickCreate: () => void;
-  /** Hotfix production (401 V3) : ouvre l'écran Connexion depuis les blocs V3 tant que non authentifié. */
+  /** Hotfix production (401 V3) : ouvre l'écran Connexion depuis l'état global de l'Accueil. */
   onOpenAuth: () => void;
 }) {
   const { state, editAction, setReminder, disableReminder, refreshReminders, addNote, linkAction, unlinkAction } =
@@ -102,7 +98,7 @@ export function HomeScreen({
       return;
     }
     if (auth.status === "unauthenticated") {
-      setV3State({ status: "unauthenticated" });
+      setV3State({ status: "loading" });
       return;
     }
     let cancelled = false;
@@ -224,81 +220,85 @@ export function HomeScreen({
         </div>
       </div>
       <div className="app-main">
-        <section aria-labelledby="home-attention-heading" className="today-section">
-          <h2 id="home-attention-heading" className="section-title">
-            Aujourd&apos;hui
-          </h2>
-          {v3State.status === "loading" && <LoadingState label="Chargement de ce qui nécessite ton attention…" />}
-          {v3State.status === "error" && (
-            <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
-          )}
-          {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
-          {v3State.status === "unauthenticated" && (
-            <AuthRequiredState description="Connecte-toi pour voir ce qui nécessite ton attention." onOpenAuth={onOpenAuth} />
-          )}
-          {v3State.status === "ready" && (
-            <>
-              <p className="action-sub">{attentionSummary(v3State.overview.attentionItems)}</p>
-              {v3State.overview.attentionItems.length > 0 && (
-                <div className="action-card-list">
-                  {v3State.overview.attentionItems.map((item) => (
-                    <BriefItemCard key={item.id} item={item} onOpen={handleOpenAttentionItem} />
-                  ))}
-                </div>
+        {auth.status === "unauthenticated" ? (
+          <AuthRequiredState
+            description="Connecte-toi pour retrouver tes projets, ce qui nécessite ton attention et Mon Brief."
+            onOpenAuth={onOpenAuth}
+          />
+        ) : (
+          <>
+            <section aria-labelledby="home-attention-heading" className="today-section">
+              <h2 id="home-attention-heading" className="section-title">
+                Aujourd&apos;hui
+              </h2>
+              {v3State.status === "loading" && <LoadingState label="Chargement de ce qui nécessite ton attention…" />}
+              {v3State.status === "error" && (
+                <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
               )}
-            </>
-          )}
-        </section>
+              {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+              {v3State.status === "ready" && (
+                <>
+                  <p className="action-sub">{attentionSummary(v3State.overview.attentionItems)}</p>
+                  {v3State.overview.attentionItems.length > 0 && (
+                    <div className="action-card-list">
+                      {v3State.overview.attentionItems.map((item) => (
+                        <BriefItemCard key={item.id} item={item} onOpen={handleOpenAttentionItem} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
 
-        <section aria-labelledby="home-projects-heading" className="today-section">
-          <h2 id="home-projects-heading" className="section-title">
-            Mes projets
-          </h2>
-          {v3State.status === "loading" && <LoadingState label="Chargement de tes projets…" />}
-          {v3State.status === "error" && (
-            <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
-          )}
-          {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
-          {v3State.status === "unauthenticated" && (
-            <AuthRequiredState description="Connecte-toi pour voir tes projets." onOpenAuth={onOpenAuth} />
-          )}
-          {v3State.status === "ready" &&
-            (v3State.overview.projects.length === 0 ? (
-              <p className="action-sub">Aucun projet actif pour l&apos;instant.</p>
-            ) : (
-              <div className="action-card-list">
-                {v3State.overview.projects.map((project) => (
-                  <HomeProjectCard key={project.id} project={project} onOpen={onOpenProject} />
+            <section aria-labelledby="home-projects-heading" className="today-section">
+              <h2 id="home-projects-heading" className="section-title">
+                Mes projets
+              </h2>
+              {v3State.status === "loading" && <LoadingState label="Chargement de tes projets…" />}
+              {v3State.status === "error" && (
+                <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
+              )}
+              {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+              {v3State.status === "ready" &&
+                (v3State.overview.projects.length === 0 ? (
+                  <p className="action-sub">Aucun projet actif pour l&apos;instant.</p>
+                ) : (
+                  <div className="action-card-list">
+                    {v3State.overview.projects.map((project) => (
+                      <HomeProjectCard key={project.id} project={project} onOpen={onOpenProject} />
+                    ))}
+                  </div>
                 ))}
-              </div>
-            ))}
-        </section>
+            </section>
 
-        <section aria-labelledby="home-brief-heading" className="today-section">
-          <h2 id="home-brief-heading" className="section-title">
-            Mon Brief
-          </h2>
-          <button
-            type="button"
-            className="action-card tap-target"
-            style={{ width: "100%", border: "none", textAlign: "left" }}
-            onClick={v3State.status === "unauthenticated" ? onOpenAuth : onOpenBrief}
-          >
-            <div className="action-card-body" style={{ alignItems: "center" }}>
-              <span className="more-icon" aria-hidden="true">
-                <IconFlag width={20} height={20} />
-              </span>
-              <span className="card-title" style={{ flex: 1 }}>
-                {v3State.status === "unauthenticated" ? "Se connecter pour voir Mon Brief" : "Voir Mon Brief"}
-                {v3State.status === "ready" && (
-                  <span className="action-sub" style={{ display: "block" }}>
-                    Mis à jour à {formatUpdatedAt(v3State.overview.generatedAt)}
+            <section aria-labelledby="home-brief-heading" className="today-section">
+              <h2 id="home-brief-heading" className="section-title">
+                Mon Brief
+              </h2>
+              <button
+                type="button"
+                className="action-card tap-target"
+                style={{ width: "100%", border: "none", textAlign: "left" }}
+                onClick={onOpenBrief}
+              >
+                <div className="action-card-body" style={{ alignItems: "center" }}>
+                  <span className="more-icon" aria-hidden="true">
+                    <IconFlag width={20} height={20} />
                   </span>
-                )}
-              </span>
-            </div>
-          </button>
-        </section>
+                  <span className="card-title" style={{ flex: 1 }}>
+                    Voir Mon Brief
+                    {v3State.status === "ready" && (
+                      <span className="action-sub" style={{ display: "block" }}>
+                        Mis à jour à {formatUpdatedAt(v3State.overview.generatedAt)}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </button>
+            </section>
+
+          </>
+        )}
 
         <TodaySection
           id="home-run-heading"
