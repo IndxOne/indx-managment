@@ -3542,11 +3542,15 @@ a {
   border-inline-start: 3px solid var(--brand-terracotta);
   padding-inline-start: var(--space-3);
 }
-.pilot-brief-intro {
+.brief-item-card-project {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-  margin: 0 0 var(--space-3);
+  font-weight: 600;
+  margin-inline-start: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (max-width: 359px) {
   .pilot-brief-lead { padding-inline-start: var(--space-2); }

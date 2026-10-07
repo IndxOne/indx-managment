@@ -24,8 +24,11 @@ export function BriefItemCard({
   item,
   onOpen,
   focused = false,
+  projectName,
 }: {
   item: BriefItem;
+  /** Projet d'appartenance, fourni par l'appelant (vue transverse) ; omis dans une vue déjà scopée au projet. */
+  projectName?: string;
   onOpen?: (item: BriefItem) => void;
   /** UX-5.1 : mise en évidence deep-link (focusType/focusId) quand l'item
    * ciblé est déjà l'élément affiché — même convention visuelle que
@@ -39,6 +42,7 @@ export function BriefItemCard({
           {SEVERITY_LABELS[item.severity]}
         </span>
         <span className="meta-chip">{SOURCE_TYPE_LABELS[item.sourceType]}</span>
+        {projectName && <span className="brief-item-card-project">{projectName}</span>}
       </div>
       <p className="brief-item-card-title">{item.title}</p>
       <p className="brief-item-card-reason">{item.reason}</p>
@@ -71,7 +75,7 @@ export function BriefItemCard({
       style={{ borderLeftColor: borderColor }}
       data-focused={focused || undefined}
       onClick={() => onOpen(item)}
-      aria-label={`${SOURCE_TYPE_LABELS[item.sourceType]} : ${item.title}. ${item.reason}`}
+      aria-label={`${SOURCE_TYPE_LABELS[item.sourceType]}${projectName ? ` · ${projectName}` : ""} : ${item.title}. ${item.reason}`}
     >
       {content}
     </button>
