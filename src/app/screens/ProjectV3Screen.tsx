@@ -9,6 +9,7 @@ import { IconChevronRight } from "../components/Icons";
 import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { SeverityBadge } from "../components/SeverityBadge";
 import { ProjectFocusNow } from "../components/project-overview/ProjectFocusNow";
+import { ProjectHomeSummary } from "../components/project-overview/ProjectHomeSummary";
 import { ProjectNextUp } from "../components/project-overview/ProjectNextUp";
 import { ProjectWatchList } from "../components/project-overview/ProjectWatchList";
 import { ProjectRecentChanges } from "../components/project-overview/ProjectRecentChanges";
@@ -182,6 +183,8 @@ function ProjectPilotShell({
   return (
     <div className="project-pilot-shell">
       <div className="project-pilot-content">
+        <ProjectHomeSummary overview={overview} />
+
         <div className="project-pilot-main">
           <ProjectFocusNow focusItem={focusItem} focused={focusItemMatchesDeepLink} onOpenBrief={onOpenBrief} />
           <ProjectNextUp nextMilestone={summary.nextMilestone} focused={nextMilestoneMatchesDeepLink} onOpenBrief={onOpenBrief} />
