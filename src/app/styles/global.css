@@ -3530,3 +3530,24 @@ a {
     flex-wrap: wrap;
   }
 }
+
+/* Pilot M1a — identité de marque additive : conserver les couleurs métier et
+   les tokens d'interaction iOS. Ces valeurs n'altèrent aucune règle V3. */
+:root {
+  --brand-ink: #0c1620;
+  --brand-ivory: #f7f1e8;
+  --brand-terracotta: #d65f3c;
+}
+.pilot-brief-lead {
+  border-inline-start: 3px solid var(--brand-terracotta);
+  padding-inline-start: var(--space-3);
+}
+.pilot-brief-intro {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--space-3);
+}
+@media (max-width: 359px) {
+  .pilot-brief-lead { padding-inline-start: var(--space-2); }
+}
