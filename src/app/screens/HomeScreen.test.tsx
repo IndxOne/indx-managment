@@ -338,7 +338,7 @@ describe("HomeScreen — état global de connexion MGMT-003", () => {
     await screen.findByText("Connexion requise");
     expect(readHomeOverviewMock).not.toHaveBeenCalled();
     act(() => { for (const listener of authStateChangeListeners) listener("test-auth-user"); });
-    await screen.findByText("Projet protégé");
+    expect(await screen.findAllByText("Projet protégé")).toHaveLength(2);
     expect(screen.getByText("Attention protégée")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Voir Mon Brief/ })).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent))
@@ -351,7 +351,7 @@ describe("HomeScreen — état global de connexion MGMT-003", () => {
   it("déconnexion : masque immédiatement les données précédemment chargées, sans nouvelle lecture V3", async () => {
     readHomeOverviewMock.mockResolvedValue({ ok: true, value: protectedOverview });
     renderHome(emptyState);
-    await screen.findByText("Projet protégé");
+    expect(await screen.findAllByText("Projet protégé")).toHaveLength(2);
     act(() => { for (const listener of authStateChangeListeners) listener(null); });
     expectSignedOutHome();
     expect(readHomeOverviewMock).toHaveBeenCalledTimes(1);

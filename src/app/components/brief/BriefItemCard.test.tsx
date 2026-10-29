@@ -18,6 +18,16 @@ function item(overrides: Partial<BriefItem> = {}): BriefItem {
   };
 }
 
+describe("BriefItemCard — projet d'appartenance", () => {
+  it("affiche le projet et l'inclut dans le nom accessible quand fourni, sinon rien", () => {
+    const { rerender } = render(<BriefItemCard item={item()} projectName="Migration ERP" onOpen={vi.fn()} />);
+    expect(screen.getByText("Migration ERP")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Migration ERP/ })).toBeInTheDocument();
+    rerender(<BriefItemCard item={item()} onOpen={vi.fn()} />);
+    expect(screen.queryByText("Migration ERP")).not.toBeInTheDocument();
+  });
+});
+
 describe("BriefItemCard — sans onOpen", () => {
   it("n'est pas un bouton, aucun tabIndex, aucune affordance de navigation", () => {
     render(<BriefItemCard item={item()} />);
