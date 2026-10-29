@@ -224,10 +224,11 @@ export function HomeScreen({
         </div>
       </div>
       <div className="app-main">
-        <section aria-labelledby="home-attention-heading" className="today-section">
+        <section aria-labelledby="home-attention-heading" className="today-section pilot-brief-lead">
           <h2 id="home-attention-heading" className="section-title">
             Aujourd&apos;hui
           </h2>
+          <p className="pilot-brief-intro">L'essentiel pour avancer : décisions, blocages et échéances. Sélection limitée aux trois priorités issues des règles projet.</p>
           {v3State.status === "loading" && <LoadingState label="Chargement de ce qui nécessite ton attention…" />}
           {v3State.status === "error" && (
             <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
