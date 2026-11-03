@@ -29,33 +29,19 @@ function stubDesktop() {
 
 function renderNav(overrides: Partial<Parameters<typeof BottomNav>[0]> = {}) {
   return render(
-    <BottomNav active="today" onChange={() => {}} onQuickCreate={() => {}} workspaces={[]} onSelectWorkspace={() => {}} {...overrides} />
+    <BottomNav active="today" onChange={() => {}} workspaces={[]} onSelectWorkspace={() => {}} {...overrides} />
   );
 }
 
 describe("BottomNav", () => {
-  it("affiche 4 destinations + le bouton central Créer sur mobile (Accueil/Suivi/Projets/Plus)", () => {
+  it("affiche 4 destinations sur mobile, sans bouton + (la création passe par le compositeur)", () => {
     // jsdom sans matchMedia stubbé = mobile (cf. useIsDesktop).
     renderNav();
-    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Suivi/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Créer une action" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Plus$/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Réglages/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Cette semaine/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button")).toHaveLength(5);
-  });
-
-  it("le bouton central de création rapide appelle onQuickCreate, jamais onChange", async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    const onQuickCreate = vi.fn();
-    renderNav({ onChange, onQuickCreate });
-
-    await user.click(screen.getByRole("button", { name: "Créer une action" }));
-    expect(onQuickCreate).toHaveBeenCalledTimes(1);
-    expect(onChange).not.toHaveBeenCalled();
+    for (const name of [/^Aujourd'hui$/, /^Espaces$/, /^Projets$/, /^Plus$/]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: "Créer une action" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(4);
   });
 
   it("conserve Cette semaine/Relances/Plus en accès direct dans la sidebar desktop (aucune destination perdue)", () => {
@@ -70,12 +56,12 @@ describe("BottomNav", () => {
   it("marque l'onglet actif avec aria-current", () => {
     renderNav({ active: "spaces" });
     expect(screen.getByRole("button", { name: /Projets/ })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: /Accueil/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /^Aujourd'hui$/ })).not.toHaveAttribute("aria-current");
   });
 
-  it("marque Suivi actif quand la route courante est run", () => {
+  it("marque Espaces actif quand la route courante est run", () => {
     renderNav({ active: "run" });
-    expect(screen.getByRole("button", { name: /^Suivi/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /^Espaces$/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("marque Plus actif pour les écrans secondaires (dont Réglages)", () => {
@@ -98,7 +84,7 @@ describe("BottomNav", () => {
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     expect(onChange).toHaveBeenCalledWith("spaces");
 
-    screen.getByRole("button", { name: /^Suivi/ }).focus();
+    screen.getByRole("button", { name: /^Espaces$/ }).focus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("run");
   });
@@ -116,17 +102,6 @@ describe("BottomNav", () => {
     vi.unstubAllGlobals();
   });
 
-  it("desktop : le bouton dédié 'Nouvelle action' de la sidebar appelle onQuickCreate", async () => {
-    stubDesktop();
-    const user = userEvent.setup();
-    const onQuickCreate = vi.fn();
-    renderNav({ onQuickCreate });
-
-    await user.click(screen.getByRole("button", { name: "Nouvelle action" }));
-    expect(onQuickCreate).toHaveBeenCalledTimes(1);
-
-    vi.unstubAllGlobals();
-  });
 
   it("liste les espaces RUN dans la barre latérale et marque l'espace actif", async () => {
     // La liste n'est rendue qu'à partir de 1024px (useIsDesktop) : simule le

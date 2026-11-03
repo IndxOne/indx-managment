@@ -22,6 +22,14 @@ function baseAction(overrides: Partial<Action> = {}): Action {
 }
 
 describe("moveAction — axe schedule", () => {
+  it("report à un jour précis (ex. Demain) : planification au jour", () => {
+    const moved = moveAction(baseAction({ schedule: { granularity: "month", value: "2026-09" } }), {
+      axis: "schedule",
+      to: { kind: "day", date: "2026-09-10" },
+    });
+    expect(moved.schedule).toEqual({ granularity: "day", value: "2026-09-10" });
+  });
+
   it("jour vers autre semaine : conserve le jour de semaine", () => {
     const action = baseAction();
     const originalWeekday = getIsoWeekday((action.schedule as { value: string }).value);

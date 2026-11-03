@@ -36,11 +36,11 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     listBriefProjectsMock.mockResolvedValue({ ok: true, value: [] });
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     // Les 4 emplacements primaires de BottomNav restent inchangés (cadrage
     // renouveau mobile Lot A) — Mon Brief n'y ajoute rien.
-    expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Suivi$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Aujourd'hui$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Espaces$/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Plus$/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mon Brief" })).not.toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     });
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(
       screen.getByRole("button", {
         name: /^Plus$/,
@@ -88,7 +88,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     });
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(
       screen.getByRole("button", {
         name: /^Plus$/,
@@ -112,7 +112,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     });
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(
       screen.getByRole("button", {
         name: /^Plus$/,
@@ -129,7 +129,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     listBriefProjectsMock.mockResolvedValue({ ok: true, value: [] });
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(
       screen.getByRole("button", {
         name: /^Plus$/,

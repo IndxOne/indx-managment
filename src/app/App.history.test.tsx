@@ -8,7 +8,7 @@ describe("App — retour arrière natif (historique navigateur)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /^Plus$/ }));
     await user.click(screen.getByRole("button", { name: "Notes" }));
     expect(await screen.findByRole("heading", { name: "Notes" })).toBeInTheDocument();

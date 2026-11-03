@@ -5,6 +5,8 @@ export type MoveAxis = "schedule" | "phase" | "status";
 
 export type ScheduleMoveDestination =
   | { kind: "none" }
+  /** Report à un jour précis (ex. "Demain" depuis le Flux). */
+  | { kind: "day"; date: string }
   | {
       kind: "week";
       /** Semaine ISO cible (déplacement dans une vue hebdomadaire). */
@@ -75,6 +77,10 @@ export function moveAction(action: Action, destination: MoveDestination, now?: s
 function resolveScheduleMove(current: Schedule | undefined, to: ScheduleMoveDestination): Schedule {
   if (to.kind === "none") {
     return { granularity: "none" };
+  }
+
+  if (to.kind === "day") {
+    return { granularity: "day", value: to.date };
   }
 
   if (current?.granularity === "day") {

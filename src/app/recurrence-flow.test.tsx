@@ -8,7 +8,7 @@ describe("Récurrence — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");

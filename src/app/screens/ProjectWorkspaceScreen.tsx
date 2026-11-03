@@ -129,21 +129,10 @@ export function ProjectWorkspaceScreen({
         <div>
           <span className="screen-eyebrow">Espace projet</span>
           <h1 className="project-title">{workspace.name}</h1>
-          <div className="project-header-chips">
-            <span className={`badge badge-${workspace.kind}`}>PROJET</span>
-            <span
-              className={`phase-chip ${
-                workspaceStatus === "done" ? "phase-chip-green" : workspaceStatus === "active" ? "phase-chip-blue" : "phase-chip-gray"
-              }`}
-            >
-              {workspaceStatusLabel(workspaceStatus)}
-            </span>
-            {workspaceTopPriority && (
-              <span className={`phase-chip ${workspaceTopPriority === "high" ? "phase-chip-red" : "phase-chip-orange"}`}>
-                {PRIORITY_LABELS[workspaceTopPriority]}
-              </span>
-            )}
-          </div>
+          <p className="project-header-meta">
+            <span>{workspaceStatusLabel(workspaceStatus)}</span>
+            {workspaceTopPriority && <span data-priority={workspaceTopPriority}>{PRIORITY_LABELS[workspaceTopPriority]}</span>}
+          </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" className="btn" onClick={() => setFilterSheetOpen(true)}>

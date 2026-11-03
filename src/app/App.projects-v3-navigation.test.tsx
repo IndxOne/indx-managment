@@ -107,7 +107,7 @@ describe("App — navigation Projets V3 -> Projet V3 -> Retour (UX-3)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
 
     await user.click(await screen.findByText("Migration ERP"));

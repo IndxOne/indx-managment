@@ -36,7 +36,7 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");
@@ -79,7 +79,7 @@ describe("ProjectWorkspaceScreen — Vue Columns (Lot 3)", () => {
 
 /**
  * Header PROJET (Lot C polish) : statut/priorité dérivés de l'espace,
- * affichés une seule fois dans le header (`.project-header-chips`) — plus
+ * affichés une seule fois dans le header (`.project-header-meta`) — plus
  * dans ProjectPhaseOverview (retiré pour éviter la redondance visuelle,
  * cf. commentaire dans ProjectPhaseOverview.tsx).
  */
@@ -88,7 +88,7 @@ describe("ProjectWorkspaceScreen — header (Lot C polish)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");

@@ -94,7 +94,7 @@ async function openBriefWithSingleProject(user: ReturnType<typeof userEvent.setu
   listBriefProjectsMock.mockResolvedValue({ ok: true, value: [{ id: "p1", name: "Migration M365", status: "on_track" }] });
   readBriefMock.mockResolvedValue(briefFixture);
   render(<App />);
-  await screen.findByRole("button", { name: /Accueil/ });
+  await screen.findByRole("button", { name: /^Aujourd'hui$/ });
   await user.click(
     screen.getByRole("button", {
       name: /^Plus$/,

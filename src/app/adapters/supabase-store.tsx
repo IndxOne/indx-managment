@@ -80,6 +80,8 @@ function isAuthorizationError(cause: unknown): boolean {
   );
 }
 
+const workspaceCreateKey = (workspaceId: string) => `workspace-create:${workspaceId}`;
+
 export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, EMPTY_STATE);
   const [status, setStatus] = useState<SyncStatus>("loading");
@@ -398,11 +400,17 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           now: input.now ?? new Date().toISOString(),
         };
         const workspace = createWorkspace(withId);
-        dispatchAndPersist({ type: "workspace/create", input: withId }, async () => {
-          const ownerId = await resolveOwnerId();
-          const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash, ownerId));
-          if (error) throw error;
-        });
+        dispatch({ type: "workspace/create", input: withId });
+        // Clé connue : une action créée aussitôt dans ce nouvel espace attend
+        // cette insertion (clé étrangère), cf. createAction.
+        trackPersist({
+          key: workspaceCreateKey(workspace.id),
+          persist: async () => {
+            const ownerId = await resolveOwnerId();
+            const { error } = await client.from("projets_workspaces").insert(workspaceToRow(workspace, userHash, ownerId));
+            if (error) throw error;
+          },
+        }).catch(() => {});
         return workspace;
       },
 
@@ -449,6 +457,7 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         const id = generateId();
         const now = new Date().toISOString();
         dispatchAndPersist({ type: "action/create", input, id, now }, async () => {
+          await persistQueues.current.get(workspaceCreateKey(input.workspaceId));
           const row = actionToRow(
             {
               id,

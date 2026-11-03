@@ -8,7 +8,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
     await screen.findByText("Aucun projet pour l'instant");
@@ -33,7 +33,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     // L'action existe dans l'espace RUN créé (un seul espace RUN : l'onglet
     // saute directement dedans, cf. RunHubScreen), avec le texte de la note
     // comme titre.
-    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
+    await user.click(screen.getByRole("button", { name: /^Espaces$/ }));
     expect(await screen.findByText("Relancer le fournisseur X")).toBeInTheDocument();
   });
 
@@ -41,7 +41,7 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     await user.click(screen.getByRole("button", { name: /^Plus$/ }));
     await user.click(screen.getByRole("button", { name: "Notes" }));
 

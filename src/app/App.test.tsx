@@ -11,7 +11,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // Porte de démarrage : le contenu réel apparaît après le premier effet.
     // L'app s'ouvre désormais sur Accueil (Home) — on rejoint Projets pour
     // créer un espace (décision produit validée, Lot 1 du renouveau produit).
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
     // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
     // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
@@ -40,7 +40,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // (pas de card résumé) — vérifie que l'action créée s'y retrouve bien,
     // et n'apparaît jamais dans "Projets" (QA post-prod 2026-09-17 : un
     // espace RUN ne doit plus jamais lister dans l'onglet Projets).
-    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
+    await user.click(screen.getByRole("button", { name: /^Espaces$/ }));
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
 
     // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
@@ -55,7 +55,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
     // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
     // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
@@ -87,7 +87,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
+    await screen.findByRole("button", { name: /^Aujourd'hui$/ });
     // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
     // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
     // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
@@ -100,67 +100,46 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     // Retour à Accueil, puis l'onglet RUN doit rouvrir directement l'espace,
     // sans passer par une liste intermédiaire.
-    await user.click(screen.getByRole("button", { name: /Accueil/ }));
-    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
+    await user.click(screen.getByRole("button", { name: /^Aujourd'hui$/ }));
+    await user.click(screen.getByRole("button", { name: /^Espaces$/ }));
     expect(await screen.findByRole("heading", { name: "RUN quotidien" })).toBeInTheDocument();
   });
 
-  it("le bouton central de création rapide ouvre « Que voulez-vous créer ? » puis crée une action RUN (Lot B, plus un placeholder)", async () => {
+  it("compositeur : écrire comme on parle crée l'action au bon moment, sans espace préalable", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
-    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
-    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
-    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
-    await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
-    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
-    await user.type(screen.getByLabelText("Nom de l'espace"), "RUN quotidien");
-    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
-    await screen.findByRole("heading", { name: "RUN quotidien" });
+    await user.type(await screen.findByLabelText("Créer une action"), "Appeler Paul demain !");
+    // Aperçu vivant de ce que l'app a compris.
+    expect(screen.getByText("Demain")).toBeInTheDocument();
+    expect(screen.getByText("Prioritaire")).toBeInTheDocument();
+    expect(screen.getByText("Mes actions")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Envoyer" }));
 
-    await user.click(screen.getByRole("button", { name: /Accueil/ }));
-    await user.click(screen.getByRole("button", { name: "Créer une action" }));
+    expect(await screen.findByText("Ajoutée à Mes actions · Demain")).toBeInTheDocument();
+    expect(screen.getByLabelText("Créer une action")).toHaveValue("");
+    // Le Flux la range dans "Bientôt", et elle devient le focus (journée libre).
+    expect(await screen.findByRole("button", { name: "Appeler Paul" })).toBeInTheDocument();
 
-    // Un seul espace RUN existe : l'étape de sélection d'espace est sautée,
-    // directement le formulaire (même règle que RunHubScreen).
-    expect(await screen.findByText("Choisissez le type d'élément à créer")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Action de suivi/ }));
-    await user.type(screen.getByLabelText("Titre"), "Créée depuis le bouton central");
-    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
-
-    expect(await screen.findByText(/créée dans RUN quotidien/)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
-    expect(await screen.findByText("Créée depuis le bouton central")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Espaces$/ }));
+    expect(await screen.findByRole("heading", { name: "Mes actions" })).toBeInTheDocument();
   });
 
-  it("« Que voulez-vous créer ? » propose une Tâche Projet rattachée au bon espace PROJET", async () => {
+  it("compositeur : #espace cible un espace existant, ou le crée s'il n'existe pas", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await screen.findByRole("button", { name: /Accueil/ });
-    // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
-    // création d'espaces Workspace V2 (RUN/PROJET) reste accessible via le
-    // lien legacy — comportement V2 inchangé, seul le chemin d'accès change.
-    await user.click(screen.getByRole("button", { name: /Projets/ }));
-    await user.click(await screen.findByRole("button", { name: "Anciens espaces projet" }));
-    await user.click(screen.getByRole("button", { name: "Créer un projet" }));
-    await user.type(screen.getByLabelText("Nom de l'espace"), "Refonte site client");
-    await user.click(screen.getByLabelText(/Projet avec étapes/));
-    await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
-    await screen.findByRole("heading", { name: "Refonte site client" });
+    const composer = await screen.findByLabelText("Créer une action");
+    await user.type(composer, "Rédiger le brief #mariage{Enter}");
+    expect(await screen.findByText("Ajoutée à Mariage")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Accueil/ }));
-    await user.click(screen.getByRole("button", { name: "Créer une action" }));
+    await user.type(composer, "Choisir le traiteur #mari");
+    expect(screen.getByText("Mariage", { selector: ".composer-chip" })).toBeInTheDocument();
+    await user.type(composer, "{Enter}");
+    expect(await screen.findByText("Ajoutée à Mariage")).toBeInTheDocument();
 
-    expect(await screen.findByText("Choisissez le type d'élément à créer")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Tâche Projet/ }));
-    await user.type(screen.getByLabelText("Titre"), "Rédiger le brief");
-    await user.click(screen.getByRole("button", { name: "Créer l'action" }));
-
-    expect(await screen.findByText(/créée dans Refonte site client/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Espaces$/ }));
+    expect(await screen.findByRole("heading", { name: "Mariage" })).toBeInTheDocument();
+    expect(screen.getByText("Choisir le traiteur")).toBeInTheDocument();
   });
-
 });

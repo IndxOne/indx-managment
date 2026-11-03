@@ -125,7 +125,7 @@ export interface BriefsAndMilestones {
 
 /**
  * Cœur partagé Home V3 (UX-2) / Projets V3 (UX-3) — extrait de
- * home-overview-reader.ts. 8 collections batchées `.in("project_id", ids)`,
+ * lecteurs V3. 8 collections batchées `.in("project_id", ids)`,
  * chacune paginée indépendamment (`fetchAllRows`, cap PostgREST 1000
  * lignes/page) : budget = 8 + somme(pages nécessaires par collection au-delà
  * de la 1ʳᵉ), jamais une requête par projet. En dessous de 1000 lignes par

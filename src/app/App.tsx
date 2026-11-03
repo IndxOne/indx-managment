@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import type { BriefSourceType } from "../domain/v3/brief/types";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
@@ -16,7 +17,7 @@ import { BriefLauncherScreen } from "./screens/BriefLauncherScreen";
 import { BriefScreen } from "./screens/BriefScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
-import { HomeScreen } from "./screens/HomeScreen";
+import { FluxScreen } from "./screens/FluxScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectV3Screen } from "./screens/ProjectV3Screen";
 import { ProjectsV3ListScreen } from "./screens/ProjectsV3ListScreen";
@@ -26,8 +27,8 @@ import { RunHubScreen } from "./screens/RunHubScreen";
 import { RunWorkspaceScreen } from "./screens/RunWorkspaceScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
-import { QuickCreateSheet } from "./components/QuickCreateSheet";
-import { ToastProvider, useToast } from "./components/Toast";
+import { Composer } from "./components/Composer";
+import { ToastProvider } from "./components/Toast";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { UpdatePrompt } from "./components/UpdatePrompt";
 
@@ -108,12 +109,22 @@ function useHistoryRoute(initial: Route): [Route, (next: Route) => void] {
 
   const navigate = useCallback((next: Route) => {
     window.history.pushState({ route: next }, "");
-    setRoute(next);
+    withViewTransition(() => setRoute(next));
     // Nouvel écran = haut de page (jsdom n'implémente pas scrollTo).
     document.scrollingElement?.scrollTo?.(0, 0);
   }, []);
 
   return [route, navigate];
+}
+
+/** Transition d'écran native du navigateur (fondu), si disponible et souhaitée. */
+function withViewTransition(update: () => void) {
+  const start = (document as Document & { startViewTransition?: (callback: () => void) => unknown }).startViewTransition;
+  if (!start || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    update();
+    return;
+  }
+  start.call(document, () => flushSync(update));
 }
 
 function useOnlineStatus(): boolean {
@@ -132,8 +143,7 @@ function useOnlineStatus(): boolean {
 }
 
 function AppShell() {
-  const { state, isLoading, createAction } = useStore();
-  const { showToast } = useToast();
+  const { state, isLoading } = useStore();
   // Accueil (Home) est la route initiale : ouvrir l'app sur ce qui nécessite
   // une action immédiate, pas sur la liste des projets (décision produit
   // validée). HomeScreen (Lot 7) : Aujourd'hui / En retard / Bloqué / Cette
@@ -143,11 +153,6 @@ function AppShell() {
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  // Bouton central de création rapide (Lot B) : ouvre le sélecteur "Que
-  // voulez-vous créer ?" (QuickCreateSheet), qui choisit lui-même la
-  // destination (RUN / Projet / nouvel espace) avant de déléguer la création
-  // à AddActionSheet + useStore().createAction, jamais un bouton mort.
-  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
 
   // Porte de démarrage minimale : évite un flash de contenu avant le
   // premier rendu committé (état "chargement" honnête, sans donnée fictive).
@@ -172,17 +177,6 @@ function AppShell() {
     else setRoute({ screen: tab });
   }
 
-  function openQuickCreate() {
-    // Aucun espace du tout : rien à créer dedans, on envoie directement vers
-    // la création d'espace plutôt que d'ouvrir un sélecteur sans cible
-    // possible (jamais un bouton qui ne fait rien).
-    if (state.workspaces.length === 0) {
-      setRoute({ screen: "spaces-create" });
-      return;
-    }
-    setQuickCreateOpen(true);
-  }
-
   const workspace =
     route.screen === "workspace-detail" || route.screen === "workspace-settings"
       ? state.workspaces.find((candidate) => candidate.id === route.workspaceId)
@@ -197,29 +191,19 @@ function AppShell() {
       <BottomNav
         active={activeTab}
         onChange={handleNavChange}
-        onQuickCreate={openQuickCreate}
         workspaces={state.workspaces}
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
       />
       <UpdatePrompt />
+      {!isLoading && <Composer timezone={timezone} />}
       <main className="app-content" id="contenu">
         {!booted || isLoading ? (
           <LoadingState label="Chargement…" />
         ) : (
           <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
-          <HomeScreen
-            timezone={timezone}
-            onNavigateToWorkspace={goToWorkspaceId}
-            onOpenWeek={() => setRoute({ screen: "week" })}
-            onOpenBrief={() => setRoute({ screen: "brief" })}
-            onOpenProject={(projectId, focus) =>
-              setRoute({ screen: "project-v3", projectId, focusType: focus?.focusType, focusId: focus?.focusId })
-            }
-            onQuickCreate={openQuickCreate}
-            onOpenAuth={() => setRoute({ screen: "auth" })}
-          />
+          <FluxScreen timezone={timezone} onNavigateToWorkspace={goToWorkspaceId} />
         )}
 
         {route.screen === "run" && (
@@ -369,33 +353,6 @@ function AppShell() {
         )}
       </main>
 
-      {quickCreateOpen && (
-        <QuickCreateSheet
-          workspaces={state.workspaces}
-          membersByWorkspace={state.membersByWorkspace ?? {}}
-          onCancel={() => setQuickCreateOpen(false)}
-          onCreateProject={() => {
-            setQuickCreateOpen(false);
-            setRoute({ screen: "spaces-create" });
-          }}
-          onCreateAction={(targetWorkspace, input) => {
-            // Pas de répétition depuis la création rapide globale : seul le
-            // formulaire complet d'un espace (Run/ProjectWorkspaceScreen) la
-            // propose (comportement inchangé depuis le Lot A).
-            createAction({
-              workspaceId: targetWorkspace.id,
-              title: input.title,
-              itemType: input.itemType,
-              priority: input.priority,
-              phaseId: input.phaseId,
-              schedule: input.schedule,
-              assigneeIds: input.assigneeIds,
-            });
-            setQuickCreateOpen(false);
-            showToast(`« ${input.title} » créée dans ${targetWorkspace.name}.`);
-          }}
-        />
-      )}
     </div>
   );
 }

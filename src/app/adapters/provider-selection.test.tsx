@@ -61,6 +61,6 @@ describe("App — choix du provider selon isSupabaseConfigured()", () => {
     });
 
     expect(screen.queryByText("Chargement…")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /Accueil/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Aujourd'hui$/ })).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import { cycleStatus } from "../../domain/move-action";
 import type { Action, ActionStatus, WorkspaceKind } from "../../domain/types";
 import { isWaitingReminderDue } from "../../reminders/waiting-reminder";
 import { ITEM_TYPE_LABELS, KIND_LABELS, phaseLabel } from "../labels";
+import { humanSchedule } from "../utils/human-date";
 import { memberInitials } from "../utils/member-summary";
 import { phaseChipClass } from "../utils/phase-color";
 import { resolveDisplayPhaseId } from "../utils/resolve-phase";
@@ -122,7 +123,7 @@ export function ActionCard({
   const noteCount = action.notes?.length ?? 0;
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
-  const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
+  const scheduleLabel = humanSchedule(action.schedule, timezone) || formatRelativeLabel(derived.relativeLabel);
   // Pastille d'échéance seulement si une date existe : "Non planifiée" est
   // déjà dans la ligne meta, la répéter en pastille n'apporte que du bruit.
   const dueChip = action.schedule && action.schedule.granularity !== "none" ? scheduleLabel : "";

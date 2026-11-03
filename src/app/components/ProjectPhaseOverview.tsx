@@ -19,7 +19,7 @@ import { EmptyState } from "./StateBlocks";
  * "cocher/terminer" déjà garantie par `ActionCard`) sont réutilisés tels quels.
  *
  * Statut/priorité de l'espace (Lot C polish) : affichés une seule fois dans
- * le header de `ProjectWorkspaceScreen` (`.project-header-chips`), pas ici
+ * le header de `ProjectWorkspaceScreen` (`.project-header-meta`), pas ici
  * — évite de répéter deux fois la même information dans la hiérarchie
  * verticale (Header -> Progression -> Phase actuelle -> ...).
  */
