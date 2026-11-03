@@ -6,18 +6,11 @@
          les zones non sûres sont compensées avec env(safe-area-inset-*) en CSS. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Gestion d'actions et de projets RUN/PROJET, mobile et desktop." />
-    <meta name="theme-color" content="#0062cc" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0068d1" media="(prefers-color-scheme: dark)" />
-    <!-- Applique le thème choisi (Réglages) avant le premier rendu React :
-         sans ça, une préférence "sombre" explicite flasherait en clair le
-         temps que l'app charge. -->
-    <script>
-      try {
-        var theme = localStorage.getItem("indxone-theme-preference");
-        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
-      } catch (error) {}
-    </script>
+    <meta name="description" content="Suivez vos actions du quotidien et vos projets, simplement, depuis votre téléphone." />
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)" />
+    <!-- Thème choisi appliqué avant le premier rendu (fichier externe : CSP stricte). -->
+    <script src="/theme-init.js"></script>
     <!-- Installation en app (Ajouter à l'écran d'accueil) sur iOS : Safari
          ignore le manifest web pour ce comportement, ces meta dédiées sont
          le seul moyen d'obtenir un lancement plein écran sans barre Safari. -->

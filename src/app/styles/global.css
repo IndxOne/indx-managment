@@ -1,6 +1,6 @@
 /* Mobile-first : tout est pensé pour 360 px avant d'être élargi.
-   D.A. "Atelier" (IndxOne) : papier chaud, encre profonde, un seul accent
-   vert sapin. Cartes calmes, rayons généreux, ombres discrètes. Une seule
+   D.A. "Atelier" (IndxOne) : papier chaud, encre marine du logo, un seul
+   accent terracotta (couleur de marque). Cartes calmes, rayons généreux, ombres discrètes. Une seule
    couleur d'action pour qu'un non-technicien sache toujours où appuyer.
    Contrastes vérifiés WCAG AA (script de luminance relative, cf. docs/DESIGN.md). */
 
@@ -10,12 +10,12 @@
   --color-bg: #ffffff;
   --color-fill: rgba(22, 24, 29, 0.06);
   --color-border: rgba(22, 24, 29, 0.14);
-  --color-text: #16181d;
+  --color-text: #0c1823;
   --color-text-muted: #5b6170;
   --color-text-tertiary: #b9bcc4;
-  --color-accent: #0b6e5f;
-  --color-accent-text: #0b6e5f;
-  --color-accent-soft: #e2f0ec;
+  --color-accent: #ad4426;
+  --color-accent-text: #ad4426;
+  --color-accent-soft: #f9e9e2;
   --color-accent-contrast: #ffffff;
   --color-danger: #c2362b;
   --color-warning: #e08a00;
@@ -24,7 +24,7 @@
   --color-success-soft: #e5f4ea;
   --color-warning-soft: #fdf1dc;
   --color-danger-soft: #fbe9e6;
-  --focus-ring: 3px solid #0b6e5f;
+  --focus-ring: 3px solid #ad4426;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -126,9 +126,9 @@
     --color-text: #f1f0ec;
     --color-text-muted: #9da3ad;
     --color-text-tertiary: #4a4f57;
-    --color-accent: #0d7a69;
-    --color-accent-text: #4fc9b3;
-    --color-accent-soft: #13312c;
+    --color-accent: #b9502f;
+    --color-accent-text: #ff9b78;
+    --color-accent-soft: #3a2119;
     --color-accent-contrast: #ffffff;
     --color-danger: #ff6b5e;
     --color-warning: #f0a030;
@@ -137,7 +137,7 @@
     --color-success-soft: #122a1c;
     --color-warning-soft: #2c2312;
     --color-danger-soft: #341a17;
-    --focus-ring: 3px solid #4fc9b3;
+    --focus-ring: 3px solid #ff9b78;
     --shadow-thumb: 0 2px 6px rgba(0, 0, 0, 0.5);
     --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6);
     --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03), 0 4px 14px rgba(0, 0, 0, 0.35);
@@ -178,9 +178,9 @@
   --color-text: #f1f0ec;
   --color-text-muted: #9da3ad;
   --color-text-tertiary: #4a4f57;
-  --color-accent: #0d7a69;
-  --color-accent-text: #4fc9b3;
-  --color-accent-soft: #13312c;
+  --color-accent: #b9502f;
+  --color-accent-text: #ff9b78;
+  --color-accent-soft: #3a2119;
   --color-accent-contrast: #ffffff;
   --color-danger: #ff6b5e;
   --color-warning: #f0a030;
@@ -189,7 +189,7 @@
   --color-success-soft: #122a1c;
   --color-warning-soft: #2c2312;
   --color-danger-soft: #341a17;
-  --focus-ring: 3px solid #4fc9b3;
+  --focus-ring: 3px solid #ff9b78;
   --shadow-thumb: 0 2px 6px rgba(0, 0, 0, 0.5);
   --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03), 0 4px 14px rgba(0, 0, 0, 0.35);
@@ -461,6 +461,15 @@ a {
   color: var(--color-text);
 }
 
+/* Focus porté par la pilule entière (pas un rectangle dans un arrondi). */
+.quick-add:focus-within {
+  box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-card);
+}
+
+.quick-add-input:focus-visible {
+  outline: none;
+}
+
 .quick-add-input::placeholder {
   color: var(--color-text-muted);
 }
@@ -691,11 +700,16 @@ a {
   justify-content: flex-end;
   padding-top: var(--space-2);
   margin-top: 2px;
-  border-top: 0.5px solid var(--color-border);
+  border-top: 1px solid var(--color-fill);
 }
 
+/* Action secondaire, pas un aplat plein par carte : une liste de 10 cartes
+   ne doit pas devenir 10 boutons qui crient (D.A. Atelier). */
 .action-card-treat {
-  padding: 0 var(--space-5);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
 }
 
 .action-card-chips {

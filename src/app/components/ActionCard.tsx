@@ -123,6 +123,9 @@ export function ActionCard({
   const hasLink = Boolean(action.linkedActionId);
   const derived = deriveScheduleKeys(action.schedule, timezone);
   const scheduleLabel = formatRelativeLabel(derived.relativeLabel) || derived.dayKey || derived.isoWeekKey || derived.isoMonthKey;
+  // Pastille d'échéance seulement si une date existe : "Non planifiée" est
+  // déjà dans la ligne meta, la répéter en pastille n'apporte que du bruit.
+  const dueChip = action.schedule && action.schedule.granularity !== "none" ? scheduleLabel : "";
   const isWaiting = action.status === "waiting";
   const isDone = action.status === "done";
   const reminderActive = isWaiting && action.waitingReminder?.enabled;
@@ -135,7 +138,7 @@ export function ActionCard({
     action.priority === "high" ||
     Boolean(workspaceKind) ||
     action.itemType !== "task" ||
-    Boolean(scheduleLabel);
+    Boolean(dueChip);
   // resolveDisplayPhaseId retombe sur la première phase du template quand
   // phaseId est absent (comportement voulu pour le regroupement en colonnes)
   // — mais ici, "pas de phase" doit rester "pas de chip", jamais la 1ère phase.
@@ -411,7 +414,7 @@ export function ActionCard({
                 de chips (cadrage §4 polish RUN) — additif : la ligne meta
                 sous le titre continue de porter la même info en contexte
                 (espace/statut), jamais supprimée. */}
-            {scheduleLabel && <span className="action-card-due">{scheduleLabel}</span>}
+            {dueChip && <span className="action-card-due">{dueChip}</span>}
           </div>
         )}
         <div className="action-card-body">
@@ -450,7 +453,7 @@ export function ActionCard({
         </div>
         {onTreat && !isDone && (
           <div className="action-card-footer">
-            <button type="button" className="btn btn-primary tap-target action-card-treat" onClick={onTreat}>
+            <button type="button" className="btn tap-target action-card-treat" onClick={onTreat}>
               {treatLabel}
             </button>
           </div>

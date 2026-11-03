@@ -19,7 +19,7 @@ export default defineConfig({
       manifest: {
         name: "INDXONE Projets",
         short_name: "Projets",
-        description: "Gestion d'actions et de projets RUN/PROJET, mobile et desktop.",
+        description: "Suivez vos actions du quotidien et vos projets, simplement, depuis votre téléphone.",
         lang: "fr",
         // id/scope/categories/screenshots : exigés ou notés par PWABuilder
         // pour l'empaquetage Play Store / App Store (cf. docs/stores.md).
@@ -28,8 +28,8 @@ export default defineConfig({
         start_url: "/",
         display: "standalone",
         categories: ["productivity", "business"],
-        background_color: "#f2f2f7",
-        theme_color: "#007aff",
+        background_color: "#f6f5f1",
+        theme_color: "#0c1823",
         icons: [
           { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
