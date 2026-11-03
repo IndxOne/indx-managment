@@ -97,7 +97,7 @@ async function openBriefWithSingleProject(user: ReturnType<typeof userEvent.setu
   await screen.findByRole("button", { name: /Accueil/ });
   await user.click(
     screen.getByRole("button", {
-      name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+      name: /^Plus$/,
     })
   );
   await user.click(screen.getByRole("button", { name: "Mon Brief" }));

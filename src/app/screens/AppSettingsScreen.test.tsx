@@ -11,10 +11,10 @@ describe("AppSettingsScreen", () => {
     // seule la branche "persistance locale" est atteignable ici.
     render(
       <TemporaryStoreProvider>
-        <AppSettingsScreen onNavigate={() => {}} onOpenAuth={() => {}} />
+        <AppSettingsScreen onOpenAuth={() => {}} />
       </TemporaryStoreProvider>
     );
-    expect(screen.getByText("Persistance locale uniquement")).toBeInTheDocument();
+    expect(screen.getByText("Mode local")).toBeInTheDocument();
   });
 
   // Le réglage "2e destination" (Semaine/Rappels) a été retiré (Lot 1.1 du

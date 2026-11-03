@@ -50,7 +50,7 @@ describe("App — choix du provider selon isSupabaseConfigured()", () => {
       render(<App />);
     });
 
-    expect(await screen.findByText("Chargement des espaces…")).toBeInTheDocument();
+    expect(await screen.findByText("Chargement…")).toBeInTheDocument();
   });
 
   it("Supabase non configuré : passe par TemporaryStoreProvider (jamais de skeleton, contenu immédiat)", async () => {
@@ -60,7 +60,7 @@ describe("App — choix du provider selon isSupabaseConfigured()", () => {
       render(<App />);
     });
 
-    expect(screen.queryByText("Chargement des espaces…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Chargement…")).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Accueil/ })).toBeInTheDocument();
   });
 });

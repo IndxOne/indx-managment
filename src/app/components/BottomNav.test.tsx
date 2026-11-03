@@ -34,17 +34,16 @@ function renderNav(overrides: Partial<Parameters<typeof BottomNav>[0]> = {}) {
 }
 
 describe("BottomNav", () => {
-  it("affiche les 5 emplacements primaires mobiles — Accueil/RUN/création rapide/Projets/Réglages (cadrage renouveau mobile Lot A)", () => {
+  it("affiche 4 destinations + le bouton central Créer sur mobile (Accueil/Suivi/Projets/Plus)", () => {
     // jsdom sans matchMedia stubbé = mobile (cf. useIsDesktop).
     renderNav();
     expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^RUN/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Suivi/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Créer une action" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Plus$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Réglages/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Cette semaine/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Rappels/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Plus$/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(5);
   });
 
@@ -59,11 +58,11 @@ describe("BottomNav", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("conserve Cette semaine/Rappels/Plus en accès direct dans la sidebar desktop (aucune destination perdue)", () => {
+  it("conserve Cette semaine/Relances/Plus en accès direct dans la sidebar desktop (aucune destination perdue)", () => {
     stubDesktop();
     renderNav();
     expect(screen.getByRole("button", { name: /Cette semaine/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Rappels/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Relances/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Plus/ })).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
@@ -74,14 +73,14 @@ describe("BottomNav", () => {
     expect(screen.getByRole("button", { name: /Accueil/ })).not.toHaveAttribute("aria-current");
   });
 
-  it("marque RUN actif quand la route courante est run", () => {
+  it("marque Suivi actif quand la route courante est run", () => {
     renderNav({ active: "run" });
-    expect(screen.getByRole("button", { name: /^RUN/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /^Suivi/ })).toHaveAttribute("aria-current", "page");
   });
 
-  it("marque Réglages actif quand la route courante est app-settings (onglet primaire settings)", () => {
-    renderNav({ active: "settings" });
-    expect(screen.getByRole("button", { name: /Réglages/ })).toHaveAttribute("aria-current", "page");
+  it("marque Plus actif pour les écrans secondaires (dont Réglages)", () => {
+    renderNav({ active: "more" });
+    expect(screen.getByRole("button", { name: /^Plus$/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("chaque cible tactile respecte le minimum 44px (classe tap-target)", () => {
@@ -99,7 +98,7 @@ describe("BottomNav", () => {
     await user.click(screen.getByRole("button", { name: /Projets/ }));
     expect(onChange).toHaveBeenCalledWith("spaces");
 
-    screen.getByRole("button", { name: /^RUN/ }).focus();
+    screen.getByRole("button", { name: /^Suivi/ }).focus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("run");
   });

@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ActionStatus } from "../domain/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { BriefSourceType } from "../domain/v3/brief/types";
 import type { Workspace } from "../domain/workspace";
 import { AnnouncerProvider } from "./a11y/announcer";
@@ -7,13 +6,10 @@ import { TemporaryStoreProvider, useStore } from "./adapters/temporary-store";
 import { SupabaseStoreProvider } from "./adapters/supabase-store";
 import { isSupabaseConfigured } from "./adapters/supabase/client";
 import { BottomNav, type NavTab } from "./components/BottomNav";
-import { IconChevronRight, IconMore } from "./components/Icons";
+import { IconChevronRight } from "./components/Icons";
 import { ErrorState, LoadingState, OfflineBanner } from "./components/StateBlocks";
-import { useIsDesktop } from "./hooks/useIsDesktop";
-import { ActionsByStatusScreen } from "./screens/ActionsByStatusScreen";
 import { AggregatedActionsScreen } from "./screens/AggregatedActionsScreen";
 import { AppSettingsScreen } from "./screens/AppSettingsScreen";
-import { ApproachesScreen } from "./screens/ApproachesScreen";
 import { ApproachSettingsScreen } from "./screens/ApproachSettingsScreen";
 import { AuthScreen } from "./screens/AuthScreen";
 import { BriefLauncherScreen } from "./screens/BriefLauncherScreen";
@@ -21,7 +17,6 @@ import { BriefScreen } from "./screens/BriefScreen";
 import { CarnetScreen } from "./screens/CarnetScreen";
 import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
-import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { ProjectV3Screen } from "./screens/ProjectV3Screen";
 import { ProjectsV3ListScreen } from "./screens/ProjectsV3ListScreen";
@@ -33,6 +28,8 @@ import { SearchScreen } from "./screens/SearchScreen";
 import { WorkspaceListScreen } from "./screens/WorkspaceListScreen";
 import { QuickCreateSheet } from "./components/QuickCreateSheet";
 import { ToastProvider, useToast } from "./components/Toast";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { UpdatePrompt } from "./components/UpdatePrompt";
 
 type Route =
   | { screen: "today" }
@@ -46,9 +43,6 @@ type Route =
   | { screen: "more" }
   | { screen: "reminders" }
   | { screen: "carnet" }
-  | { screen: "hub" }
-  | { screen: "roles" }
-  | { screen: "actions-by-status"; status: ActionStatus }
   | { screen: "search" }
   | { screen: "app-settings" }
   | { screen: "auth" }
@@ -72,16 +66,12 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
       return "week";
     case "reminders":
       return "reminders";
-    case "app-settings":
-      return "settings";
     case "workspace-detail":
     case "workspace-settings":
       return workspaceKind === "run" ? "run" : "spaces";
     case "more":
+    case "app-settings":
     case "carnet":
-    case "hub":
-    case "roles":
-    case "actions-by-status":
     case "search":
     case "auth":
     case "brief":
@@ -94,6 +84,36 @@ function routeToTab(route: Route, workspaceKind: Workspace["kind"] | undefined):
     default:
       return "spaces";
   }
+}
+
+/**
+ * Route adossée à l'historique du navigateur : le geste/bouton "retour"
+ * (Android, iOS, navigateur) revient à l'écran précédent au lieu de quitter
+ * l'app. Pas de router externe : pushState/popstate suffisent ici.
+ */
+function useHistoryRoute(initial: Route): [Route, (next: Route) => void] {
+  const [route, setRoute] = useState<Route>(initial);
+
+  useEffect(() => {
+    window.history.replaceState({ route: initial }, "");
+    function onPopState(event: PopStateEvent) {
+      const previous = (event.state as { route?: Route } | null)?.route;
+      setRoute(previous ?? initial);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // initial est figé au montage (route d'accueil).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const navigate = useCallback((next: Route) => {
+    window.history.pushState({ route: next }, "");
+    setRoute(next);
+    // Nouvel écran = haut de page (jsdom n'implémente pas scrollTo).
+    document.scrollingElement?.scrollTo?.(0, 0);
+  }, []);
+
+  return [route, navigate];
 }
 
 function useOnlineStatus(): boolean {
@@ -119,14 +139,9 @@ function AppShell() {
   // validée). HomeScreen (Lot 7) : Aujourd'hui / En retard / Bloqué / Cette
   // semaine (aperçu), au lieu de l'ancien AggregatedActionsScreen générique
   // (toujours utilisé pour la route "week", vue temporelle complète).
-  const [route, setRoute] = useState<Route>({ screen: "today" });
+  const [route, setRoute] = useHistoryRoute({ screen: "today" });
   const [booted, setBooted] = useState(false);
   const online = useOnlineStatus();
-  // Sur desktop, l'accès au menu secondaire vit dans la sidebar de BottomNav
-  // (bouton "Plus" existant) : le bouton d'en-tête ci-dessous est réservé au
-  // mobile, où la barre basse est strictement limitée à 4 destinations
-  // (cadrage renouveau produit, Lot 1.1).
-  const isDesktop = useIsDesktop();
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   // Bouton central de création rapide (Lot B) : ouvre le sélecteur "Que
   // voulez-vous créer ?" (QuickCreateSheet), qui choisit lui-même la
@@ -154,7 +169,6 @@ function AppShell() {
     // ("spaces-list") reste joignable via le lien "Anciens espaces projet"
     // de ProjectsV3ListScreen, jamais depuis la barre de navigation.
     if (tab === "spaces") setRoute({ screen: "projects-v3" });
-    else if (tab === "settings") setRoute({ screen: "app-settings" });
     else setRoute({ screen: tab });
   }
 
@@ -180,17 +194,6 @@ function AppShell() {
   return (
     <div className="app-shell">
       {!online && <OfflineBanner />}
-      {!isDesktop && (
-        <button
-          type="button"
-          className="app-more-trigger tap-target"
-          aria-label="Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief"
-          aria-current={activeTab === "more" ? "page" : undefined}
-          onClick={() => setRoute({ screen: "more" })}
-        >
-          <IconMore width={20} height={20} strokeWidth={1.8} />
-        </button>
-      )}
       <BottomNav
         active={activeTab}
         onChange={handleNavChange}
@@ -199,9 +202,10 @@ function AppShell() {
         activeWorkspaceId={workspace?.id}
         onSelectWorkspace={goToWorkspaceId}
       />
-      <main className="app-content">
+      <UpdatePrompt />
+      <main className="app-content" id="contenu">
         {!booted || isLoading ? (
-          <LoadingState label="Chargement des espaces…" />
+          <LoadingState label="Chargement…" />
         ) : (
           <div key={routeKey} className="route-transition">
         {route.screen === "today" && (
@@ -292,44 +296,16 @@ function AppShell() {
         {route.screen === "more" && <MoreScreen onSelect={(destination) => setRoute({ screen: destination })} />}
 
         {route.screen === "reminders" && (
-          <RemindersScreen
-            timezone={timezone}
-            onNavigateToWorkspace={goToWorkspaceId}
-            onNavigate={(destination) => setRoute({ screen: destination })}
-          />
+          <RemindersScreen timezone={timezone} onNavigateToWorkspace={goToWorkspaceId} />
         )}
 
         {route.screen === "carnet" && (
-          <CarnetScreen onNavigate={(destination) => setRoute({ screen: destination })} />
+          <CarnetScreen />
         )}
 
-        {route.screen === "hub" && (
-          <HubScreen
-            onNavigate={(destination) => setRoute({ screen: destination })}
-            onOpenSpaces={() => setRoute({ screen: "spaces-list" })}
-            onOpenStatus={(status) => setRoute({ screen: "actions-by-status", status })}
-          />
-        )}
-
-        {route.screen === "roles" && (
-          <ApproachesScreen onNavigate={(destination) => setRoute({ screen: destination })} />
-        )}
-
-        {route.screen === "actions-by-status" && (
-          <ActionsByStatusScreen
-            status={route.status}
-            timezone={timezone}
-            onBack={() => setRoute({ screen: "hub" })}
-            onNavigateToWorkspace={goToWorkspaceId}
-          />
-        )}
 
         {route.screen === "search" && (
-          <SearchScreen
-            timezone={timezone}
-            onNavigate={(destination) => setRoute({ screen: destination })}
-            onNavigateToWorkspace={goToWorkspaceId}
-          />
+          <SearchScreen timezone={timezone} onNavigateToWorkspace={goToWorkspaceId} />
         )}
 
         {route.screen === "brief" &&
@@ -364,10 +340,7 @@ function AppShell() {
         )}
 
         {route.screen === "app-settings" && (
-          <AppSettingsScreen
-            onNavigate={(destination) => setRoute({ screen: destination })}
-            onOpenAuth={() => setRoute({ screen: "auth" })}
-          />
+          <AppSettingsScreen onOpenAuth={() => setRoute({ screen: "auth" })} />
         )}
 
         {route.screen === "auth" && (
@@ -377,8 +350,8 @@ function AppShell() {
                 <button
                   type="button"
                   className="btn btn-icon"
-                  onClick={() => setRoute({ screen: "app-settings" })}
-                  aria-label="Retour aux réglages"
+                  onClick={() => window.history.back()}
+                  aria-label="Retour"
                 >
                   <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
                 </button>
@@ -435,15 +408,25 @@ function WorkspaceNotFound({ onBack }: { onBack: () => void }) {
   );
 }
 
+/** Mode local (sans backend configuré) : données conservées sur l'appareil. */
+export const LOCAL_STATE_KEY = "indxone-local-state-v1";
+
 export function App() {
-  const StoreProviderImpl = isSupabaseConfigured() ? SupabaseStoreProvider : TemporaryStoreProvider;
   return (
-    <AnnouncerProvider>
-      <ToastProvider>
-        <StoreProviderImpl>
-          <AppShell />
-        </StoreProviderImpl>
-      </ToastProvider>
-    </AnnouncerProvider>
+    <ErrorBoundary>
+      <AnnouncerProvider>
+        <ToastProvider>
+          {isSupabaseConfigured() ? (
+            <SupabaseStoreProvider>
+              <AppShell />
+            </SupabaseStoreProvider>
+          ) : (
+            <TemporaryStoreProvider persistKey={LOCAL_STATE_KEY}>
+              <AppShell />
+            </TemporaryStoreProvider>
+          )}
+        </ToastProvider>
+      </AnnouncerProvider>
+    </ErrorBoundary>
   );
 }

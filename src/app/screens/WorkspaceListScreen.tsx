@@ -60,7 +60,7 @@ export function WorkspaceListScreen({
         {projectWorkspaces.length === 0 ? (
           <EmptyState
             title="Aucun projet pour l'instant"
-            description="Créez votre premier espace PROJET pour commencer."
+            description="Créez votre premier projet pour commencer."
             action={
               <button type="button" className="btn btn-primary tap-target" onClick={onCreate}>
                 Créer un projet

@@ -8,24 +8,24 @@ export function MoreScreen({ onSelect }: { onSelect: (destination: MoreDestinati
         <h1>Plus</h1>
       </div>
       <div className="app-main">
-        <ul className="list action-card-list">
-          {MORE_LINKS.map(({ key, label, Icon }) => (
+        <ul className="list more-list">
+          {MORE_LINKS.map(({ key, label, hint, Icon }) => (
             <li key={key}>
               <button
                 type="button"
-                className="action-card"
-                style={{ width: "100%", border: "none", textAlign: "left", cursor: "pointer" }}
+                className="more-row tap-target"
+                aria-label={label}
+                aria-describedby={`more-hint-${key}`}
                 onClick={() => onSelect(key)}
               >
-                <div className="action-card-body" style={{ alignItems: "center" }}>
-                  <span className="more-icon" data-key={key} aria-hidden="true">
-                    <Icon width={20} height={20} />
-                  </span>
-                  <span className="card-title" style={{ flex: 1 }}>
-                    {label}
-                  </span>
-                  <IconChevronRight className="chevron" width={18} height={18} />
-                </div>
+                <span className="more-icon" aria-hidden="true">
+                  <Icon width={20} height={20} />
+                </span>
+                <span className="more-row-text">
+                  <span className="more-row-label">{label}</span>
+                  <span className="more-row-hint" id={`more-hint-${key}`}>{hint}</span>
+                </span>
+                <IconChevronRight className="chevron" width={18} height={18} aria-hidden="true" />
               </button>
             </li>
           ))}

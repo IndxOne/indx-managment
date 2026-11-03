@@ -19,8 +19,8 @@ export const APPROACH_DESCRIPTIONS: Record<ProfessionalApproach, string> = {
 };
 
 export const KIND_LABELS: Record<WorkspaceKind, string> = {
-  run: "RUN",
-  project: "PROJET",
+  run: "Suivi",
+  project: "Projet",
 };
 
 export const STATUS_LABELS_DEFAULT: Record<ActionStatus, string> = {

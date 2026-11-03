@@ -40,7 +40,7 @@ describe("CreateWorkspaceScreen", () => {
     const { onCreated } = renderScreen();
 
     await user.type(screen.getByLabelText("Nom de l'espace"), "Site vitrine");
-    await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
+    await user.click(screen.getByLabelText("Projet avec étapes"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
 
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ kind: "project", approach: "project_amoa" }));
@@ -51,7 +51,7 @@ describe("CreateWorkspaceScreen", () => {
     const { onCreated } = renderScreen();
 
     await user.type(screen.getByLabelText("Nom de l'espace"), "Boutique cliente");
-    await user.click(screen.getByLabelText("Projet avec étapes (PROJET)"));
+    await user.click(screen.getByLabelText("Projet avec étapes"));
     await user.click(screen.getByLabelText("Site web / E-commerce (brief client)"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
 

@@ -21,7 +21,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
 
     await user.click(screen.getByRole("button", { name: "Créer un projet" }));
     await user.type(screen.getByLabelText("Nom de l'espace"), "RUN SI quotidien");
-    await user.click(screen.getByLabelText("Travail continu (RUN)"));
+    await user.click(screen.getByLabelText("Suivi au quotidien"));
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
 
     // Navigation immédiate vers l'écran RUN de l'espace créé.
@@ -29,7 +29,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // "RUN" apparaît maintenant aussi comme onglet primaire de la barre basse
     // (cadrage renouveau mobile Lot A) — on cible ici précisément le badge de
     // nature d'espace, pas le libellé de l'onglet.
-    expect(screen.getByText("RUN", { selector: ".badge-run" })).toBeInTheDocument();
+    expect(screen.getByText("Espace de suivi")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Nouvelle action"), "Investiguer les droits d'accès");
     await user.click(screen.getByRole("button", { name: "Ajouter" }));
@@ -40,7 +40,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // (pas de card résumé) — vérifie que l'action créée s'y retrouve bien,
     // et n'apparaît jamais dans "Projets" (QA post-prod 2026-09-17 : un
     // espace RUN ne doit plus jamais lister dans l'onglet Projets).
-    await user.click(screen.getByRole("button", { name: /^RUN$/ }));
+    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
     expect(await screen.findByText("Investiguer les droits d'accès")).toBeInTheDocument();
 
     // L'onglet "Projets" ouvre désormais la vue Project V3 (UX-3) ; la
@@ -101,7 +101,7 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // Retour à Accueil, puis l'onglet RUN doit rouvrir directement l'espace,
     // sans passer par une liste intermédiaire.
     await user.click(screen.getByRole("button", { name: /Accueil/ }));
-    await user.click(screen.getByRole("button", { name: /^RUN/ }));
+    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
     expect(await screen.findByRole("heading", { name: "RUN quotidien" })).toBeInTheDocument();
   });
 
@@ -126,13 +126,13 @@ describe("App — parcours mobile bout en bout (jsdom)", () => {
     // Un seul espace RUN existe : l'étape de sélection d'espace est sautée,
     // directement le formulaire (même règle que RunHubScreen).
     expect(await screen.findByText("Choisissez le type d'élément à créer")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Action RUN/ }));
+    await user.click(screen.getByRole("button", { name: /Action de suivi/ }));
     await user.type(screen.getByLabelText("Titre"), "Créée depuis le bouton central");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 
     expect(await screen.findByText(/créée dans RUN quotidien/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /^RUN/ }));
+    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
     expect(await screen.findByText("Créée depuis le bouton central")).toBeInTheDocument();
   });
 

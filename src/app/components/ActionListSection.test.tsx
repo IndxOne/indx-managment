@@ -125,7 +125,7 @@ describe("ActionListSection — vue transversale (resolveWorkspace)", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "RUN" }));
+    await user.click(screen.getByRole("button", { name: "Suivi" }));
     expect(onOpenWorkspace).toHaveBeenCalledWith(expect.objectContaining({ id: "a1" }));
   });
 
@@ -141,7 +141,7 @@ describe("ActionListSection — vue transversale (resolveWorkspace)", () => {
         {...noop}
       />
     );
-    expect(screen.queryByRole("button", { name: "RUN" })).not.toBeInTheDocument();
-    expect(screen.getByText("RUN")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeInTheDocument();
+    expect(screen.getByText("Suivi")).toBeInTheDocument();
   });
 });

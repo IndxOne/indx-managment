@@ -7,8 +7,6 @@ import { useStore } from "../adapters/store-context";
 import { buildExportPayload, downloadExport } from "../utils/export-data";
 import { getStoredThemePreference, setThemePreference, type ThemePreference } from "../utils/theme";
 import { EmptyState } from "../components/StateBlocks";
-import { MoreSubNav } from "../components/MoreSubNav";
-import type { MoreDestination } from "../more-links";
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "system", label: "Système" },
@@ -25,10 +23,8 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
  * supabase-store.tsx — les deux mécanismes coexistent, RLS additive).
  */
 export function AppSettingsScreen({
-  onNavigate,
   onOpenAuth,
 }: {
-  onNavigate: (destination: MoreDestination) => void;
   onOpenAuth: () => void;
 }) {
   const { state } = useStore();
@@ -101,7 +97,6 @@ export function AppSettingsScreen({
       <div className="top-bar">
         <h1>Réglages</h1>
       </div>
-      <MoreSubNav active="app-settings" onNavigate={onNavigate} />
       <div className="app-main">
         <div className="settings-section">
           <h2 className="section-title" style={{ marginTop: 0 }}>
@@ -128,8 +123,8 @@ export function AppSettingsScreen({
 
         {!configured || !currentCode ? (
           <EmptyState
-            title="Persistance locale uniquement"
-            description="Aucun compte Supabase configuré sur ce déploiement : les données restent dans ce navigateur, pas de synchronisation entre appareils."
+            title="Mode local"
+            description="Vos données sont enregistrées sur cet appareil uniquement. Pensez à exporter une sauvegarde de temps en temps."
           />
         ) : (
           <>

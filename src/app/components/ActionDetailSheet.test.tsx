@@ -228,7 +228,7 @@ describe("ActionDetailSheet — écran complet (Lot B)", () => {
 
     const row = screen.getByRole("button", { name: /^Espace/ });
     expect(row).toHaveTextContent("Refonte site client");
-    expect(row).toHaveTextContent("PROJET");
+    expect(row).toHaveTextContent("Projet");
     await user.click(row);
     expect(onNavigate).toHaveBeenCalledWith("w1");
     expect(onClose).toHaveBeenCalledTimes(1);

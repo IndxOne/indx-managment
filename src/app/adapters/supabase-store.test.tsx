@@ -184,7 +184,7 @@ describe("App — chargement Supabase", () => {
 
     render(<App />);
 
-    const loadingLabel = await screen.findByText("Chargement des espaces…");
+    const loadingLabel = await screen.findByText("Chargement…");
     expect(loadingLabel.closest('[role="status"]')).toHaveClass("loading-skeleton");
     // "Cette semaine" a quitté la barre basse primaire mobile (cadrage
     // renouveau mobile Lot A, désormais accessible via le menu secondaire) —
@@ -192,7 +192,7 @@ describe("App — chargement Supabase", () => {
     const spacesTab = screen.getByRole("button", { name: "Projets" });
     await user.click(spacesTab);
     expect(spacesTab).toHaveAttribute("aria-current", "page");
-    expect(screen.getByText("Chargement des espaces…")).toBeInTheDocument();
+    expect(screen.getByText("Chargement…")).toBeInTheDocument();
 
     await act(async () => {
       pendingClient.resolveLoad();

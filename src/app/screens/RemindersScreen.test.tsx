@@ -5,7 +5,7 @@ import type { Action } from "../../domain/types";
 import type { Workspace } from "../../domain/workspace";
 import { AnnouncerProvider } from "../a11y/announcer";
 import { StoreProvider, type AppState } from "../adapters/temporary-store";
-import { ActionsByStatusScreen } from "./ActionsByStatusScreen";
+import { AggregatedActionsScreen } from "./AggregatedActionsScreen";
 import { RemindersScreen } from "./RemindersScreen";
 
 function workspace(overrides: Partial<Workspace> = {}): Workspace {
@@ -56,7 +56,7 @@ describe("RemindersScreen", () => {
     render(
       <AnnouncerProvider>
         <StoreProvider initialState={state}>
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
         </StoreProvider>
       </AnnouncerProvider>
     );
@@ -79,7 +79,7 @@ describe("RemindersScreen", () => {
     render(
       <AnnouncerProvider>
         <StoreProvider initialState={state}>
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
         </StoreProvider>
       </AnnouncerProvider>
     );
@@ -101,7 +101,7 @@ describe("RemindersScreen", () => {
     render(
       <AnnouncerProvider>
         <StoreProvider initialState={state}>
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
         </StoreProvider>
       </AnnouncerProvider>
     );
@@ -116,20 +116,26 @@ describe("RemindersScreen", () => {
     const state: AppState = {
       workspaces: [workspace()],
       actionsByWorkspace: {
-        w1: [action({ id: "a1", title: "Nouvelle tâche", status: "todo", waitingReminder: undefined })],
+        w1: [action({ id: "a1", title: "Nouvelle tâche", status: "todo", waitingReminder: undefined, schedule: { granularity: "day", value: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()) } })],
       },
       recurrenceRulesByWorkspace: { w1: [] },
       carnetNotes: [],
     };
 
     // Même StoreProvider pour les deux écrans : le déplacement effectué
-    // depuis ActionsByStatusScreen doit se refléter dans RemindersScreen,
+    // depuis la vue Semaine doit se refléter dans RemindersScreen,
     // preuve que setReminder est bien appelé avec le bon workspaceId.
     render(
       <AnnouncerProvider>
         <StoreProvider initialState={state}>
-          <ActionsByStatusScreen status="todo" timezone="Europe/Paris" onBack={() => {}} onNavigateToWorkspace={vi.fn()} />
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+          <AggregatedActionsScreen
+            title="Cette semaine"
+            includeLabels={["today"]}
+            emptyDescription="—"
+            timezone="Europe/Paris"
+            onNavigateToWorkspace={vi.fn()}
+          />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
         </StoreProvider>
       </AnnouncerProvider>
     );
@@ -144,7 +150,7 @@ describe("RemindersScreen", () => {
     await user.click(screen.getByRole("button", { name: "Confirmer" }));
 
     expect(screen.queryByText("Aucune relance active")).not.toBeInTheDocument();
-    expect(screen.getByText(/Relance après 3 j/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Relance après 3 j/).length).toBeGreaterThan(0);
   });
 
   it("le clic sur le badge d'espace navigue vers l'espace d'origine", async () => {
@@ -162,12 +168,12 @@ describe("RemindersScreen", () => {
     render(
       <AnnouncerProvider>
         <StoreProvider initialState={state}>
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={onNavigateToWorkspace} onNavigate={() => {}} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={onNavigateToWorkspace} />
         </StoreProvider>
       </AnnouncerProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: "RUN" }));
+    await user.click(screen.getByRole("button", { name: "Suivi" }));
     expect(onNavigateToWorkspace).toHaveBeenCalledWith("w1");
   });
 
@@ -175,7 +181,7 @@ describe("RemindersScreen", () => {
     render(
       <AnnouncerProvider>
         <StoreProvider>
-          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} onNavigate={() => {}} />
+          <RemindersScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
         </StoreProvider>
       </AnnouncerProvider>
     );

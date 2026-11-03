@@ -15,7 +15,7 @@ export const PROJECT_METHOD_LABELS: Record<ProjectMethod, string> = {
   predictive: "Prédictif",
   agile: "Agile",
   hybrid: "Hybride",
-  run: "RUN",
+  run: "Suivi continu",
 };
 
 export const OBJECTIVE_STATUS_LABELS: Record<ObjectiveStatus, string> = {

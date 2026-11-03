@@ -1,4 +1,4 @@
-import { useMemo, useReducer, type ReactNode } from "react";
+import { useEffect, useMemo, useReducer, type ReactNode } from "react";
 import type { CreateWorkspaceInput } from "../../domain/workspace";
 import { createWorkspace } from "../../domain/workspace";
 import { createMember } from "../../domain/member";
@@ -24,11 +24,25 @@ export type { AppState, NewActionInput, NewWorkspaceInput };
 export function TemporaryStoreProvider({
   children,
   initialState = EMPTY_STATE,
+  persistKey,
 }: {
   children: ReactNode;
   initialState?: AppState;
+  /** Clé localStorage : sans backend, les données survivent au rechargement (mode local). */
+  persistKey?: string;
 }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, dispatch] = useReducer(appReducer, initialState, (fallback) =>
+    persistKey ? (loadPersistedState(persistKey) ?? fallback) : fallback
+  );
+
+  useEffect(() => {
+    if (!persistKey) return;
+    try {
+      localStorage.setItem(persistKey, JSON.stringify(state));
+    } catch {
+      // Quota dépassé / navigation privée : l'app reste utilisable en mémoire.
+    }
+  }, [persistKey, state]);
 
   const value = useMemo<StoreContextValue>(
     () => ({
@@ -102,10 +116,6 @@ export function TemporaryStoreProvider({
       deleteCarnetNote: (noteId) => dispatch({ type: "carnet/delete", noteId }),
       convertCarnetNote: (noteId, input) =>
         dispatch({ type: "carnet/convert", noteId, input, id: generateId(), now: new Date().toISOString() }),
-      updateHubSettings: (settings) => {
-        dispatch({ type: "hub-settings/update", settings });
-        return Promise.resolve();
-      },
       createMember: (input) => {
         const member = createMember({ ...input, id: generateId() });
         dispatch({ type: "member/create", member });
@@ -120,6 +130,18 @@ export function TemporaryStoreProvider({
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+function loadPersistedState(key: string): AppState | undefined {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as Partial<AppState>;
+    if (!Array.isArray(parsed.workspaces) || typeof parsed.actionsByWorkspace !== "object") return undefined;
+    return { ...EMPTY_STATE, ...parsed } as AppState;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Alias conservé pour compatibilité (tests, imports existants). */

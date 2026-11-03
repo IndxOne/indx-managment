@@ -17,8 +17,8 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     await user.click(screen.getByRole("button", { name: "Créer l'espace" }));
     await screen.findByRole("heading", { name: "Suivi quotidien" });
 
-    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
-    await user.click(screen.getByRole("button", { name: "Carnet" }));
+    await user.click(screen.getByRole("button", { name: /^Plus$/ }));
+    await user.click(screen.getByRole("button", { name: "Notes" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Relancer le fournisseur X");
     await user.click(screen.getByRole("button", { name: "Ajouter une note" }));
@@ -28,12 +28,12 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     await user.click(screen.getByRole("button", { name: /Suivi quotidien/ }));
 
     // La note a quitté le Carnet.
-    await screen.findByText("Carnet vide");
+    await screen.findByText("Aucune note");
 
     // L'action existe dans l'espace RUN créé (un seul espace RUN : l'onglet
     // saute directement dedans, cf. RunHubScreen), avec le texte de la note
     // comme titre.
-    await user.click(screen.getByRole("button", { name: /^RUN$/ }));
+    await user.click(screen.getByRole("button", { name: /^Suivi$/ }));
     expect(await screen.findByText("Relancer le fournisseur X")).toBeInTheDocument();
   });
 
@@ -42,8 +42,8 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
     render(<App />);
 
     await screen.findByRole("button", { name: /Accueil/ });
-    await user.click(screen.getByRole("button", { name: /menu secondaire/i }));
-    await user.click(screen.getByRole("button", { name: "Carnet" }));
+    await user.click(screen.getByRole("button", { name: /^Plus$/ }));
+    await user.click(screen.getByRole("button", { name: "Notes" }));
 
     await user.type(screen.getByLabelText("Nouvelle note"), "Idée jetable");
     await user.click(screen.getByRole("button", { name: "Ajouter une note" }));
@@ -51,6 +51,6 @@ describe("Carnet — parcours bout en bout (jsdom)", () => {
 
     await user.click(screen.getByRole("button", { name: "Supprimer" }));
     expect(screen.queryByText("Idée jetable")).not.toBeInTheDocument();
-    expect(await screen.findByText("Carnet vide")).toBeInTheDocument();
+    expect(await screen.findByText("Aucune note")).toBeInTheDocument();
   });
 });

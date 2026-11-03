@@ -15,8 +15,6 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { UndoBanner } from "../components/UndoBanner";
-import { MoreSubNav } from "../components/MoreSubNav";
-import type { MoreDestination } from "../more-links";
 
 /**
  * Recherche transversale (titre, description, tags, texte des notes),
@@ -33,11 +31,9 @@ function matchesQuery(action: Action, query: string): boolean {
 }
 export function SearchScreen({
   timezone,
-  onNavigate,
   onNavigateToWorkspace,
 }: {
   timezone: string;
-  onNavigate: (destination: MoreDestination) => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
   const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
@@ -96,7 +92,6 @@ export function SearchScreen({
       <div className="top-bar">
         <h1>Recherche</h1>
       </div>
-      <MoreSubNav active="search" onNavigate={onNavigate} />
       <div className="app-main">
         <div className="field">
           <label htmlFor="search-query">Rechercher une action</label>

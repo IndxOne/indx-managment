@@ -154,9 +154,8 @@ export function RunWorkspaceScreen({
     <div>
       <div className="top-bar">
         <div>
-          <span className="screen-eyebrow">Inbox opérationnelle</span>
+          <span className="screen-eyebrow">Espace de suivi</span>
           <h1 className="run-title">{workspace.name}</h1>
-          <span className={`badge badge-${workspace.kind}`}>{workspace.kind === "run" ? "RUN" : "PROJET"}</span>
           {/* Le geste swipe n'existe que s'il y a au moins une action active à
               traiter (onComplete branché sur les 3 buckets actifs) — jamais
               affiché sur un écran vide ou 100% résolu, où le geste n'a
@@ -202,7 +201,7 @@ export function RunWorkspaceScreen({
           ) : (
             <EmptyState
               title="Aucune action prévue"
-              description="Ajoutez une action pour commencer à suivre ce RUN."
+              description="Ajoutez une action pour commencer."
               action={
                 <button
                   type="button"

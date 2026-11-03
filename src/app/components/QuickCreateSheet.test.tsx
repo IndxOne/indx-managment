@@ -33,7 +33,7 @@ describe("QuickCreateSheet — « Que voulez-vous créer ? » (Lot B)", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Action RUN/ }));
+    await user.click(screen.getByRole("button", { name: /Action de suivi/ }));
     await user.type(screen.getByLabelText("Titre"), "Investiguer l'incident");
     await user.click(screen.getByRole("button", { name: "Créer l'action" }));
 

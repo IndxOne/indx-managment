@@ -16,8 +16,6 @@ import { MoveActionSheet } from "../components/MoveActionSheet";
 import { NotesSheet } from "../components/NotesSheet";
 import { EmptyState } from "../components/StateBlocks";
 import { UndoBanner } from "../components/UndoBanner";
-import { MoreSubNav } from "../components/MoreSubNav";
-import type { MoreDestination } from "../more-links";
 
 /**
  * Vue transversale des relances actives (statut "waiting" + relance
@@ -29,11 +27,9 @@ import type { MoreDestination } from "../more-links";
  */
 export function RemindersScreen({
   timezone,
-  onNavigate,
   onNavigateToWorkspace,
 }: {
   timezone: string;
-  onNavigate: (destination: MoreDestination) => void;
   onNavigateToWorkspace: (workspaceId: string) => void;
 }) {
   const { state, editAction, setReminder, disableReminder, addNote, linkAction, unlinkAction } = useStore();
@@ -86,9 +82,8 @@ export function RemindersScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>Rappels</h1>
+        <h1>Relances</h1>
       </div>
-      <MoreSubNav active="reminders" onNavigate={onNavigate} />
       <div className="app-main">
         <p className="action-sub" style={{ marginBottom: "var(--space-4)" }}>
           Les actions en attente avec une relance activée, tous espaces confondus.

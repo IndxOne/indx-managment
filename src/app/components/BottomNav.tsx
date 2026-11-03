@@ -1,29 +1,28 @@
 import type { Workspace } from "../../domain/workspace";
 import { useIsDesktop } from "../hooks/useIsDesktop";
-import { IconBell, IconCalendar, IconGrid, IconMore, IconPlus, IconSettings, IconSun, IconTray } from "./Icons";
+import { IconBell, IconCalendar, IconGrid, IconMore, IconPlus, IconSun, IconTray } from "./Icons";
 
-export type NavTab = "today" | "run" | "spaces" | "settings" | "week" | "reminders" | "more";
+export type NavTab = "today" | "run" | "spaces" | "more" | "week" | "reminders";
 
 /**
- * 5 emplacements primaires mobile (cadrage renouveau mobile, Lot A) :
- * Aujourd'hui / RUN / création rapide (bouton central, pas une destination
- * — cf. `onQuickCreate`) / Projets / Réglages. "Cette semaine" et "Rappels"
- * quittent la barre primaire (ils restent joignables depuis le menu
- * secondaire "•••", cf. more-links.ts) — aucune destination n'est perdue,
- * seule sa place change. Même liste de destinations sur desktop (adaptée à
- * la sidebar ci-dessous), jamais de barre mobile "en plus" sur grand écran.
+ * Mobile : 4 destinations + bouton central "Créer" (pattern barre d'onglets
+ * standard, pouce-friendly). Réglages vit dans "Plus" : un seul point
+ * d'entrée secondaire, plus de bouton flottant "•••" en haut d'écran.
  */
 const TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
   { id: "today", label: "Accueil", Icon: IconSun },
-  { id: "run", label: "RUN", Icon: IconTray },
+  { id: "run", label: "Suivi", Icon: IconTray },
   { id: "spaces", label: "Projets", Icon: IconGrid },
-  { id: "settings", label: "Réglages", Icon: IconSettings },
+  { id: "more", label: "Plus", Icon: IconMore },
 ];
 
 const DESKTOP_SECONDARY_TABS: { id: NavTab; label: string; Icon: typeof IconSun }[] = [
   { id: "week", label: "Cette semaine", Icon: IconCalendar },
-  { id: "reminders", label: "Rappels", Icon: IconBell },
+  { id: "reminders", label: "Relances", Icon: IconBell },
 ];
+
+/** Desktop : mêmes destinations, Cette semaine/Relances en accès direct. */
+const DESKTOP_TABS = [...TABS.slice(0, 3), ...DESKTOP_SECONDARY_TABS, ...TABS.slice(3)];
 
 export function BottomNav({
   active,
@@ -63,7 +62,7 @@ export function BottomNav({
     <nav className="bottom-nav" aria-label="Navigation principale">
       {isDesktop ? (
         <>
-          {TABS.map(({ id, label, Icon }) => (
+          {DESKTOP_TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               type="button"
@@ -75,22 +74,6 @@ export function BottomNav({
               <span>{label}</span>
             </button>
           ))}
-          {DESKTOP_SECONDARY_TABS.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              className="bottom-nav-item tap-target"
-              aria-current={active === id ? "page" : undefined}
-              onClick={() => onChange(id)}
-            >
-              <Icon width={24} height={24} strokeWidth={1.6} />
-              <span>{label}</span>
-            </button>
-          ))}
-          <button type="button" className="bottom-nav-item tap-target" aria-current={active === "more" ? "page" : undefined} onClick={() => onChange("more")}>
-            <IconMore width={24} height={24} strokeWidth={1.6} />
-            <span>Plus</span>
-          </button>
         </>
       ) : (
         <>
@@ -137,7 +120,7 @@ export function BottomNav({
             <IconPlus width={16} height={16} strokeWidth={2.4} />
             Nouvelle action
           </button>
-          <span className="sidebar-workspaces-title">Mes espaces RUN</span>
+          <span className="sidebar-workspaces-title">Mes espaces de suivi</span>
           <ul className="sidebar-workspace-list">
             {runWorkspaces.map((workspace) => (
               <li key={workspace.id}>

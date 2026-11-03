@@ -99,7 +99,7 @@ export function NoResultsState({ onClearFilters }: { onClearFilters: () => void 
 export function OfflineBanner() {
   return (
     <div className="offline-banner" role="status">
-      Hors connexion - les modifications seront conservées localement.
+      Hors connexion. Gardez l'app ouverte : vos modifications partiront au retour du réseau.
     </div>
   );
 }

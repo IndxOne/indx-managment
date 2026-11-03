@@ -60,7 +60,7 @@ describe("AggregatedActionsScreen", () => {
     );
 
     expect(screen.getByText("Relancer le prestataire")).toBeInTheDocument();
-    expect(screen.getByText("RUN")).toBeInTheDocument();
+    expect(screen.getByText("Suivi")).toBeInTheDocument();
     expect(screen.getByText(/Suivi quotidien/)).toBeInTheDocument();
   });
 

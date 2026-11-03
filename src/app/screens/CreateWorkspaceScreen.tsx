@@ -67,14 +67,14 @@ export function CreateWorkspaceScreen({
               <span className="workspace-icon" data-kind="run" aria-hidden="true">
                 <IconSun width={18} height={18} />
               </span>
-              Travail continu (RUN)
+              Suivi au quotidien
             </label>
             <label className="choice-option">
               <input type="radio" name="kind" checked={kind === "project"} onChange={() => setKind("project")} />
               <span className="workspace-icon" data-kind="project" aria-hidden="true">
                 <IconGrid width={18} height={18} />
               </span>
-              Projet avec étapes (PROJET)
+              Projet avec étapes
             </label>
           </div>
         </fieldset>

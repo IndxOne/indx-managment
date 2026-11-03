@@ -27,7 +27,7 @@ describe("AppSettingsScreen — accès à la connexion (Supabase configuré)", (
     const onOpenAuth = vi.fn();
     render(
       <TemporaryStoreProvider>
-        <AppSettingsScreen onNavigate={() => {}} onOpenAuth={onOpenAuth} />
+        <AppSettingsScreen onOpenAuth={onOpenAuth} />
       </TemporaryStoreProvider>
     );
 

@@ -43,22 +43,22 @@ export function RunHubScreen({
   return (
     <div>
       <div className="top-bar">
-        <h1>RUN</h1>
+        <h1>Suivi</h1>
       </div>
       <div className="app-main">
         {runWorkspaces.length === 0 ? (
           <EmptyState
-            title="Aucun espace RUN pour l'instant"
-            description="RUN est votre file opérationnelle continue (incidents, demandes, tâches IT). Créez-en un pour commencer."
+            title="Aucun espace de suivi pour l'instant"
+            description="Un espace de suivi regroupe vos tâches récurrentes : demandes, incidents, petites actions du quotidien. Créez-en un pour commencer."
             action={
               <button type="button" className="btn btn-primary tap-target" onClick={onCreateRun}>
                 <IconPlus width={16} height={16} strokeWidth={2.4} />
-                Créer un espace RUN
+                Créer un espace de suivi
               </button>
             }
           />
         ) : (
-          <ul className="list workspace-card-list" aria-label="Liste des espaces RUN">
+          <ul className="list workspace-card-list" aria-label="Liste des espaces de suivi">
             {runWorkspaces.map((workspace) => (
               <WorkspaceCard
                 key={workspace.id}

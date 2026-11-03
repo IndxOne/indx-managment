@@ -13,7 +13,7 @@ import type { Member } from "../../../domain/member";
 import type { Workspace } from "../../../domain/workspace";
 import type { WaitingReminderRule } from "../../../reminders/waiting-reminder";
 import type { RecurrenceFrequency, RecurrenceRule } from "../../../recurrence/recurrence-engine";
-import type { CarnetNote, HubSettings } from "../store-context";
+import type { CarnetNote } from "../store-context";
 
 
 /**
@@ -162,39 +162,6 @@ export function carnetNoteFromRow(row: CarnetNoteRow): CarnetNote {
 
 export function carnetNoteToRow(note: CarnetNote, userHash: string, ownerId: string | null = null): CarnetNoteRow {
   return { id: note.id, user_hash: userHash, owner_id: ownerId, text: note.text, created_at: note.createdAt };
-}
-
-export interface HubSettingsRow {
-  user_hash: string;
-  owner_id?: string | null;
-  monthly_objective: number | null;
-  daily_rate: number | null;
-  treasury_forecast: number | null;
-  updated_at: string;
-}
-
-export function hubSettingsFromRow(row: HubSettingsRow): HubSettings {
-  return {
-    monthlyObjective: row.monthly_objective,
-    dailyRate: row.daily_rate,
-    treasuryForecast: row.treasury_forecast,
-  };
-}
-
-export function hubSettingsToRow(
-  settings: HubSettings,
-  userHash: string,
-  now: string,
-  ownerId: string | null = null
-): HubSettingsRow {
-  return {
-    user_hash: userHash,
-    owner_id: ownerId,
-    monthly_objective: settings.monthlyObjective,
-    daily_rate: settings.dailyRate,
-    treasury_forecast: settings.treasuryForecast,
-    updated_at: now,
-  };
 }
 
 export interface MemberRow {

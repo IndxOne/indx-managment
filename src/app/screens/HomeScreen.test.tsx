@@ -145,7 +145,7 @@ describe("HomeScreen V3 — ordre mobile des blocs", () => {
     renderHome(emptyState);
     await waitFor(() => expect(screen.getByText("Rien ne nécessite ton attention actuellement.")).toBeInTheDocument());
     const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(headings).toEqual(["Aujourd'hui", "Mes projets", "Mon Brief", "RUN"]);
+    expect(headings).toEqual(["À traiter", "Mes projets", "Mon Brief", "Suivi"]);
   });
 });
 
@@ -258,7 +258,7 @@ describe("HomeScreen V3 — Bloc RUN (V2, store existant, aucune requête)", () 
     const onQuickCreate = vi.fn();
     const user = userEvent.setup();
     renderHome(emptyState, { onQuickCreate });
-    await waitFor(() => expect(screen.getByText("Rien à traiter côté RUN pour l'instant.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Rien à traiter dans votre suivi pour l'instant.")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /Ajouter une action/ }));
     expect(onQuickCreate).toHaveBeenCalledTimes(1);
   });
@@ -302,7 +302,7 @@ describe("HomeScreen V3 — hotfix 401 : session Auth requise avant toute lectur
     expect(readHomeOverviewMock).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     // RUN reste indépendant de l'état Auth V3 (store V2 local, aucune requête).
-    expect(screen.getByText("Rien à traiter côté RUN pour l'instant.")).toBeInTheDocument();
+    expect(screen.getByText("Rien à traiter dans votre suivi pour l'instant.")).toBeInTheDocument();
   });
 
   it("authentifié : la lecture V3 s'exécute normalement", async () => {

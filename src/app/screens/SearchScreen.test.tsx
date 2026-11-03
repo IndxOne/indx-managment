@@ -41,7 +41,7 @@ function renderScreen(state: AppState) {
   return render(
     <AnnouncerProvider>
       <StoreProvider initialState={state}>
-        <SearchScreen timezone="Europe/Paris" onNavigate={() => {}} onNavigateToWorkspace={vi.fn()} />
+        <SearchScreen timezone="Europe/Paris" onNavigateToWorkspace={vi.fn()} />
       </StoreProvider>
     </AnnouncerProvider>
   );

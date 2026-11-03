@@ -10,8 +10,6 @@ import {
   actionToRow,
   carnetNoteFromRow,
   carnetNoteToRow,
-  hubSettingsFromRow,
-  hubSettingsToRow,
   memberFromRow,
   memberToRow,
   recurrenceRuleFromRow,
@@ -20,7 +18,6 @@ import {
   workspaceToRow,
   type ActionRow,
   type CarnetNoteRow,
-  type HubSettingsRow,
   type MemberRow,
   type RecurrenceRuleRow,
   type WorkspaceRow,
@@ -166,7 +163,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         { data: actionRows, error: actionsError },
         { data: recurrenceRuleRows, error: recurrenceRulesError },
         { data: carnetNoteRows, error: carnetNotesError },
-        { data: hubSettingsRow, error: hubSettingsError },
         { data: memberRows, error: membersError },
       ] = await Promise.all([
         client
@@ -188,10 +184,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
           .select("id, text, created_at, owner_id")
           .order("created_at"),
         client
-          .from("projets_hub_settings")
-          .select("monthly_objective, daily_rate, treasury_forecast, updated_at, owner_id")
-          .maybeSingle(),
-        client
           .from("projets_members")
           .select("id, workspace_id, display_name, email, avatar_url, active, created_at, updated_at, owner_id")
           .order("created_at"),
@@ -200,7 +192,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
       if (actionsError) throw actionsError;
       if (recurrenceRulesError) throw recurrenceRulesError;
       if (carnetNotesError) throw carnetNotesError;
-      if (hubSettingsError) throw hubSettingsError;
       if (membersError) throw membersError;
 
       const workspaces = ((workspaceRows ?? []) as WorkspaceRow[]).map(workspaceFromRow);
@@ -225,11 +216,10 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         (membersByWorkspace[member.workspaceId] ??= []).push(member);
       }
       const carnetNotes = ((carnetNoteRows ?? []) as CarnetNoteRow[]).map(carnetNoteFromRow);
-      const hubSettings = hubSettingsRow ? hubSettingsFromRow(hubSettingsRow as HubSettingsRow) : undefined;
 
       dispatch({
         type: "hydrate",
-        state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes, hubSettings, membersByWorkspace },
+        state: { workspaces, actionsByWorkspace, recurrenceRulesByWorkspace, carnetNotes, membersByWorkspace },
       });
       setStatus("ready");
     } catch (cause) {
@@ -500,20 +490,6 @@ export function SupabaseStoreProvider({ children }: { children: ReactNode }) {
         });
       },
 
-      updateHubSettings: (settings) => {
-        dispatch({ type: "hub-settings/update", settings });
-        const now = new Date().toISOString();
-        return trackPersist({
-          key: "hub-settings",
-          persist: async () => {
-            const ownerId = await resolveOwnerId();
-            const { error } = await client
-              .from("projets_hub_settings")
-              .upsert(hubSettingsToRow(settings, userHash, now, ownerId), { onConflict: "user_hash" });
-            if (error) throw error;
-          },
-        });
-      },
 
       convertCarnetNote: (noteId, input) => {
         const id = generateId();

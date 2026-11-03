@@ -1,26 +1,17 @@
-import { IconBell, IconCalendar, IconCompass, IconLayers, IconNotebook, IconSearch, IconFlag } from "./components/Icons";
+import { IconBell, IconCalendar, IconFlag, IconNotebook, IconSearch, IconSettings } from "./components/Icons";
 
-// "app-settings" reste dans le type (utilisé par MoreSubNav pour marquer
-// Réglages comme section active depuis AppSettingsScreen) mais n'a plus
-// d'entrée dans MORE_LINKS : Réglages est désormais un onglet primaire de
-// BottomNav, plus une destination du menu secondaire.
-export type MoreDestination = "reminders" | "week" | "carnet" | "hub" | "roles" | "search" | "app-settings" | "brief";
+export type MoreDestination = "reminders" | "week" | "carnet" | "search" | "brief" | "app-settings";
 
 /**
- * Réglages est désormais un onglet primaire de BottomNav (5 emplacements —
- * Aujourd'hui/RUN/création rapide/Projets/Réglages, cadrage renouveau
- * mobile Lot A) : sa place ici disparaît. En échange, "Cette semaine" et
- * "Rappels" — qui occupaient deux des 4 anciens emplacements primaires —
- * rejoignent ce menu secondaire : aucune destination n'est perdue, seule sa
- * place change (mobile uniquement — desktop les garde en accès direct dans
- * la sidebar, cf. BottomNav.tsx).
+ * Menu "Plus" (mobile) : destinations secondaires, libellées en langage
+ * courant. Hub (indicateurs déclaratifs) et Approches métier (page
+ * explicative) ont été retirés : jugés superflus pour un usage quotidien.
  */
-export const MORE_LINKS: { key: MoreDestination; label: string; Icon: typeof IconNotebook }[] = [
-  { key: "reminders", label: "Rappels", Icon: IconBell },
-  { key: "week", label: "Cette semaine", Icon: IconCalendar },
-  { key: "carnet", label: "Carnet", Icon: IconNotebook },
-  { key: "hub", label: "Hub", Icon: IconLayers },
-  { key: "roles", label: "Approches métier", Icon: IconCompass },
-  { key: "search", label: "Recherche", Icon: IconSearch },
-  { key: "brief", label: "Mon Brief", Icon: IconFlag },
+export const MORE_LINKS: { key: MoreDestination; label: string; hint: string; Icon: typeof IconNotebook }[] = [
+  { key: "week", label: "Cette semaine", hint: "Tout ce qui est prévu sur 7 jours", Icon: IconCalendar },
+  { key: "reminders", label: "Relances", hint: "Ce que vous attendez des autres", Icon: IconBell },
+  { key: "brief", label: "Mon Brief", hint: "Le point sur vos projets", Icon: IconFlag },
+  { key: "carnet", label: "Notes", hint: "Idées à transformer en actions", Icon: IconNotebook },
+  { key: "search", label: "Recherche", hint: "Retrouver une action", Icon: IconSearch },
+  { key: "app-settings", label: "Réglages", hint: "Thème, compte, notifications", Icon: IconSettings },
 ];

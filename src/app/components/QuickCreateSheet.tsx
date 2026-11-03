@@ -50,7 +50,7 @@ export function QuickCreateSheet({
   if (step.name === "choose") {
     return (
       <BottomSheet title="Que voulez-vous créer ?" onClose={onCancel}>
-        <p id="quick-create-heading" style={{ fontWeight: 600 }}>
+        <p id="quick-create-heading" className="sr-only">
           Choisissez le type d'élément à créer
         </p>
         <div className="choice-group" role="group" aria-labelledby="quick-create-heading" style={{ marginBottom: 8 }}>
@@ -60,8 +60,8 @@ export function QuickCreateSheet({
                 <IconSun width={18} height={18} />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span className="move-axis-label">Action RUN</span>
-                <span className="move-axis-sub">Une action de la file opérationnelle du quotidien</span>
+                <span className="move-axis-label">Action de suivi</span>
+                <span className="move-axis-sub">Demande, incident, rappel… une tâche du quotidien</span>
               </span>
             </button>
           )}
@@ -82,7 +82,7 @@ export function QuickCreateSheet({
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span className="move-axis-label">Nouveau projet</span>
-              <span className="move-axis-sub">Créer un nouvel espace PROJET</span>
+              <span className="move-axis-sub">Un projet découpé en étapes</span>
             </span>
           </button>
         </div>
@@ -98,8 +98,8 @@ export function QuickCreateSheet({
   if (step.name === "target") {
     const candidates = step.kind === "run" ? runWorkspaces : projectWorkspaces;
     return (
-      <BottomSheet title={step.kind === "run" ? "Choisir l'espace RUN" : "Choisir le projet"} onClose={onCancel}>
-        <p style={{ fontWeight: 600 }}>{step.kind === "run" ? "Dans quel espace RUN ?" : "Dans quel projet ?"}</p>
+      <BottomSheet title={step.kind === "run" ? "Choisir l'espace de suivi" : "Choisir le projet"} onClose={onCancel}>
+        <p style={{ fontWeight: 600 }}>{step.kind === "run" ? "Dans quel espace de suivi ?" : "Dans quel projet ?"}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
           {candidates.map((workspace) => (
             <button

@@ -40,14 +40,14 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     // Les 4 emplacements primaires de BottomNav restent inchangés (cadrage
     // renouveau mobile Lot A) — Mon Brief n'y ajoute rien.
     expect(screen.getByRole("button", { name: /Accueil/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^RUN/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Suivi$/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Projets/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Réglages/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Plus$/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mon Brief" })).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", {
-        name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+        name: /^Plus$/,
       })
     );
     await user.click(screen.getByRole("button", { name: "Mon Brief" }));
@@ -69,7 +69,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(
       screen.getByRole("button", {
-        name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+        name: /^Plus$/,
       })
     );
     await user.click(screen.getByRole("button", { name: "Mon Brief" }));
@@ -91,7 +91,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(
       screen.getByRole("button", {
-        name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+        name: /^Plus$/,
       })
     );
     await user.click(screen.getByRole("button", { name: "Mon Brief" }));
@@ -115,7 +115,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(
       screen.getByRole("button", {
-        name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+        name: /^Plus$/,
       })
     );
     await user.click(screen.getByRole("button", { name: "Mon Brief" }));
@@ -132,7 +132,7 @@ describe("App — Mon Brief est joignable depuis le menu secondaire, sans change
     await screen.findByRole("button", { name: /Accueil/ });
     await user.click(
       screen.getByRole("button", {
-        name: "Menu secondaire : Rappels, Cette semaine, Carnet, Hub, Approches métier, Recherche, Mon Brief",
+        name: /^Plus$/,
       })
     );
     await user.click(screen.getByRole("button", { name: "Mon Brief" }));
