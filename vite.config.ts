@@ -28,8 +28,8 @@ export default defineConfig({
         start_url: "/",
         display: "standalone",
         categories: ["productivity", "business"],
-        background_color: "#f6f5f1",
-        theme_color: "#0c1823",
+        background_color: "#efe9dd",
+        theme_color: "#1b1a17",
         icons: [
           { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
