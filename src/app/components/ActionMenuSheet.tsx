@@ -4,13 +4,13 @@ import { ITEM_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS_DEFAULT } from "../lab
 import { scheduleSummary } from "../utils/schedule-summary";
 import { shareAction } from "../utils/share-action";
 import { BottomSheet } from "./BottomSheet";
-import { IconArrowRight, IconLink, IconMessage, IconPencil, IconShare, IconTrash } from "./Icons";
+import { IconArrowRight, IconLink, IconMessage, IconPencil, IconShare } from "./Icons";
 
 /**
- * Remplace la rangée de 5 boutons carrés sur la carte (pattern "panneau
- * d'admin web") par un menu d'actions unique — un seul point d'entrée
- * tactile, identique souris/clavier/tactile. Anatomie d'un vrai action
- * sheet iOS : un bloc groupé pour les actions, "Annuler" isolé en dessous.
+ * Menu d'une action, réduit à l'essentiel pour un usage quotidien :
+ * 3 gestes courants en grand (statut/date, modifier, notes), les options
+ * rares (lier, partager) en petits boutons, Supprimer isolé en bas.
+ * Fermeture : croix, fond ou geste retour — pas de bouton "Annuler" en plus.
  */
 export function ActionMenuSheet({
   action,
@@ -39,97 +39,62 @@ export function ActionMenuSheet({
   }
 
   return (
-    <BottomSheet title={`Actions - ${action.title}`} onClose={onClose}>
-      <div className="choice-group" style={{ marginBottom: 8 }}>
-        {onOpenNotes && (
-          <MenuRow
-            chipClass="phase-chip-teal"
-            icon={<IconMessage width={18} height={18} />}
-            label="Notes"
-            sub={noteCount > 0 ? `${noteCount} note${noteCount > 1 ? "s" : ""}` : "Aucune note"}
-            onClick={() => run(onOpenNotes)}
-          />
-        )}
-        {onOpenLink && (
-          <MenuRow
-            chipClass="phase-chip-purple"
-            icon={<IconLink width={18} height={18} />}
-            label={hasLink ? "Action liée" : "Lier à une autre action"}
-            sub={hasLink ? "Une action est liée" : "Aucune liaison"}
-            onClick={() => run(onOpenLink)}
-          />
-        )}
+    <BottomSheet title={action.title} onClose={onClose}>
+      <div className="choice-group">
+        <MenuRow
+          icon={<IconArrowRight width={18} height={18} />}
+          label="Statut et date"
+          sub={`${STATUS_LABELS_DEFAULT[action.status]} · ${scheduleSummary(action.schedule)}`}
+          onClick={() => run(onMove)}
+        />
         {onEdit && (
           <MenuRow
-            chipClass="phase-chip-blue"
             icon={<IconPencil width={18} height={18} />}
-            label="Éditer"
+            label="Modifier"
             sub={`${ITEM_TYPE_LABELS[action.itemType]} · ${PRIORITY_LABELS[action.priority]}`}
             onClick={() => run(onEdit)}
           />
         )}
-        <MenuRow
-          chipClass="phase-chip-orange"
-          icon={<IconArrowRight width={18} height={18} />}
-          label="Déplacer"
-          sub={`${STATUS_LABELS_DEFAULT[action.status]} · ${scheduleSummary(action.schedule)}`}
-          onClick={() => run(onMove)}
-        />
-        <MenuRow
-          chipClass="phase-chip-teal"
-          icon={<IconShare width={18} height={18} />}
-          label="Partager"
-          onClick={() => run(() => void shareAction(action))}
-        />
-        {onDelete && (
+        {onOpenNotes && (
           <MenuRow
-            chipClass="phase-chip-red"
-            icon={<IconTrash width={18} height={18} />}
-            label="Supprimer"
-            danger
-            onClick={() => run(onDelete)}
+            icon={<IconMessage width={18} height={18} />}
+            label="Notes"
+            sub={noteCount > 0 ? `${noteCount} note${noteCount > 1 ? "s" : ""}` : "Ajouter une note"}
+            onClick={() => run(onOpenNotes)}
           />
         )}
       </div>
-      <div className="choice-group">
-        <button
-          type="button"
-          className="action-menu-item"
-          style={{ justifyContent: "center", fontWeight: 600 }}
-          onClick={onClose}
-        >
-          Annuler
+
+      <div className="action-menu-secondary">
+        {onOpenLink && (
+          <button type="button" className="btn btn-small" onClick={() => run(onOpenLink)}>
+            <IconLink width={16} height={16} aria-hidden="true" />
+            {hasLink ? "Action liée" : "Lier"}
+          </button>
+        )}
+        <button type="button" className="btn btn-small" onClick={() => run(() => void shareAction(action))}>
+          <IconShare width={16} height={16} aria-hidden="true" />
+          Partager
         </button>
+        {onDelete && (
+          <button type="button" className="btn btn-small btn-danger-text action-menu-delete" onClick={() => run(onDelete)}>
+            Supprimer
+          </button>
+        )}
       </div>
     </BottomSheet>
   );
 }
 
-function MenuRow({
-  chipClass,
-  icon,
-  label,
-  sub,
-  danger,
-  onClick,
-}: {
-  chipClass: string;
-  icon: ReactNode;
-  label: string;
-  sub?: string;
-  danger?: boolean;
-  onClick: () => void;
-}) {
+function MenuRow({ icon, label, sub, onClick }: { icon: ReactNode; label: string; sub: string; onClick: () => void }) {
   return (
     <button type="button" className="action-menu-row" onClick={onClick}>
-      <span className={`action-menu-icon ${chipClass}`} aria-hidden="true">
+      <span className="action-menu-icon" aria-hidden="true">
         {icon}
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="action-menu-row-label" style={danger ? { color: "var(--color-danger)" } : undefined}>
-          {label}
-        </span>
-        {sub && <span className="action-menu-row-sub">{sub}</span>}
+        <span className="action-menu-row-label">{label}</span>
+        <span className="action-menu-row-sub">{sub}</span>
       </span>
     </button>
   );

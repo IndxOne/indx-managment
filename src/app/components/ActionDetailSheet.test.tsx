@@ -62,7 +62,7 @@ describe("ActionDetailSheet — ouverture et rangées", () => {
     expect(screen.getByRole("button", { name: /^Échéance/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Notes/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Lien/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Déplacer/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Tout changer/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Supprimer/ })).toBeInTheDocument();
   });
 
@@ -142,7 +142,7 @@ describe("ActionDetailSheet — orchestration des sheets existantes", () => {
     const user = userEvent.setup();
     render(<ActionDetailSheet {...baseProps()} />);
 
-    await user.click(screen.getByRole("button", { name: /^Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /^Tout changer/ }));
     expect(screen.getByText(/Déplacer « Relancer le prestataire »/)).toBeInTheDocument();
   });
 

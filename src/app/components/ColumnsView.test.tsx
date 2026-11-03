@@ -230,7 +230,7 @@ describe("ColumnsView", () => {
       onMove,
     });
     await user.click(screen.getByRole("button", { name: 'Actions pour "Arbitrer le prestataire"' }));
-    await user.click(screen.getByRole("button", { name: /Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /Statut et date/ }));
     expect(onMove).toHaveBeenCalledWith(action);
   });
 });

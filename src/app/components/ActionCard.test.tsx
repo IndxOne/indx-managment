@@ -359,7 +359,7 @@ describe("ActionCard — menu d'actions unique", () => {
       <ActionCard action={baseAction()} timezone="Europe/Paris" statusLabels={STATUS_LABELS_DEFAULT} onMove={onMove} />
     );
     await openMenu(user);
-    await user.click(screen.getByRole("button", { name: /Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /Statut et date/ }));
     expect(onMove).toHaveBeenCalledTimes(1);
   });
 
@@ -376,9 +376,9 @@ describe("ActionCard — menu d'actions unique", () => {
       />
     );
     await openMenu(user);
-    await user.click(screen.getByRole("button", { name: /Éditer/ }));
+    await user.click(screen.getByRole("button", { name: /^Modifier/ }));
     expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: /Éditer/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Modifier/ })).not.toBeInTheDocument();
   });
 
   it("ouvre le menu et déclenche Supprimer", async () => {
@@ -658,7 +658,7 @@ describe("ActionCard — variant kanban (Lot 2 : fusion avec l'ancienne KanbanCa
       />
     );
     await openMenu(user);
-    await user.click(screen.getByRole("button", { name: /Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /Statut et date/ }));
     expect(onMove).toHaveBeenCalledTimes(1);
   });
 

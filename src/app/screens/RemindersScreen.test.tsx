@@ -143,7 +143,7 @@ describe("RemindersScreen", () => {
     expect(screen.getByText("Aucune relance active")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Actions pour "Nouvelle tâche"/ }));
-    await user.click(screen.getByRole("button", { name: /^Déplacer/ }));
+    await user.click(screen.getByRole("button", { name: /^Statut et date/ }));
     await user.click(screen.getByRole("button", { name: /^Statut/ }));
     await user.click(screen.getByRole("button", { name: "En attente" }));
     await user.click(screen.getByLabelText("Activer une relance automatique"));

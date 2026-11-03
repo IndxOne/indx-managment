@@ -277,8 +277,8 @@ export function ActionDetailSheet({
             <DetailRow
               chipClass="phase-chip-blue"
               icon={<IconArrowRight width={18} height={18} />}
-              label="Déplacer"
-              value="Changer de phase, planification ou statut"
+              label="Tout changer"
+              value="Phase, date ou statut en une fois"
               onClick={() => setMoveAxis("full")}
             />
           </div>
