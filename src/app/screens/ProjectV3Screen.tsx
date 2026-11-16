@@ -107,7 +107,7 @@ export function ProjectV3Screen({
           />
         </div>
       )}
-      <div className="app-main">
+      <div className="app-main v22-screen">
         {state.status === "loading" && <LoadingState label="Chargement du projet…" />}
         {state.status === "error" && (
           <ErrorState description={projectOverviewErrorToUserMessage(state.error)} onRetry={() => setReloadToken((t) => t + 1)} />
