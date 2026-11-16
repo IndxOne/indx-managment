@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { PersistenceError } from "../../infrastructure/persistence/v3/errors";
 import { getSupabaseClient } from "../adapters/supabase/client";
 import { CreateProjectDialog } from "../components/minimal/CreateProjectDialog";
-import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
+import { ErrorState, LoadingState } from "../components/StateBlocks";
 import { authStateKey, useAuthState } from "../hooks/useAuthState";
 import { projectsListErrorToUserMessage } from "../utils/projects-list-labels";
 import { useCreateProjectAccess } from "../v3-writes/useWriteAccess";
@@ -22,11 +22,9 @@ type State =
 export function MinimalProjectsScreen({
   workspaceIds,
   onOpenProject,
-  onOpenAuth,
 }: {
   workspaceIds: string[];
   onOpenProject: (projectId: string) => void;
-  onOpenAuth: () => void;
 }) {
   const auth = useAuthState();
   const authKey = authStateKey(auth);
@@ -75,7 +73,10 @@ export function MinimalProjectsScreen({
       {state.status === "loading" && <LoadingState label="Chargement de tes projets…" />}
       {state.status === "unavailable" && <p className="mini-empty-box">Indisponible pour l&apos;instant.</p>}
       {state.status === "unauthenticated" && (
-        <AuthRequiredState description="Connecte-toi pour retrouver tes projets." onOpenAuth={onOpenAuth} />
+        <div className="mini-empty-box">
+          <strong>Connexion requise</strong>
+          <p>Utilise « Se connecter » en haut de la page pour retrouver tes projets.</p>
+        </div>
       )}
       {state.status === "error" && <ErrorState description={projectsListErrorToUserMessage(state.error)} onRetry={() => setReload((n) => n + 1)} />}
       {state.status === "ready" &&

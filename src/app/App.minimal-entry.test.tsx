@@ -34,17 +34,26 @@ describe("App — entrée minimale « Mes projets » (mode minimal)", () => {
     for (const old of ["Mon Brief", "Mes projets V3"]) expect(screen.queryByRole("heading", { name: old })).not.toBeInTheDocument();
     expect(screen.queryByText("Voir la semaine complète")).not.toBeInTheDocument();
   });
-  it("la barre de navigation fonctionnelle est conservée et l'onglet Projets rend la même surface", async () => {
+  it("aucune navigation historique : ni barre du bas, ni « ••• », ni sidebar, ni lien Plus", async () => {
     render(<App />);
     await screen.findByRole("heading", { level: 1, name: "Mes projets" });
-    await userEvent.click(screen.getByRole("button", { name: /Projets/ }));
-    expect(await screen.findByRole("heading", { level: 1, name: "Mes projets" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Accueil/ }));
+    for (const name of [/^RUN/, /Réglages/, /Projets$/, /Accueil/, /Menu secondaire/, /Plus/, /Nouvelle action/, /Mon Brief/]) {
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+    }
+  });
+  it("en-tête : le CTA ouvre la connexion existante ; le retour ramène à Mes projets, pas aux Réglages", async () => {
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Se connecter" }));
+    expect(await screen.findByRole("heading", { name: "Connexion" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retour aux réglages" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Retour à Mes projets" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Mes projets" })).toBeInTheDocument();
   });
-  it("le bouton Se connecter ouvre le parcours de connexion existant", async () => {
+  it("la marque de l'en-tête ramène à Mes projets depuis la connexion", async () => {
     render(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: /Se connecter/ }));
-    expect(await screen.findByRole("heading", { name: "Connexion" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Se connecter" }));
+    await screen.findByRole("heading", { name: "Connexion" });
+    await userEvent.click(screen.getByRole("button", { name: /Management, retour à Mes projets/ }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Mes projets" })).toBeInTheDocument();
   });
 });

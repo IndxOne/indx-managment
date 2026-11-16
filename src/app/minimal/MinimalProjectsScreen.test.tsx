@@ -15,8 +15,8 @@ vi.mock("../v3-writes/useWriteAccess", () => ({ useCreateProjectAccess: () => m.
 import { MinimalProjectsScreen } from "./MinimalProjectsScreen";
 
 const card = { id: "p1", name: "Site vitrine", status: "on_track", objective: "Publier", nextAction: { title: "Revoir" }, projectManager: "Alex", updatedAt: "2026-11-01T00:00:00.000Z" };
-const renderScreen = (o: { onOpenProject?: () => void; onOpenAuth?: () => void } = {}) =>
-  render(<MinimalProjectsScreen workspaceIds={["ws1"]} onOpenProject={o.onOpenProject ?? vi.fn()} onOpenAuth={o.onOpenAuth ?? vi.fn()} />);
+const renderScreen = (o: { onOpenProject?: () => void } = {}) =>
+  render(<MinimalProjectsScreen workspaceIds={["ws1"]} onOpenProject={o.onOpenProject ?? vi.fn()} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -25,14 +25,12 @@ beforeEach(() => {
 });
 
 describe("MinimalProjectsScreen", () => {
-  it("déconnecté : titre, un seul CTA de connexion, aucune lecture", async () => {
+  it("déconnecté : titre et message simple, aucune lecture ; le CTA de connexion vit dans l'en-tête", async () => {
     m.auth = { status: "unauthenticated" };
-    const onOpenAuth = vi.fn();
-    renderScreen({ onOpenAuth });
+    renderScreen();
     expect(await screen.findByRole("heading", { level: 1, name: "Mes projets" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Se connecter/ })).toHaveLength(1);
-    await userEvent.click(screen.getByRole("button", { name: /Se connecter/ }));
-    expect(onOpenAuth).toHaveBeenCalled();
+    expect(screen.getByText("Connexion requise")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Se connecter/ })).not.toBeInTheDocument();
     expect(m.read).not.toHaveBeenCalled();
   });
   it("non configuré : « Indisponible », sans faux contenu", async () => {

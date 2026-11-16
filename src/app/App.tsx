@@ -24,6 +24,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
 import { MinimalProjectsScreen } from "./minimal/MinimalProjectsScreen";
+import { MinimalHeader } from "./minimal/MinimalHeader";
 import { PreviewTag } from "./minimal/PreviewTag";
 import { isUxMinimalEnabled } from "./v3-writes/defaults";
 import { ProjectV3Screen } from "./screens/ProjectV3Screen";
@@ -180,11 +181,13 @@ function AppShell() {
   const activeTab = routeToTab(route, workspace?.kind);
   const routeKey = "workspaceId" in route ? `${route.screen}:${route.workspaceId}` : route.screen;
 
+  const minimal = isUxMinimalEnabled();
+
   return (
-    <div className="app-shell">
-      {isUxMinimalEnabled() && <PreviewTag />}
+    <div className={minimal ? "app-shell app-shell--minimal" : "app-shell"}>
+      {minimal && <PreviewTag />}
       {!online && <OfflineBanner />}
-      {!isDesktop && (
+      {!minimal && !isDesktop && (
         <button
           type="button"
           className="app-more-trigger tap-target"
@@ -195,15 +198,19 @@ function AppShell() {
           <IconMore width={20} height={20} strokeWidth={1.8} />
         </button>
       )}
-      <BottomNav
-        active={activeTab}
-        onChange={handleNavChange}
-        onQuickCreate={openQuickCreate}
-        workspaces={state.workspaces}
-        activeWorkspaceId={workspace?.id}
-        onSelectWorkspace={goToWorkspaceId}
-      />
+      {/* Mode minimal : ni barre du bas, ni « ••• », ni sidebar (repli : VITE_UX_MINIMAL=off). */}
+      {!minimal && (
+        <BottomNav
+          active={activeTab}
+          onChange={handleNavChange}
+          onQuickCreate={openQuickCreate}
+          workspaces={state.workspaces}
+          activeWorkspaceId={workspace?.id}
+          onSelectWorkspace={goToWorkspaceId}
+        />
+      )}
       <main className="app-content">
+        {minimal && <MinimalHeader onOpenAuth={() => setRoute({ screen: "auth" })} onHome={() => setRoute({ screen: "projects-v3" })} />}
         {!booted || isLoading ? (
           <LoadingState label="Chargement des espaces…" />
         ) : (
@@ -212,7 +219,6 @@ function AppShell() {
           <MinimalProjectsScreen
             workspaceIds={state.workspaces.map((w) => w.id)}
             onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
-            onOpenAuth={() => setRoute({ screen: "auth" })}
           />
         )}
 
@@ -390,8 +396,8 @@ function AppShell() {
                 <button
                   type="button"
                   className="btn btn-icon"
-                  onClick={() => setRoute({ screen: "app-settings" })}
-                  aria-label="Retour aux réglages"
+                  onClick={() => setRoute(minimal ? { screen: "projects-v3" } : { screen: "app-settings" })}
+                  aria-label={minimal ? "Retour à Mes projets" : "Retour aux réglages"}
                 >
                   <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
                 </button>
