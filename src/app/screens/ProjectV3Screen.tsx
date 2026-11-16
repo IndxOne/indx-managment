@@ -124,6 +124,7 @@ export function ProjectV3Screen({
           <AuthRequiredState description="Connecte-toi pour voir ce projet." onOpenAuth={onOpenAuth} />
         )}
         {state.status === "ready" && (() => {
+          // Mode minimal : l'ancien écran complet n'est plus présenté (conservé, repli VITE_UX_MINIMAL=off).
           const shell = (
             <ProjectPilotShell
               overview={state.overview}
@@ -144,7 +145,6 @@ export function ProjectV3Screen({
             <MinimalProject
               overview={state.overview}
               access={access}
-              detail={shell}
               onAdd={(title) => run(() => addWorkItem(deps, { projectId, title, authUserId: access.authUserId ?? "" }))}
               onComplete={(workItemId) => run(() => completeWorkItem(deps, workItemId))}
             />

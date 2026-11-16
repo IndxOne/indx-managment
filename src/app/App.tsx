@@ -23,6 +23,9 @@ import { CreateWorkspaceScreen } from "./screens/CreateWorkspaceScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { HubScreen } from "./screens/HubScreen";
 import { MoreScreen } from "./screens/MoreScreen";
+import { MinimalProjectsScreen } from "./minimal/MinimalProjectsScreen";
+import { PreviewTag } from "./minimal/PreviewTag";
+import { isUxMinimalEnabled } from "./v3-writes/defaults";
 import { ProjectV3Screen } from "./screens/ProjectV3Screen";
 import { ProjectsV3ListScreen } from "./screens/ProjectsV3ListScreen";
 import { ProjectWorkspaceScreen } from "./screens/ProjectWorkspaceScreen";
@@ -179,6 +182,7 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      {isUxMinimalEnabled() && <PreviewTag />}
       {!online && <OfflineBanner />}
       {!isDesktop && (
         <button
@@ -204,7 +208,15 @@ function AppShell() {
           <LoadingState label="Chargement des espaces…" />
         ) : (
           <div key={routeKey} className="route-transition">
-        {route.screen === "today" && (
+        {(route.screen === "today" || route.screen === "projects-v3") && isUxMinimalEnabled() && (
+          <MinimalProjectsScreen
+            workspaceIds={state.workspaces.map((w) => w.id)}
+            onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
+            onOpenAuth={() => setRoute({ screen: "auth" })}
+          />
+        )}
+
+        {route.screen === "today" && !isUxMinimalEnabled() && (
           <HomeScreen
             timezone={timezone}
             onNavigateToWorkspace={goToWorkspaceId}
@@ -238,7 +250,7 @@ function AppShell() {
           />
         )}
 
-        {route.screen === "projects-v3" && (
+        {route.screen === "projects-v3" && !isUxMinimalEnabled() && (
           <ProjectsV3ListScreen
             workspaceIds={state.workspaces.map((w) => w.id)}
             onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
