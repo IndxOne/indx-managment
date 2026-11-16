@@ -15,6 +15,10 @@ import { ProjectRecentChanges } from "../components/project-overview/ProjectRece
 import { ProjectExplorer } from "../components/project-overview/ProjectExplorer";
 import { ProjectContextRail, ProjectContextCompact } from "../components/project-overview/ProjectContextPanel";
 import type { RecentChangeSourceType } from "../../domain/v3/project-overview/types";
+import { MinimalProject } from "../components/minimal/MinimalProject";
+import { isUxMinimalEnabled } from "../v3-writes/defaults";
+import { useProjectWriteAccess } from "../v3-writes/useWriteAccess";
+import { addWorkItem, completeWorkItem } from "../v3-writes/writes";
 import { criticalityToTone, projectStatusToTone } from "../utils/tone";
 import {
   PROJECT_STATUS_LABELS,
@@ -57,6 +61,8 @@ export function ProjectV3Screen({
 }) {
   const auth = useAuthState();
   const authKey = authStateKey(auth);
+  const minimal = isUxMinimalEnabled();
+  const access = useProjectWriteAccess(projectId);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const focusKey = focusType && focusId ? `${focusType}:${focusId}` : undefined;
@@ -95,10 +101,12 @@ export function ProjectV3Screen({
           <button type="button" className="btn btn-icon" onClick={onBack} aria-label="Retour">
             <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
           </button>
-          <h1 className="project-title">{state.status === "ready" ? state.overview.project.name : "Projet"}</h1>
+          {!(minimal && state.status === "ready") && (
+            <h1 className="project-title">{state.status === "ready" ? state.overview.project.name : "Projet"}</h1>
+          )}
         </div>
       </div>
-      {state.status === "ready" && (
+      {state.status === "ready" && !minimal && (
         <div className="project-pilot-status-row">
           <SeverityBadge tone={projectStatusToTone(state.overview.project.status)} label={PROJECT_STATUS_LABELS[state.overview.project.status]} />
           <SeverityBadge
@@ -115,15 +123,33 @@ export function ProjectV3Screen({
         {state.status === "unauthenticated" && (
           <AuthRequiredState description="Connecte-toi pour voir ce projet." onOpenAuth={onOpenAuth} />
         )}
-        {state.status === "ready" && (
-          <ProjectPilotShell
-            overview={state.overview}
-            focusKey={focusKey}
-            focusType={focusType}
-            focusId={focusId}
-            onOpenBrief={() => onOpenBrief(projectId)}
-          />
-        )}
+        {state.status === "ready" && (() => {
+          // Mode minimal : l'ancien écran complet n'est plus présenté (conservé, repli VITE_UX_MINIMAL=off).
+          const shell = (
+            <ProjectPilotShell
+              overview={state.overview}
+              focusKey={focusKey}
+              focusType={focusType}
+              focusId={focusId}
+              onOpenBrief={() => onOpenBrief(projectId)}
+            />
+          );
+          if (!minimal) return shell;
+          const run = async (write: () => Promise<{ ok: true } | { ok: false; error: { message: string } }>) => {
+            const result = await write();
+            if (result.ok) setReloadToken((t) => t + 1);
+            return result.ok ? null : result.error.message;
+          };
+          const deps = { client: getSupabaseClient() };
+          return (
+            <MinimalProject
+              overview={state.overview}
+              access={access}
+              onAdd={(title) => run(() => addWorkItem(deps, { projectId, title, authUserId: access.authUserId ?? "" }))}
+              onComplete={(workItemId) => run(() => completeWorkItem(deps, workItemId))}
+            />
+          );
+        })()}
       </div>
     </div>
   );

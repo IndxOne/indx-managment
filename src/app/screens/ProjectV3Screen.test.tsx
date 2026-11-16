@@ -5,6 +5,9 @@ import type { ProjectOverviewProjection } from "../../domain/v3/project-overview
 import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { ProjectV3Screen } from "./ProjectV3Screen";
 
+// Couvre l'écran Projet historique (repli VITE_UX_MINIMAL=off) ; le mode minimal a ses propres tests.
+import.meta.env.VITE_UX_MINIMAL = "off";
+
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
   isSupabaseConfigured: () => true,

@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // Référence de build affichée sur les Previews (COMMIT_REF fourni par Netlify ; « local » sinon).
+  define: { __BUILD_REF__: JSON.stringify((process.env.COMMIT_REF ?? "local").slice(0, 7)) },
   plugins: [
     react(),
     VitePWA({
