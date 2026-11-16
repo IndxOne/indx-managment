@@ -18,6 +18,20 @@ function item(overrides: Partial<BriefItem> = {}): BriefItem {
   };
 }
 
+describe("BriefItemCard — mise en avant V2.2", () => {
+  it("featured : libellé selon le type, classe dédiée, nom accessible inchangé", () => {
+    const { rerender } = render(<BriefItemCard item={item({ sourceType: "decision" })} featured onOpen={vi.fn()} />);
+    expect(screen.getByText("Prochaine décision")).toBeInTheDocument();
+    expect(screen.getByRole("button").className).toContain("brief-item-card-featured");
+    expect(screen.getByRole("button").getAttribute("aria-label")).not.toContain("Prochaine décision");
+    rerender(<BriefItemCard item={item({ sourceType: "risk" })} featured />);
+    expect(screen.getByText("Priorité")).toBeInTheDocument();
+    rerender(<BriefItemCard item={item()} />);
+    expect(screen.queryByText("Priorité")).not.toBeInTheDocument();
+    expect(screen.queryByText("Prochaine décision")).not.toBeInTheDocument();
+  });
+});
+
 describe("BriefItemCard — sans onOpen", () => {
   it("n'est pas un bouton, aucun tabIndex, aucune affordance de navigation", () => {
     render(<BriefItemCard item={item()} />);

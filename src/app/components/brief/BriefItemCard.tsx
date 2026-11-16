@@ -24,6 +24,7 @@ export function BriefItemCard({
   item,
   onOpen,
   focused = false,
+  featured = false,
 }: {
   item: BriefItem;
   onOpen?: (item: BriefItem) => void;
@@ -31,9 +32,14 @@ export function BriefItemCard({
    * ciblé est déjà l'élément affiché — même convention visuelle que
    * `[data-focused="true"]` (ex-AttentionEntityCard, correctif §6). */
   focused?: boolean;
+  /** V2.2 : mise en avant visuelle de la première priorité (présentation seule). */
+  featured?: boolean;
 }) {
   const content = (
     <>
+      {featured && (
+        <p className="brief-item-card-featured-label">{item.sourceType === "decision" ? "Prochaine décision" : "Priorité"}</p>
+      )}
       <div className="brief-item-card-header">
         <span className="brief-item-card-severity" data-severity={item.severity}>
           {SEVERITY_LABELS[item.severity]}
@@ -51,12 +57,13 @@ export function BriefItemCard({
   );
 
   const borderColor = SEVERITY_BORDER_VAR[item.severity];
+  const featuredClass = featured ? " brief-item-card-featured" : "";
 
   // Sans onOpen : carte non interactive — aucun bouton, aucun tabIndex,
   // aucune affordance de navigation (décision de gate §6).
   if (!onOpen) {
     return (
-      <div className="brief-item-card" style={{ borderLeftColor: borderColor }} data-focused={focused || undefined}>
+      <div className={`brief-item-card${featuredClass}`} style={{ borderLeftColor: borderColor }} data-focused={focused || undefined}>
         {content}
       </div>
     );
@@ -67,7 +74,7 @@ export function BriefItemCard({
   return (
     <button
       type="button"
-      className="brief-item-card brief-item-card-button tap-target"
+      className={`brief-item-card brief-item-card-button tap-target${featuredClass}`}
       style={{ borderLeftColor: borderColor }}
       data-focused={focused || undefined}
       onClick={() => onOpen(item)}

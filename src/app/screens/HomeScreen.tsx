@@ -218,12 +218,16 @@ export function HomeScreen({
   return (
     <div>
       <div className="top-bar">
-        <div>
-          <span className="screen-eyebrow">INDXONE Workspace</span>
-          <h1>Aujourd&apos;hui</h1>
+        <div className="v22-brandrow">
+          <img className="v22-mark" src="/brand/indxone-mark-tile.svg" alt="" width={40} height={40} />
+          <div>
+            <span className="screen-eyebrow">INDXONE Workspace</span>
+            <h1>Aujourd&apos;hui</h1>
+            <p className="v22-lede">Ce qui avance, ce qui attend et ce qui mérite votre attention.</p>
+          </div>
         </div>
       </div>
-      <div className="app-main">
+      <div className="app-main v22-screen">
         <section aria-labelledby="home-attention-heading" className="today-section">
           <h2 id="home-attention-heading" className="section-title">
             Aujourd&apos;hui
@@ -241,8 +245,8 @@ export function HomeScreen({
               <p className="action-sub">{attentionSummary(v3State.overview.attentionItems)}</p>
               {v3State.overview.attentionItems.length > 0 && (
                 <div className="action-card-list">
-                  {v3State.overview.attentionItems.map((item) => (
-                    <BriefItemCard key={item.id} item={item} onOpen={handleOpenAttentionItem} />
+                  {v3State.overview.attentionItems.map((item, index) => (
+                    <BriefItemCard key={item.id} item={item} featured={index === 0} onOpen={handleOpenAttentionItem} />
                   ))}
                 </div>
               )}
