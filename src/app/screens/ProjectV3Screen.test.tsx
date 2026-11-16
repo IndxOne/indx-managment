@@ -5,6 +5,9 @@ import type { ProjectOverviewProjection } from "../../domain/v3/project-overview
 import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { ProjectV3Screen } from "./ProjectV3Screen";
 
+// Ces tests couvrent les vues historiques (repli réversible VITE_UX_V22=off) ; les vues V2.2 ont leurs propres tests.
+import.meta.env.VITE_UX_V22 = "off";
+
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
   isSupabaseConfigured: () => true,
