@@ -28,8 +28,13 @@ export function useProjectWriteAccess(projectId: string): WriteAccess {
     setAccess(NONE);
     const client = getSupabaseClient();
     void (async () => {
-      const project = await findProjectById(client, projectId);
-      const role = project.ok && project.value ? await getWorkspaceRole(client, project.value.workspaceId) : null;
+      let role: Awaited<ReturnType<typeof getWorkspaceRole>> = null;
+      try {
+        const project = await findProjectById(client, projectId);
+        role = project.ok && project.value ? await getWorkspaceRole(client, project.value.workspaceId) : null;
+      } catch {
+        role = null; // échec de vérification : jamais d'écriture proposée
+      }
       if (!cancelled) setAccess({ canWrite: canWriteRole(role), resolved: true, authUserId: auth.authUserId });
     })();
     return () => {
@@ -55,7 +60,12 @@ export function useCreateProjectAccess(workspaceIds: string[]): CreateAccess {
     }
     let cancelled = false;
     void (async () => {
-      const workspaceId = await pickWritableWorkspace(getSupabaseClient(), workspaceIds);
+      let workspaceId: string | null = null;
+      try {
+        workspaceId = await pickWritableWorkspace(getSupabaseClient(), workspaceIds);
+      } catch {
+        workspaceId = null; // échec de vérification : jamais d'écriture proposée
+      }
       if (!cancelled) setAccess({ canWrite: workspaceId !== null, resolved: true, workspaceId: workspaceId ?? undefined, authUserId: auth.authUserId });
     })();
     return () => {
