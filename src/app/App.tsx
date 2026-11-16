@@ -240,6 +240,7 @@ function AppShell() {
 
         {route.screen === "projects-v3" && (
           <ProjectsV3ListScreen
+            workspaceIds={state.workspaces.map((w) => w.id)}
             onOpenProject={(projectId) => setRoute({ screen: "project-v3", projectId, from: "projects-v3" })}
             onOpenLegacy={() => setRoute({ screen: "spaces-list" })}
             onOpenAuth={() => setRoute({ screen: "auth" })}

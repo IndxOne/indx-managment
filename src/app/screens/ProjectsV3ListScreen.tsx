@@ -8,6 +8,10 @@ import { projectsListErrorToUserMessage } from "../utils/projects-list-labels";
 import { PROJECTS_LIST_FILTERS, type ProjectsFilterId } from "../utils/projects-list-filters";
 import { AuthRequiredState, ErrorState, LoadingState } from "../components/StateBlocks";
 import { SegmentedTabs } from "../components/SegmentedTabs";
+import { CreateProjectDialog } from "../components/minimal/CreateProjectDialog";
+import { isUxMinimalEnabled } from "../v3-writes/defaults";
+import { useCreateProjectAccess } from "../v3-writes/useWriteAccess";
+import { createProjectWithObjective } from "../v3-writes/writes";
 import { HomeProjectCard } from "../components/home/HomeProjectCard";
 
 type LoadState =
@@ -29,7 +33,10 @@ export function ProjectsV3ListScreen({
   onOpenProject,
   onOpenLegacy,
   onOpenAuth,
+  workspaceIds = [],
 }: {
+  /** Espaces connus de l'utilisateur : candidats pour créer un projet (rôle réel vérifié avant d'afficher le geste). */
+  workspaceIds?: string[];
   onOpenProject: (projectId: string) => void;
   onOpenLegacy: () => void;
   /** Hotfix production (401 V3) : ouvre l'écran Connexion tant que non authentifié. */
@@ -40,6 +47,8 @@ export function ProjectsV3ListScreen({
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const [filter, setFilter] = useState<ProjectsFilterId>("active");
+  const createAccess = useCreateProjectAccess(workspaceIds);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (auth.status === "unconfigured") {
@@ -82,7 +91,27 @@ export function ProjectsV3ListScreen({
     <div>
       <div className="top-bar">
         <h1>Projets</h1>
+        {isUxMinimalEnabled() && createAccess.canWrite && (
+          <button type="button" className="btn btn-primary tap-target" onClick={() => setCreating(true)}>
+            + Créer un projet
+          </button>
+        )}
       </div>
+      {creating && createAccess.workspaceId && createAccess.authUserId && (
+        <CreateProjectDialog
+          onClose={() => setCreating(false)}
+          onSubmit={async (v) => {
+            const result = await createProjectWithObjective(
+              { client: getSupabaseClient() },
+              { workspaceId: createAccess.workspaceId!, authUserId: createAccess.authUserId!, name: v.name, objective: v.objective, projectManager: v.projectManager, dueDate: v.dueDate || undefined }
+            );
+            if (!result.ok) return result.error.message;
+            setCreating(false);
+            onOpenProject(result.value.projectId);
+            return null;
+          }}
+        />
+      )}
       <div className="app-main">
         <SegmentedTabs
           ariaLabel="Filtrer les projets"
