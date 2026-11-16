@@ -13,6 +13,9 @@ import { ToastProvider } from "../components/Toast";
 import { resetAuthStateForTests } from "../hooks/useAuthState";
 import { HomeScreen } from "./HomeScreen";
 
+// Ces tests couvrent les vues historiques (repli réversible VITE_UX_V22=off) ; les vues V2.2 ont leurs propres tests.
+import.meta.env.VITE_UX_V22 = "off";
+
 vi.mock("../adapters/supabase/client", () => ({
   getSupabaseClient: () => ({}),
   isSupabaseConfigured: () => true,

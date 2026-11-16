@@ -1,3 +1,5 @@
+import { isUxV22Enabled } from "../ux-v22";
+import { V22Home } from "../components/v22/V22Home";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cycleStatus } from "../../domain/move-action";
 import type { Action } from "../../domain/types";
@@ -213,17 +215,55 @@ export function HomeScreen({
     [onOpenProject]
   );
 
+  const v22 = isUxV22Enabled();
   const runIsEmpty = !runOverview.priorityAction && runOverview.runToday.length === 0;
 
   return (
     <div>
       <div className="top-bar">
-        <div>
-          <span className="screen-eyebrow">INDXONE Workspace</span>
-          <h1>Aujourd&apos;hui</h1>
-        </div>
+        {v22 ? (
+          <div className="v22-brandrow">
+            <img className="v22-mark" src="/brand/indxone-mark-tile.svg" alt="" width={40} height={40} />
+            <div>
+              <span className="screen-eyebrow">Votre espace</span>
+              <h1 className="v22-title">Voyez l&apos;essentiel.</h1>
+              <p className="v22-lede">Ce qui avance, ce qui attend et ce qui mérite votre attention.</p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <span className="screen-eyebrow">INDXONE Workspace</span>
+            <h1>Aujourd&apos;hui</h1>
+          </div>
+        )}
       </div>
-      <div className="app-main">
+      <div className="app-main v22-screen">
+        {v22 ? (
+          <>
+            {v3State.status === "unauthenticated" && (
+              <AuthRequiredState description="Connecte-toi pour retrouver tes projets et ce qui nécessite ton attention." onOpenAuth={onOpenAuth} />
+            )}
+            {v3State.status === "loading" && <LoadingState label="Chargement de ton espace…" />}
+            {v3State.status === "error" && (
+              <ErrorState description={homeOverviewErrorToUserMessage(v3State.error)} onRetry={() => setReloadToken((t) => t + 1)} />
+            )}
+            {v3State.status === "unavailable" && <p className="action-sub">Indisponible pour l&apos;instant.</p>}
+            {v3State.status === "ready" && (
+              <>
+                <V22Home
+                  attentionItems={v3State.overview.attentionItems}
+                  projects={v3State.overview.projects}
+                  onOpenAttentionItem={handleOpenAttentionItem}
+                  onOpenProject={onOpenProject}
+                />
+                <button type="button" className="v22-btn v22-btn-block tap-target" onClick={onOpenBrief}>
+                  Voir Mon Brief · mis à jour à {formatUpdatedAt(v3State.overview.generatedAt)}
+                </button>
+              </>
+            )}
+          </>
+        ) : (
+          <>
         <section aria-labelledby="home-attention-heading" className="today-section">
           <h2 id="home-attention-heading" className="section-title">
             Aujourd&apos;hui
@@ -299,6 +339,9 @@ export function HomeScreen({
             </div>
           </button>
         </section>
+
+          </>
+        )}
 
         <TodaySection
           id="home-run-heading"

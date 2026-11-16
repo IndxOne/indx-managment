@@ -15,6 +15,9 @@ import { ProjectRecentChanges } from "../components/project-overview/ProjectRece
 import { ProjectExplorer } from "../components/project-overview/ProjectExplorer";
 import { ProjectContextRail, ProjectContextCompact } from "../components/project-overview/ProjectContextPanel";
 import type { RecentChangeSourceType } from "../../domain/v3/project-overview/types";
+import { isUxV22Enabled } from "../ux-v22";
+import { V22Project } from "../components/v22/V22Project";
+import { V22Action } from "../components/v22/V22Action";
 import { criticalityToTone, projectStatusToTone } from "../utils/tone";
 import {
   PROJECT_STATUS_LABELS,
@@ -57,6 +60,7 @@ export function ProjectV3Screen({
 }) {
   const auth = useAuthState();
   const authKey = authStateKey(auth);
+  const v22 = isUxV22Enabled();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadToken, setReloadToken] = useState(0);
   const focusKey = focusType && focusId ? `${focusType}:${focusId}` : undefined;
@@ -95,10 +99,12 @@ export function ProjectV3Screen({
           <button type="button" className="btn btn-icon" onClick={onBack} aria-label="Retour">
             <IconChevronRight width={18} height={18} style={{ transform: "rotate(180deg)" }} />
           </button>
-          <h1 className="project-title">{state.status === "ready" ? state.overview.project.name : "Projet"}</h1>
+          {!(v22 && state.status === "ready") && (
+            <h1 className="project-title">{state.status === "ready" ? state.overview.project.name : "Projet"}</h1>
+          )}
         </div>
       </div>
-      {state.status === "ready" && (
+      {state.status === "ready" && !v22 && (
         <div className="project-pilot-status-row">
           <SeverityBadge tone={projectStatusToTone(state.overview.project.status)} label={PROJECT_STATUS_LABELS[state.overview.project.status]} />
           <SeverityBadge
@@ -107,7 +113,7 @@ export function ProjectV3Screen({
           />
         </div>
       )}
-      <div className="app-main">
+      <div className={v22 ? "app-main v22-screen" : "app-main"}>
         {state.status === "loading" && <LoadingState label="Chargement du projet…" />}
         {state.status === "error" && (
           <ErrorState description={projectOverviewErrorToUserMessage(state.error)} onRetry={() => setReloadToken((t) => t + 1)} />
@@ -178,6 +184,41 @@ function ProjectPilotShell({
   // Brief toujours disponible).
   const focusItemMatchesDeepLink = !!focusItem && focusKey === focusItem.id;
   const nextMilestoneMatchesDeepLink = !!summary.nextMilestone && focusKey === `milestone:${summary.nextMilestone.id}`;
+
+  // V2.2 : vues de présentation sur la même projection ; anciens Explorer/récents/contexte
+  // conservés dans la disclosure « Tout le détail » (masquage réversible, VITE_UX_V22=off).
+  const [actionId, setActionId] = useState<string | null>(null);
+  const openedWorkItem = actionId ? workItems.find((w) => w.id === actionId) : undefined;
+  if (isUxV22Enabled()) {
+    if (openedWorkItem) {
+      return <V22Action item={openedWorkItem} projectName={project.name} onBack={() => setActionId(null)} />;
+    }
+    return (
+      <V22Project
+        overview={overview}
+        focused={focusItemMatchesDeepLink}
+        onOpenBrief={onOpenBrief}
+        onOpenAction={setActionId}
+        detailOpen={!!explorerTarget}
+        detail={
+          <>
+            <ProjectRecentChanges
+              recentChanges={recentChanges}
+              onSelect={(type, id) => setExplorerTarget((prev) => ({ type, id, nonce: (prev?.nonce ?? -1) + 1 }))}
+            />
+            <ProjectExplorer
+              key={explorerTarget ? `${explorerFocusKey}:${explorerTarget.nonce}` : "none"}
+              data={{ objectives, milestones, workItems, decisions, risks, issues }}
+              focusType={explorerTarget?.type}
+              focusId={explorerTarget?.id}
+              alreadyVisibleElsewhere={false}
+            />
+            <ProjectContextCompact rows={contextRows} />
+          </>
+        }
+      />
+    );
+  }
 
   return (
     <div className="project-pilot-shell">

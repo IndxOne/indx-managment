@@ -3,6 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { App } from "./App";
 
+// Ces tests couvrent les vues historiques (repli réversible VITE_UX_V22=off) ; les vues V2.2 ont leurs propres tests.
+import.meta.env.VITE_UX_V22 = "off";
+
 /**
  * Fichier séparé de App.test.tsx / App.brief.test.tsx : vi.mock est hoisté
  * en tête de module (même contrainte que ces deux fichiers).
